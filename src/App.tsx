@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as React from 'react';
-import { Calendar, Users, Settings, FileText, MessageSquare, Wrench, Home, Plus, Edit, Trash2, X, Download } from 'lucide-react';
+import { Calendar, Users, Settings, FileText, MessageSquare, Wrench, Home, Plus, Edit, Trash2, X, Download, Upload, Eye } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 // Type definitions
@@ -61,29 +61,68 @@ interface Equipment {
   specifications: any;
 }
 
+interface Document {
+  id: number;
+  name: string;
+  size: number;
+  type: string;
+  category: string;
+  uploadDate: string;
+  description?: string;
+}
+
+
+// Load data from localStorage
+const loadFromStorage = <T,>(key: string, defaultData: T): T => {
+  try {
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : defaultData;
+  } catch {
+    return defaultData;
+  }
+};
+
+const saveToStorage = <T,>(key: string, data: T) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (error) {
+    console.error('Failed to save to localStorage:', error);
+  }
+};
+
 const MaintenanceManagementSystem = () => {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   
-  // Load data from localStorage
-  const loadFromStorage = <T,>(key: string, defaultData: T): T => {
-    try {
-      const saved = localStorage.getItem(key);
-      return saved ? JSON.parse(saved) : defaultData;
-    } catch {
-      return defaultData;
-    }
-  };
-
-  const saveToStorage = <T,>(key: string, data: T) => {
-    try {
-      localStorage.setItem(key, JSON.stringify(data));
-    } catch (error) {
-      console.error('Failed to save to localStorage:', error);
-    }
-  };
+  // 문서 관리 상태
+  const [documents, setDocuments] = useState<Document[]>(() => 
+    loadFromStorage('documents', [
+      {
+        id: 1,
+        name: '안전매뉴얼_v2.pdf',
+        size: 2048576,
+        type: 'application/pdf',
+        category: '안전',
+        uploadDate: '2025-06-01',
+        description: '작업 안전 가이드라인'
+      },
+      {
+        id: 2,
+        name: '정비절차서.docx',
+        size: 1024768,
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        category: '매뉴얼',
+        uploadDate: '2025-05-28',
+        description: '표준 정비 절차'
+      }
+    ])
+  );
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [uploadCategory, setUploadCategory] = useState('매뉴얼');
+  const [uploadDescription, setUploadDescription] = useState('');
 
   // Sample data - in real app this would come from backend
   const [personnel, setPersonnel] = useState<Personnel[]>(() => 
@@ -427,13 +466,64 @@ const MaintenanceManagementSystem = () => {
     XLSX.writeFile(workbook, '설비관리_데이터.xlsx');
   };
 
+  // 문서 관리 함수들
+  const handleFileUpload = () => {
+    if (!selectedFiles || selectedFiles.length === 0) return;
+
+    const newDocuments: Document[] = [];
+    
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i];
+      const newDoc: Document = {
+        id: Date.now() + i,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        category: uploadCategory,
+        uploadDate: new Date().toISOString().split('T')[0],
+        description: uploadDescription
+      };
+      newDocuments.push(newDoc);
+    }
+    
+    const updatedDocuments = [...documents, ...newDocuments];
+    setDocuments(updatedDocuments);
+    saveToStorage('documents', updatedDocuments);
+    
+    // 상태 초기화
+    setSelectedFiles(null);
+    setUploadDescription('');
+    setShowUploadModal(false);
+    
+    alert(`${newDocuments.length}개의 문서가 업로드되었습니다.`);
+  };
+
+  const deleteDocument = (documentId: number) => {
+    const updatedDocuments = documents.filter(doc => doc.id !== documentId);
+    setDocuments(updatedDocuments);
+    saveToStorage('documents', updatedDocuments);
+    alert('문서가 삭제되었습니다.');
+  };
+
+  // Save documents to localStorage whenever documents change
+  useEffect(() => {
+    saveToStorage('documents', documents);
+  }, [documents]);
+
   // Navigation
   const renderNavigation = () => (
     <nav className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
-            <h1 className="text-xl font-semibold text-gray-900">정비 관리 시스템</h1>
+            <div className="flex flex-col">
+              <h1 className="text-xl font-semibold text-gray-900">정비 업체 관리 시스템</h1>
+              <div className="flex items-center gap-2 mt-1">
+                <img src="/wideincheon-logo.png" alt="위드인천에너지" className="h-5 w-auto" />
+                <span className="text-gray-400 text-sm">×</span>
+                <img src="/youngjin-logo.png" alt="영진" className="h-5 w-auto" />
+              </div>
+            </div>
           </div>
           <div className="flex space-x-8">
             {[
@@ -1716,11 +1806,159 @@ const MaintenanceManagementSystem = () => {
 
   // Documents
   const renderDocuments = () => (
-    <div className="space-y-6">
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <h2 className="text-lg font-semibold mb-4">문서 관리</h2>
-        <p className="text-gray-500">문서 관리 기능이 여기에 표시됩니다.</p>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">문서 관리</h2>
+        <button
+          onClick={() => setShowUploadModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          <Upload className="w-4 h-4" />
+          문서 업로드
+        </button>
       </div>
+
+      {/* 문서 목록 */}
+      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <table className="w-full">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">문서명</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">카테고리</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">파일 크기</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">업로드일</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">업로더</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">액션</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {documents.map(doc => (
+              <tr key={doc.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <FileText className="w-5 h-5 text-blue-500 mr-3" />
+                    <div>
+                      <div className="text-sm font-medium text-gray-900">{doc.name}</div>
+                      {doc.description && (
+                        <div className="text-sm text-gray-500">{doc.description}</div>
+                      )}
+                    </div>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                    {doc.category}
+                  </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {(doc.size / 1024 / 1024).toFixed(2)} MB
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {new Date(doc.uploadDate).toLocaleDateString('ko-KR')}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  관리자
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => alert('미리보기 기능은 현재 준비 중입니다.')}
+                      className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
+                    >
+                      <Eye className="w-4 h-4" />
+                      보기
+                    </button>
+                    <button
+                      onClick={() => deleteDocument(doc.id)}
+                      className="text-red-600 hover:text-red-900 flex items-center gap-1"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      삭제
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        
+        {documents.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <FileText className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p>업로드된 문서가 없습니다.</p>
+          </div>
+        )}
+      </div>
+
+      {/* 업로드 모달 */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">문서 업로드</h3>
+              <button
+                onClick={() => setShowUploadModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">파일 선택</label>
+                <input
+                  type="file"
+                  multiple
+                  onChange={(e) => setSelectedFiles(e.target.files)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">카테고리</label>
+                <select
+                  value={uploadCategory}
+                  onChange={(e) => setUploadCategory(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="매뉴얼">매뉴얼</option>
+                  <option value="보고서">보고서</option>
+                  <option value="계약서">계약서</option>
+                  <option value="기타">기타</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">설명 (선택사항)</label>
+                <textarea
+                  value={uploadDescription}
+                  onChange={(e) => setUploadDescription(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows={3}
+                  placeholder="문서에 대한 간단한 설명을 입력하세요"
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowUploadModal(false)}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleFileUpload}
+                disabled={!selectedFiles || selectedFiles.length === 0}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                업로드
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 

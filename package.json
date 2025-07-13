@@ -8,6 +8,7 @@
     "eject": "react-scripts eject"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.50.5",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "ajv": "^8.17.1",
