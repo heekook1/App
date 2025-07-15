@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import * as React from 'react';
 import { Calendar, Users, Settings, FileText, MessageSquare, Wrench, Home, Plus, Edit, Trash2, X, Download, Upload, Eye } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { supabase } from './supabaseClient';
 
 // Type definitions
 interface Personnel {
@@ -467,48 +468,192 @@ const MaintenanceManagementSystem = () => {
   };
 
   // 문서 관리 함수들
-  const handleFileUpload = () => {
+  const handleFileUpload = async () => {
     if (!selectedFiles || selectedFiles.length === 0) return;
 
-    const newDocuments: Document[] = [];
-    
-    for (let i = 0; i < selectedFiles.length; i++) {
-      const file = selectedFiles[i];
-      const newDoc: Document = {
-        id: Date.now() + i,
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        category: uploadCategory,
-        uploadDate: new Date().toISOString().split('T')[0],
-        description: uploadDescription
-      };
-      newDocuments.push(newDoc);
+    try {
+      const uploadedDocuments: Document[] = [];
+      
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `documents/${fileName}`;
+        
+        // 1. Storage에 파일 업로드
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('documents')
+          .upload(filePath, file);
+          
+        if (uploadError) {
+          console.error('업로드 에러:', uploadError);
+          // Storage 버킷이 없을 수도 있으므로 로컬 스토리지로 폴백
+          const newDoc: Document = {
+            id: Date.now() + i,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            category: uploadCategory,
+            uploadDate: new Date().toISOString().split('T')[0],
+            description: uploadDescription
+          };
+          uploadedDocuments.push(newDoc);
+          continue;
+        }
+        
+        // 2. Database에 파일 정보 저장
+        const { data: dbData, error: dbError } = await supabase
+          .from('documents')
+          .insert({
+            file_name: file.name,
+            file_path: filePath,
+            file_size: file.size,
+            file_type: file.type,
+            category: uploadCategory,
+            description: uploadDescription,
+            uploaded_by: '관리자'
+          })
+          .select()
+          .single();
+          
+        if (dbError) {
+          console.error('DB 저장 에러:', dbError);
+          // DB 에러 시에도 로컬에 저장
+          const newDoc: Document = {
+            id: Date.now() + i,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            category: uploadCategory,
+            uploadDate: new Date().toISOString().split('T')[0],
+            description: uploadDescription
+          };
+          uploadedDocuments.push(newDoc);
+        } else if (dbData) {
+          // 성공적으로 저장됨
+          const newDoc: Document = {
+            id: dbData.id,
+            name: dbData.file_name,
+            size: dbData.file_size,
+            type: dbData.file_type,
+            category: dbData.category || uploadCategory,
+            uploadDate: dbData.uploaded_at,
+            description: dbData.description
+          };
+          uploadedDocuments.push(newDoc);
+        }
+      }
+      
+      // 로컬 상태 업데이트
+      const updatedDocuments = [...documents, ...uploadedDocuments];
+      setDocuments(updatedDocuments);
+      saveToStorage('documents', updatedDocuments);
+      
+      // 상태 초기화
+      setSelectedFiles(null);
+      setUploadDescription('');
+      setShowUploadModal(false);
+      
+      alert(`${uploadedDocuments.length}개의 문서가 업로드되었습니다.`);
+    } catch (error) {
+      console.error('파일 업로드 중 오류:', error);
+      alert('파일 업로드 중 오류가 발생했습니다.');
     }
-    
-    const updatedDocuments = [...documents, ...newDocuments];
-    setDocuments(updatedDocuments);
-    saveToStorage('documents', updatedDocuments);
-    
-    // 상태 초기화
-    setSelectedFiles(null);
-    setUploadDescription('');
-    setShowUploadModal(false);
-    
-    alert(`${newDocuments.length}개의 문서가 업로드되었습니다.`);
   };
 
-  const deleteDocument = (documentId: number) => {
-    const updatedDocuments = documents.filter(doc => doc.id !== documentId);
-    setDocuments(updatedDocuments);
-    saveToStorage('documents', updatedDocuments);
-    alert('문서가 삭제되었습니다.');
+  const deleteDocument = async (documentId: number | string) => {
+    try {
+      // 문서 정보 찾기
+      const documentToDelete = documents.find(doc => doc.id === documentId);
+      if (!documentToDelete) return;
+      
+      // UUID 형식인 경우 Supabase에서 삭제
+      if (typeof documentId === 'string' && documentId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        // DB에서 파일 경로 가져오기
+        const { data: dbDoc, error: fetchError } = await supabase
+          .from('documents')
+          .select('file_path')
+          .eq('id', documentId)
+          .single();
+          
+        if (!fetchError && dbDoc) {
+          // Storage에서 파일 삭제
+          await supabase.storage
+            .from('documents')
+            .remove([dbDoc.file_path]);
+        }
+        
+        // DB에서 레코드 삭제
+        const { error: deleteError } = await supabase
+          .from('documents')
+          .delete()
+          .eq('id', documentId);
+          
+        if (deleteError) {
+          console.error('DB 삭제 에러:', deleteError);
+        }
+      }
+      
+      // 로컬 상태에서 삭제
+      const updatedDocuments = documents.filter(doc => doc.id !== documentId);
+      setDocuments(updatedDocuments);
+      saveToStorage('documents', updatedDocuments);
+      alert('문서가 삭제되었습니다.');
+    } catch (error) {
+      console.error('문서 삭제 중 오류:', error);
+      alert('문서 삭제 중 오류가 발생했습니다.');
+    }
   };
 
   // Save documents to localStorage whenever documents change
   useEffect(() => {
     saveToStorage('documents', documents);
   }, [documents]);
+  
+  // Supabase에서 문서 목록 가져오기
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('documents')
+          .select('*')
+          .order('uploaded_at', { ascending: false });
+          
+        if (error) {
+          console.error('문서 목록 가져오기 에러:', error);
+          return;
+        }
+        
+        if (data && data.length > 0) {
+          const supabaseDocuments: Document[] = data.map(doc => ({
+            id: doc.id,
+            name: doc.file_name,
+            size: doc.file_size,
+            type: doc.file_type,
+            category: doc.category || '기타',
+            uploadDate: doc.uploaded_at,
+            description: doc.description
+          }));
+          
+          // 로컬 문서와 병합 (중복 제거)
+          const localDocuments = loadFromStorage<Document[]>('documents', []);
+          const mergedDocuments = [...supabaseDocuments];
+          
+          localDocuments.forEach(localDoc => {
+            if (!mergedDocuments.find(doc => doc.id === localDoc.id)) {
+              mergedDocuments.push(localDoc);
+            }
+          });
+          
+          setDocuments(mergedDocuments);
+        }
+      } catch (error) {
+        console.error('문서 목록 가져오기 중 오류:', error);
+      }
+    };
+    
+    fetchDocuments();
+  }, []);
 
   // Navigation
   const renderNavigation = () => (
@@ -1862,7 +2007,37 @@ const MaintenanceManagementSystem = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div className="flex gap-2">
                     <button
-                      onClick={() => alert('미리보기 기능은 현재 준비 중입니다.')}
+                      onClick={async () => {
+                        // UUID 형식인 경우 Supabase에서 다운로드
+                        if (typeof doc.id === 'string' && doc.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+                          try {
+                            // DB에서 파일 경로 가져오기
+                            const { data: dbDoc } = await supabase
+                              .from('documents')
+                              .select('file_path')
+                              .eq('id', doc.id)
+                              .single();
+                              
+                            if (dbDoc) {
+                              // Storage에서 파일 다운로드 URL 생성
+                              const { data } = await supabase.storage
+                                .from('documents')
+                                .createSignedUrl(dbDoc.file_path, 3600); // 1시간 유효
+                                
+                              if (data) {
+                                window.open(data.signedUrl, '_blank');
+                              } else {
+                                alert('파일을 다운로드할 수 없습니다.');
+                              }
+                            }
+                          } catch (error) {
+                            console.error('파일 다운로드 오류:', error);
+                            alert('파일 다운로드 중 오류가 발생했습니다.');
+                          }
+                        } else {
+                          alert('로컬에 저장된 파일은 다운로드할 수 없습니다.');
+                        }
+                      }}
                       className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
                     >
                       <Eye className="w-4 h-4" />

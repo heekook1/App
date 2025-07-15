@@ -1,0 +1,17 @@
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = 'https://olwicbbmmokcvlqcrkqn.supabase.co'
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || ''
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Database types
+export interface Document {
+  id: string
+  name: string
+  content: string
+  file_type: string
+  file_size: number
+  created_at: string
+  updated_at: string
+}
