@@ -63,13 +63,14 @@ interface Equipment {
 }
 
 interface Document {
-  id: number;
+  id: number | string;
   name: string;
   size: number;
   type: string;
   category: string;
   uploadDate: string;
   description?: string;
+  fileData?: string; // Base64 encoded file data for local storage
 }
 
 
@@ -467,6 +468,38 @@ const MaintenanceManagementSystem = () => {
     XLSX.writeFile(workbook, '설비관리_데이터.xlsx');
   };
 
+  // Storage 버킷 확인 함수
+  const checkStorageBucket = async () => {
+    try {
+      // documents 버킷의 파일 목록을 조회하여 버킷 존재 여부 확인
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .list('', { limit: 1 });
+        
+      if (error) {
+        console.error('Documents 버킷 접근 에러:', error);
+        if (error.message.includes('not found')) {
+          console.warn('⚠️ documents 버킷이 존재하지 않습니다!');
+          console.warn('Supabase 대시보드에서 다음을 수행하세요:');
+          console.warn('1. Storage 섹션으로 이동');
+          console.warn('2. "New bucket" 클릭');
+          console.warn('3. 이름: "documents" 입력');
+          console.warn('4. Public 버킷으로 설정 또는 RLS 정책 추가');
+        }
+      } else {
+        console.log('✅ documents 버킷이 정상적으로 확인되었습니다.');
+        console.log('버킷 내 파일 수:', data?.length || 0);
+      }
+    } catch (error) {
+      console.error('Storage 버킷 확인 중 오류:', error);
+    }
+  };
+
+  // 컴포넌트 마운트 시 버킷 확인
+  useEffect(() => {
+    checkStorageBucket();
+  }, []);
+
   // 문서 관리 함수들
   const handleFileUpload = async () => {
     if (!selectedFiles || selectedFiles.length === 0) return;
@@ -486,8 +519,19 @@ const MaintenanceManagementSystem = () => {
           .upload(filePath, file);
           
         if (uploadError) {
-          console.error('업로드 에러:', uploadError);
+          console.error('Supabase Storage 업로드 에러:', uploadError);
+          console.error('에러 상세:', {
+            message: uploadError.message,
+            details: uploadError
+          });
           // Storage 버킷이 없을 수도 있으므로 로컬 스토리지로 폴백
+          // 파일을 Base64로 변환하여 저장
+          const reader = new FileReader();
+          const fileData = await new Promise<string>((resolve) => {
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          });
+          
           const newDoc: Document = {
             id: Date.now() + i,
             name: file.name,
@@ -495,7 +539,8 @@ const MaintenanceManagementSystem = () => {
             type: file.type,
             category: uploadCategory,
             uploadDate: new Date().toISOString().split('T')[0],
-            description: uploadDescription
+            description: uploadDescription,
+            fileData: fileData
           };
           uploadedDocuments.push(newDoc);
           continue;
@@ -519,6 +564,13 @@ const MaintenanceManagementSystem = () => {
         if (dbError) {
           console.error('DB 저장 에러:', dbError);
           // DB 에러 시에도 로컬에 저장
+          // 파일을 Base64로 변환하여 저장
+          const reader = new FileReader();
+          const fileData = await new Promise<string>((resolve) => {
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          });
+          
           const newDoc: Document = {
             id: Date.now() + i,
             name: file.name,
@@ -526,7 +578,8 @@ const MaintenanceManagementSystem = () => {
             type: file.type,
             category: uploadCategory,
             uploadDate: new Date().toISOString().split('T')[0],
-            description: uploadDescription
+            description: uploadDescription,
+            fileData: fileData
           };
           uploadedDocuments.push(newDoc);
         } else if (dbData) {
@@ -2035,13 +2088,37 @@ const MaintenanceManagementSystem = () => {
                             alert('파일 다운로드 중 오류가 발생했습니다.');
                           }
                         } else {
-                          alert('로컬에 저장된 파일은 다운로드할 수 없습니다.');
+                          // 로컬에 저장된 파일 다운로드
+                          const localDoc = documents.find(d => d.id === doc.id);
+                          if (localDoc && localDoc.fileData) {
+                            // Base64 데이터를 Blob으로 변환
+                            const base64Data = localDoc.fileData.split(',')[1];
+                            const byteCharacters = atob(base64Data);
+                            const byteNumbers = new Array(byteCharacters.length);
+                            for (let i = 0; i < byteCharacters.length; i++) {
+                              byteNumbers[i] = byteCharacters.charCodeAt(i);
+                            }
+                            const byteArray = new Uint8Array(byteNumbers);
+                            const blob = new Blob([byteArray], { type: localDoc.type });
+                            
+                            // 다운로드 링크 생성
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = localDoc.name;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            URL.revokeObjectURL(url);
+                          } else {
+                            alert('파일 데이터를 찾을 수 없습니다.');
+                          }
                         }
                       }}
                       className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
                     >
-                      <Eye className="w-4 h-4" />
-                      보기
+                      <Download className="w-4 h-4" />
+                      다운로드
                     </button>
                     <button
                       onClick={() => deleteDocument(doc.id)}
