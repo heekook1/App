@@ -16,6 +16,7 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-scripts": "^5.0.1",
+    "supabase-mcp": "^1.5.0",
     "xlsx": "^0.18.5"
   },
   "browserslist": {
@@ -32,5 +33,18 @@
   },
   "devDependencies": {
     "typescript": "^4.9.5"
-  }
+  },
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/heekook1/App.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/heekook1/App/issues"
+  },
+  "homepage": ".",
+  "description": ""
 }

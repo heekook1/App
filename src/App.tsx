@@ -24,6 +24,7 @@ interface WorkOrder {
   description: string;
   requestDate: string;
   dueDate: string;
+  workResult: string;
   status: string;
   assignee: string;
   completionNote: string;
@@ -93,6 +94,17 @@ const saveToStorage = <T,>(key: string, data: T) => {
 };
 
 const MaintenanceManagementSystem = () => {
+  // 인증 상태
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('isAuthenticated') === 'true';
+  });
+  const [currentUser, setCurrentUser] = useState(() => {
+    const user = localStorage.getItem('currentUser');
+    return user ? JSON.parse(user) : null;
+  });
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
@@ -182,6 +194,7 @@ const MaintenanceManagementSystem = () => {
       description: '오일필터 정기 교체',
       requestDate: '2025-06-01',
       dueDate: '2025-06-02',
+      workResult: '오일필터 교체 완료. 누유 없음 확인.',
       status: '완료',
       assignee: '한희명',
       completionNote: '정상 교체 완료',
@@ -196,6 +209,7 @@ const MaintenanceManagementSystem = () => {
       description: '압력 밸브 교정',
       requestDate: '2025-06-03',
       dueDate: '2025-06-05',
+      workResult: '',
       status: '진행중',
       assignee: '이상경',
       completionNote: '',
@@ -210,6 +224,7 @@ const MaintenanceManagementSystem = () => {
       description: '전원 케이블 절연 점검',
       requestDate: '2025-06-04',
       dueDate: '2025-06-06',
+      workResult: '',
       status: '진행중',
       assignee: '김태연',
       completionNote: '',
@@ -723,6 +738,17 @@ const MaintenanceManagementSystem = () => {
               </div>
             </div>
           </div>
+          <div className="flex items-center space-x-4">
+            <span className="text-sm text-gray-600">
+              {currentUser?.fullName} ({currentUser?.role})
+            </span>
+            <button
+              onClick={handleLogout}
+              className="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+            >
+              로그아웃
+            </button>
+          </div>
           <div className="flex space-x-8">
             {[
               { id: 'dashboard', label: '대시보드', icon: Home },
@@ -1169,6 +1195,7 @@ const MaintenanceManagementSystem = () => {
     equipmentName: '',
     description: '',
     dueDate: '',
+    workResult: '',
     assignee: '',
     type: '기계'
   });
@@ -1200,6 +1227,7 @@ const MaintenanceManagementSystem = () => {
       equipmentName: '',
       description: '',
       dueDate: '',
+      workResult: '',
       assignee: '',
       type: '기계'
     });
@@ -1213,10 +1241,72 @@ const MaintenanceManagementSystem = () => {
       equipmentName: order.equipmentName,
       description: order.description,
       dueDate: order.dueDate,
+      workResult: order.workResult || '',
       assignee: order.assignee,
       type: order.type
     });
     setShowWorkOrderForm(true);
+  };
+
+  // 인증 관련 함수
+  const simpleHash = (str: string) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // 32비트 정수로 변환
+    }
+    return hash.toString();
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const passwordHash = simpleHash(loginForm.password);
+      
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', loginForm.username)
+        .eq('password_hash', passwordHash)
+        .eq('is_active', true)
+        .single();
+        
+      if (error || !data) {
+        alert('아이디 또는 비밀번호가 틀렸습니다.');
+        return;
+      }
+      
+      // 로그인 성공
+      const user = {
+        id: data.id,
+        username: data.username,
+        fullName: data.full_name,
+        role: data.role
+      };
+      
+      setCurrentUser(user);
+      setIsAuthenticated(true);
+      setShowLoginModal(false);
+      setLoginForm({ username: '', password: '' });
+      
+      // localStorage에 저장
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('currentUser', JSON.stringify(user));
+      
+    } catch (error) {
+      console.error('로그인 에러:', error);
+      alert('로그인 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('currentUser');
+    setCurrentPage('dashboard');
   };
 
   const handleDeleteWorkOrder = (id: string) => {
@@ -1224,6 +1314,15 @@ const MaintenanceManagementSystem = () => {
   };
 
   const handleUpdateWorkOrderStatus = (id: string, status: string) => {
+    // 완료 상태로 변경하려는 경우 작업 결과가 있는지 확인
+    if (status === '완료') {
+      const order = workOrders.find(o => o.id === id);
+      if (order && !order.workResult) {
+        alert('작업 결과를 기입해주세요');
+        return;
+      }
+    }
+    
     setWorkOrders(prev => prev.map(order => 
       order.id === id ? { ...order, status } : order
     ));
@@ -1326,6 +1425,13 @@ const MaintenanceManagementSystem = () => {
                 rows={3}
                 required
               />
+              <textarea
+                placeholder="작업 결과"
+                value={workOrderForm.workResult}
+                onChange={(e) => setWorkOrderForm(prev => ({ ...prev, workResult: e.target.value }))}
+                className="w-full px-3 py-2 border rounded-lg"
+                rows={3}
+              />
               <div className="flex gap-2">
                 <button
                   type="submit"
@@ -1344,6 +1450,7 @@ const MaintenanceManagementSystem = () => {
                       equipmentName: '',
                       description: '',
                       dueDate: '',
+                      workResult: '',
                       assignee: '',
                       type: '기계'
                     });
@@ -1358,7 +1465,7 @@ const MaintenanceManagementSystem = () => {
         )}
         
         <div className="overflow-x-auto">
-          <table className="w-full border border-gray-200" style={{ minWidth: '1200px' }}>
+          <table className="w-full border border-gray-200" style={{ minWidth: '1600px' }}>
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-20">번호</th>
@@ -1368,6 +1475,7 @@ const MaintenanceManagementSystem = () => {
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900" style={{ width: '400px' }}>작업내용</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-28">등록일</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-28">작업일</th>
+                <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900" style={{ width: '400px' }}>작업결과</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-24">상태</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-24">담당자</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-20">관리</th>
@@ -1383,6 +1491,7 @@ const MaintenanceManagementSystem = () => {
                   <td className="px-4 py-2 border-b text-sm whitespace-pre-line" style={{ width: '400px' }}>{order.description}</td>
                   <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-28">{order.requestDate}</td>
                   <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-28">{order.dueDate}</td>
+                  <td className="px-4 py-2 border-b text-sm whitespace-pre-line" style={{ width: '400px' }}>{order.workResult || '-'}</td>
                   <td className="px-4 py-2 border-b text-sm w-24">
                     <select
                       value={order.status}
@@ -1793,16 +1902,17 @@ const MaintenanceManagementSystem = () => {
               <h3 className="font-medium text-lg mb-3">작업 이력</h3>
               {maintenanceHistory.length > 0 ? (
                 <div className="overflow-x-auto">
-                  <table className="w-full border border-gray-200" style={{ minWidth: '1200px' }}>
+                  <table className="w-full border border-gray-200" style={{ minWidth: '1600px' }}>
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-20">작업번호</th>
+                        <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-20">번호</th>
                         <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-32">작업명</th>
                         <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-24">설비명</th>
                         <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-32">기기명</th>
                         <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900" style={{ width: '400px' }}>작업내용</th>
                         <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-28">작업일</th>
                         <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-24">담당자</th>
+                        <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900" style={{ width: '400px' }}>작업결과</th>
                         <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-24">상태</th>
                       </tr>
                     </thead>
@@ -1816,6 +1926,7 @@ const MaintenanceManagementSystem = () => {
                           <td className="px-4 py-2 border-b text-sm whitespace-pre-line" style={{ width: '400px' }}>{order.description}</td>
                           <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-28">{order.dueDate}</td>
                           <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-24">{order.assignee}</td>
+                          <td className="px-4 py-2 border-b text-sm whitespace-pre-line" style={{ width: '400px' }}>{order.workResult || '-'}</td>
                           <td className="px-4 py-2 border-b text-sm w-24">
                             <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(order.status)}`}>
                               {order.status}
@@ -2432,57 +2543,57 @@ const MaintenanceManagementSystem = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">작업 번호</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder.id}</p>
+                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.id}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">상태</label>
-                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedWorkOrder.status)}`}>
-                      {selectedWorkOrder.status}
+                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedWorkOrder?.status || '')}`}>
+                      {selectedWorkOrder?.status}
                     </span>
                   </div>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">작업 제목</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder.title}</p>
+                  <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.title}</p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">설비</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder.equipment}</p>
+                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.equipment}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">설비명</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder.equipmentName}</p>
+                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.equipmentName}</p>
                   </div>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">작업 내용</label>
-                  <p className="mt-1 text-sm text-gray-900 whitespace-pre-line">{selectedWorkOrder.description}</p>
+                  <p className="mt-1 text-sm text-gray-900 whitespace-pre-line">{selectedWorkOrder?.description}</p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">요청일</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder.requestDate}</p>
+                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.requestDate}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">완료 예정일</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder.dueDate}</p>
+                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.dueDate}</p>
                   </div>
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">담당자</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder.assignee}</p>
+                  <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.assignee}</p>
                 </div>
                 
-                {selectedWorkOrder.completionNote && (
+                {selectedWorkOrder?.completionNote && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700">완료 메모</label>
-                    <p className="mt-1 text-sm text-gray-900 whitespace-pre-line">{selectedWorkOrder.completionNote}</p>
+                    <p className="mt-1 text-sm text-gray-900 whitespace-pre-line">{selectedWorkOrder?.completionNote}</p>
                   </div>
                 )}
               </div>
@@ -2509,21 +2620,281 @@ const MaintenanceManagementSystem = () => {
               <div className="space-y-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900">{selectedAnnouncement.title}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">{selectedAnnouncement?.title}</h3>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(selectedAnnouncement.priority)}`}>
-                    {selectedAnnouncement.priority === 'urgent' ? '긴급' :
-                     selectedAnnouncement.priority === 'important' ? '중요' : '일반'}
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(selectedAnnouncement?.priority || '')}`}>
+                    {selectedAnnouncement?.priority === 'urgent' ? '긴급' :
+                     selectedAnnouncement?.priority === 'important' ? '중요' : '일반'}
                   </span>
                 </div>
                 
                 <div className="border-t pt-4">
-                  <p className="text-gray-700 whitespace-pre-line leading-relaxed">{selectedAnnouncement.content}</p>
+                  <p className="text-gray-700 whitespace-pre-line leading-relaxed">{selectedAnnouncement?.content}</p>
                 </div>
                 
                 <div className="border-t pt-4 text-sm text-gray-500">
-                  <p>작성일: {selectedAnnouncement.date}</p>
-                  <p>작성자: {selectedAnnouncement.author}</p>
+                  <p>작성일: {selectedAnnouncement?.date}</p>
+                  <p>작성자: {selectedAnnouncement?.author}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Login Modal */}
+      {showLoginModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-900">로그인</h2>
+                <button
+                  onClick={() => {
+                    setShowLoginModal(false);
+                    setLoginForm({ username: '', password: '' });
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">사용자 ID</label>
+                  <input
+                    type="text"
+                    value={loginForm.username}
+                    onChange={(e) => setLoginForm(prev => ({ ...prev, username: e.target.value }))}
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">비밀번호</label>
+                  <input
+                    type="password"
+                    value={loginForm.password}
+                    onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
+                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+                
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    로그인
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowLoginModal(false);
+                      setLoginForm({ username: '', password: '' });
+                    }}
+                    className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  >
+                    취소
+                  </button>
+                </div>
+              </form>
+              
+              <div className="mt-4 p-3 bg-gray-50 rounded-md">
+                <p className="text-sm text-gray-600">
+                  <strong>테스트 계정:</strong><br />
+                  ID: admin<br />
+                  비밀번호: admin123
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+  
+  // 로그인하지 않은 경우 로그인 화면만 표시
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="max-w-md w-full">
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">정비 업체 관리 시스템</h1>
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <img src="/wideincheon-logo.png" alt="위드인천에너지" className="h-8 w-auto" />
+                <span className="text-gray-400">×</span>
+                <img src="/youngjin-logo.png" alt="영진" className="h-8 w-auto" />
+              </div>
+            </div>
+            
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">사용자 ID</label>
+                <input
+                  type="text"
+                  value={loginForm.username}
+                  onChange={(e) => setLoginForm(prev => ({ ...prev, username: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
+                <input
+                  type="password"
+                  value={loginForm.password}
+                  onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              
+              <button
+                type="submit"
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                로그인
+              </button>
+            </form>
+            
+            <div className="mt-6 p-3 bg-gray-50 rounded-md">
+              <p className="text-sm text-gray-600">
+                <strong>테스트 계정:</strong><br />
+                ID: admin<br />
+                비밀번호: admin123
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // 로그인 후 정비 업체 관리 시스템 표시
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {renderNavigation()}
+      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {renderContent()}
+      </main>
+      
+      {/* Work Order Detail Modal */}
+      {selectedWorkOrder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-900">작업 상세 정보</h2>
+                <button
+                  onClick={() => setSelectedWorkOrder(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">작업 번호</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.id}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">상태</label>
+                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedWorkOrder?.status || '')}`}>
+                      {selectedWorkOrder?.status}
+                    </span>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">작업 제목</label>
+                  <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.title}</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">설비</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.equipment}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">설비명</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.equipmentName}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">작업 내용</label>
+                  <p className="mt-1 text-sm text-gray-900 whitespace-pre-line">{selectedWorkOrder?.description}</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">요청일</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.requestDate}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">완료 예정일</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.dueDate}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">담당자</label>
+                  <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.assignee}</p>
+                </div>
+                
+                {selectedWorkOrder?.completionNote && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">완료 메모</label>
+                    <p className="mt-1 text-sm text-gray-900 whitespace-pre-line">{selectedWorkOrder?.completionNote}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Announcement Detail Modal */}
+      {selectedAnnouncement && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-900">공지사항 상세</h2>
+                <button
+                  onClick={() => setSelectedAnnouncement(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900">{selectedAnnouncement?.title}</h3>
+                  </div>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(selectedAnnouncement?.priority || '')}`}>
+                    {selectedAnnouncement?.priority === 'urgent' ? '긴급' :
+                     selectedAnnouncement?.priority === 'important' ? '중요' : '일반'}
+                  </span>
+                </div>
+                
+                <div className="border-t pt-4">
+                  <p className="text-gray-700 whitespace-pre-line leading-relaxed">{selectedAnnouncement?.content}</p>
+                </div>
+                
+                <div className="border-t pt-4 text-sm text-gray-500">
+                  <p>작성일: {selectedAnnouncement?.date}</p>
+                  <p>작성자: {selectedAnnouncement?.author}</p>
                 </div>
               </div>
             </div>

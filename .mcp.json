@@ -8,7 +8,7 @@
         "--project-ref=olwicbbmmokcvlqcrkqn"
       ],
       "env": {
-        "SUPABASE_ACCESS_TOKEN": "sbp_f5c97391890e00f140967d6063e49a203e7c8153"
+        "SUPABASE_ACCESS_TOKEN": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sd2ljYmJtbW9rY3ZscWNya3FuIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MjQwNTc0NSwiZXhwIjoyMDY3OTgxNzQ1fQ.i1Gw7Oi1K9gXpQvHqKIffRDMAr5sM8mNS948zAIb09E"
       }
     }
   }

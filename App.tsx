@@ -69,41 +69,41 @@ const MaintenanceManagementSystem = () => {
     {
       id: 1,
       name: '한희명',
-      position: '과장',
-      field: '전기',
-      phone: '010-1111-2222',
-      hireDate: '2021-03-15',
-      certifications: ['전기기사', '전기기능사'],
+      position: '팀장',
+      field: '기계',
+      phone: '010-4916-8560',
+      hireDate: '2024-04-01',
+      certifications: ['일반기계기사'],
       accessHistory: ['2024-06-30', '2024-07-01']
     },
     {
       id: 2,
       name: '이상경',
-      position: '대리',
+      position: '사원',
       field: '기계',
-      phone: '010-3333-4444',
-      hireDate: '2022-07-20',
-      certifications: ['기계정비산업기사'],
+      phone: '010-7150-0129',
+      hireDate: '2024-06-03',
+      certifications: [],
       accessHistory: ['2024-06-29', '2024-06-30']
     },
     {
       id: 3,
       name: '김태연',
-      position: '팀장',
+      position: '사원',
       field: '제어',
-      phone: '010-5555-6666',
-      hireDate: '2020-11-10',
-      certifications: ['제어산업기사'],
+      phone: '010-8514-5675',
+      hireDate: '2025-04-01',
+      certifications: ['전기기사'],
       accessHistory: ['2024-06-28', '2024-06-30', '2024-07-01']
     },
     {
       id: 4,
       name: '이중원',
       position: '사원',
-      field: '기계',
-      phone: '010-7777-8888',
+      field: '전기',
+      phone: '010-',
       hireDate: '2023-02-01',
-      certifications: ['기계정비기능사'],
+      certifications: ['전기기사'],
       accessHistory: ['2024-06-29']
     }
   ]);
