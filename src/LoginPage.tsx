@@ -3,25 +3,18 @@ import { supabase } from './supabaseClient';
 
 interface LoginPageProps {
   onLoginSuccess: (user: any) => void;
+  onShowSignup: () => void;
+  onShowForgotPassword: () => void;
 }
 
-const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
+const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onShowSignup, onShowForgotPassword }) => {
   const [loginForm, setLoginForm] = useState({
-    username: '',
+    email: '',
     password: ''
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const simpleHash = (str: string) => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return hash.toString();
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,50 +22,43 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     setError('');
     
     try {
-      // Try Supabase Auth first
-      const email = loginForm.username.includes('@') 
-        ? loginForm.username 
-        : `${loginForm.username}@example.com`;
-      
+      // 이메일 유효성 검사
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(loginForm.email)) {
+        setError('올바른 이메일 형식을 입력해주세요.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Supabase Auth로 로그인
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: email,
+        email: loginForm.email,
         password: loginForm.password
       });
       
       if (authError) {
-        // Fallback to custom users table for backward compatibility
-        const passwordHash = simpleHash(loginForm.password);
-        
-        const { data, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('username', loginForm.username)
-          .eq('password_hash', passwordHash)
-          .eq('is_active', true)
-          .single();
-          
-        if (error || !data) {
-          setError('아이디 또는 비밀번호가 틀렸습니다.');
-          setIsLoading(false);
-          return;
+        if (authError.message.includes('Invalid login credentials')) {
+          setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+        } else if (authError.message.includes('Email not confirmed')) {
+          setError('이메일 인증이 필요합니다. 가입 시 발송된 인증 메일을 확인해주세요.');
+        } else if (authError.message.includes('Too many requests')) {
+          setError('너무 많은 로그인 시도입니다. 잠시 후 다시 시도해주세요.');
+        } else {
+          setError('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
         }
-        
-        // 로그인 성공 (legacy user)
+        setIsLoading(false);
+        return;
+      }
+
+      if (authData?.user) {
+        // 로그인 성공
         const user = {
-          id: data.id,
-          username: data.username,
-          fullName: data.full_name,
-          role: data.role
-        };
-        
-        onLoginSuccess(user);
-      } else {
-        // Supabase Auth login success
-        const user = {
-          id: authData.user?.id || '',
-          username: authData.user?.user_metadata?.username || loginForm.username,
-          fullName: authData.user?.user_metadata?.full_name || '사용자',
-          role: authData.user?.user_metadata?.role || 'user'
+          id: authData.user.id,
+          email: authData.user.email,
+          fullName: authData.user.user_metadata?.full_name || '사용자',
+          role: authData.user.user_metadata?.role || 'user',
+          company: authData.user.user_metadata?.company || '',
+          phone: authData.user.user_metadata?.phone || ''
         };
         
         onLoginSuccess(user);
@@ -95,21 +81,21 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             <span className="text-gray-400 text-lg">×</span>
             <img src="/youngjin-logo.png" alt="영진" className="h-8 w-auto" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-800">정비 관리 시스템</h1>
+          <h1 className="text-3xl font-bold text-gray-800">정비업체 관리 시스템</h1>
           <p className="text-gray-600 mt-2">로그인하여 시스템에 접속하세요</p>
         </div>
         
         <form onSubmit={handleLogin} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              아이디
+              이메일
             </label>
             <input
-              type="text"
-              value={loginForm.username}
-              onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+              type="email"
+              value={loginForm.email}
+              onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="아이디를 입력하세요"
+              placeholder="이메일을 입력하세요"
               required
             />
           </div>
@@ -134,6 +120,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </div>
           )}
           
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={onShowForgotPassword}
+              className="text-sm text-blue-600 hover:text-blue-800"
+            >
+              비밀번호를 잊으셨나요?
+            </button>
+          </div>
+          
           <button
             type="submit"
             disabled={isLoading}
@@ -143,9 +139,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           </button>
         </form>
         
-        <div className="mt-8 text-center text-sm text-gray-600">
-          <p>테스트 계정</p>
-          <p className="font-mono mt-1">ID: admin / PW: admin123</p>
+        <div className="mt-6 text-center">
+          <span className="text-sm text-gray-600">계정이 없으신가요? </span>
+          <button
+            onClick={onShowSignup}
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+          >
+            회원가입
+          </button>
         </div>
       </div>
     </div>

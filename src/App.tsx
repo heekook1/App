@@ -4,6 +4,10 @@ import { Calendar, Users, Settings, FileText, MessageSquare, Wrench, Home, Plus,
 import * as XLSX from 'xlsx';
 import { supabase } from './supabaseClient';
 import LoginPage from './LoginPage';
+import SignupPage from './SignupPage';
+import ForgotPasswordPage from './ForgotPasswordPage';
+import AuthCallback from './AuthCallback';
+import ResetPasswordPage from './ResetPasswordPage';
 
 // Type definitions
 interface Personnel {
@@ -95,6 +99,17 @@ const saveToStorage = <T,>(key: string, data: T) => {
 };
 
 const MaintenanceManagementSystem = () => {
+  // URL 경로 확인
+  const pathname = window.location.pathname;
+  
+  // 특수 경로 처리
+  if (pathname === '/auth/callback') {
+    return <AuthCallback />;
+  }
+  
+  if (pathname === '/reset-password') {
+    return <ResetPasswordPage />;
+  }
   // 인증 상태
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem('isAuthenticated') === 'true';
@@ -103,6 +118,7 @@ const MaintenanceManagementSystem = () => {
     const user = localStorage.getItem('currentUser');
     return user ? JSON.parse(user) : null;
   });
+  const [authView, setAuthView] = useState<'login' | 'signup' | 'forgot-password'>('login');
   
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -1307,10 +1323,19 @@ const MaintenanceManagementSystem = () => {
 
   // 인증 관련 함수
   const handleLoginSuccess = (user: any) => {
+    // username이 없으면 email에서 추출
+    if (!user.username && user.email) {
+      user.username = user.email.split('@')[0];
+    }
     setCurrentUser(user);
     setIsAuthenticated(true);
     localStorage.setItem('isAuthenticated', 'true');
     localStorage.setItem('currentUser', JSON.stringify(user));
+    setAuthView('login');
+  };
+
+  const handleSignupSuccess = () => {
+    setAuthView('login');
   };
 
   const handleLogout = async () => {
@@ -2407,7 +2432,10 @@ const MaintenanceManagementSystem = () => {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">공지사항</h2>
           <button
-            onClick={() => setShowAnnouncementForm(true)}
+            onClick={() => {
+              setShowAnnouncementForm(true);
+              setAnnouncementForm(prev => ({ ...prev, author: currentUser?.fullName || '관리자' }));
+            }}
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -2451,8 +2479,8 @@ const MaintenanceManagementSystem = () => {
                 placeholder="작성자"
                 value={announcementForm.author}
                 onChange={(e) => setAnnouncementForm(prev => ({ ...prev, author: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg"
-                required
+                className="w-full px-3 py-2 border rounded-lg bg-gray-100"
+                readOnly
               />
               <div className="flex gap-2">
                 <button
@@ -2542,9 +2570,31 @@ const MaintenanceManagementSystem = () => {
     }
   };
 
-  // 인증되지 않은 경우 로그인 페이지 표시
+  // 인증되지 않은 경우 로그인/회원가입/비밀번호 재설정 페이지 표시
   if (!isAuthenticated) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+    switch (authView) {
+      case 'signup':
+        return (
+          <SignupPage 
+            onSignupSuccess={handleSignupSuccess}
+            onBackToLogin={() => setAuthView('login')}
+          />
+        );
+      case 'forgot-password':
+        return (
+          <ForgotPasswordPage 
+            onBackToLogin={() => setAuthView('login')}
+          />
+        );
+      default:
+        return (
+          <LoginPage 
+            onLoginSuccess={handleLoginSuccess}
+            onShowSignup={() => setAuthView('signup')}
+            onShowForgotPassword={() => setAuthView('forgot-password')}
+          />
+        );
+    }
   }
 
   return (
