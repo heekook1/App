@@ -3,6 +3,7 @@ import * as React from 'react';
 import { Calendar, Users, Settings, FileText, MessageSquare, Wrench, Home, Plus, Edit, Trash2, X, Download, Upload, Eye } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabaseClient';
+import LoginPage from './LoginPage';
 
 // Type definitions
 interface Personnel {
@@ -102,8 +103,6 @@ const MaintenanceManagementSystem = () => {
     const user = localStorage.getItem('currentUser');
     return user ? JSON.parse(user) : null;
   });
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -377,6 +376,64 @@ const MaintenanceManagementSystem = () => {
   };
 
   // Save data to localStorage whenever state changes
+  // Check authentication on mount
+  React.useEffect(() => {
+    const checkAuth = async () => {
+      // First check Supabase Auth session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        // User is authenticated with Supabase Auth
+        const user = {
+          id: session.user.id,
+          username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
+          fullName: session.user.user_metadata?.full_name || '사용자',
+          role: session.user.user_metadata?.role || 'user'
+        };
+        
+        setCurrentUser(user);
+        setIsAuthenticated(true);
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('currentUser', JSON.stringify(user));
+      } else {
+        // Check localStorage as fallback
+        const storedAuth = localStorage.getItem('isAuthenticated');
+        const storedUser = localStorage.getItem('currentUser');
+        
+        if (storedAuth === 'true' && storedUser) {
+          try {
+            const user = JSON.parse(storedUser);
+            setCurrentUser(user);
+            setIsAuthenticated(true);
+          } catch (error) {
+            console.error('Failed to parse stored user:', error);
+            setIsAuthenticated(false);
+          }
+        } else {
+          // No stored auth
+          setIsAuthenticated(false);
+        }
+      }
+    };
+    
+    checkAuth();
+    
+    // Subscribe to auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        // User logged out
+        setCurrentUser(null);
+        setIsAuthenticated(false);
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('currentUser');
+      }
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   React.useEffect(() => {
     saveToStorage('personnel', personnel);
   }, [personnel]);
@@ -727,15 +784,39 @@ const MaintenanceManagementSystem = () => {
   const renderNavigation = () => (
     <nav className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex items-center">
-            <div className="flex flex-col">
-              <h1 className="text-xl font-semibold text-gray-900">정비 업체 관리 시스템</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <img src="/wideincheon-logo.png" alt="위드인천에너지" className="h-5 w-auto" />
+        <div className="flex justify-between h-20">
+          <div className="flex items-center space-x-8">
+            <div className="flex flex-col items-center">
+              <h1 className="text-xl font-semibold text-gray-900 mb-1">정비 업체 관리 시스템</h1>
+              <div className="flex items-center gap-2 justify-center w-full">
+                <img src="/wideincheon-logo.png" alt="위드인천에너지" className="h-6 w-auto" />
                 <span className="text-gray-400 text-sm">×</span>
-                <img src="/youngjin-logo.png" alt="영진" className="h-5 w-auto" />
+                <img src="/youngjin-logo.png" alt="영진" className="h-6 w-auto" />
               </div>
+            </div>
+            <div className="flex space-x-1">
+              {[
+                { id: 'dashboard', label: '대시보드', icon: Home },
+                { id: 'announcements', label: '공지사항', icon: MessageSquare },
+                { id: 'workorder', label: '작업 관리', icon: Wrench },
+                { id: 'schedule', label: '작업 일정', icon: Calendar },
+                { id: 'equipment', label: '설비관리', icon: Settings },
+                { id: 'documents', label: '문서관리', icon: FileText },
+                { id: 'personnel', label: '인력관리', icon: Users }
+              ].map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => setCurrentPage(item.id)}
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    currentPage === item.id 
+                      ? 'bg-blue-100 text-blue-700' 
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <item.icon className="h-4 w-4 mr-2" />
+                  {item.label}
+                </button>
+              ))}
             </div>
           </div>
           <div className="flex items-center space-x-4">
@@ -748,30 +829,6 @@ const MaintenanceManagementSystem = () => {
             >
               로그아웃
             </button>
-          </div>
-          <div className="flex space-x-8">
-            {[
-              { id: 'dashboard', label: '대시보드', icon: Home },
-              { id: 'announcements', label: '공지사항', icon: MessageSquare },
-              { id: 'workorder', label: '작업 관리', icon: Wrench },
-              { id: 'schedule', label: '작업 일정', icon: Calendar },
-              { id: 'equipment', label: '설비관리', icon: Settings },
-              { id: 'documents', label: '문서관리', icon: FileText },
-              { id: 'personnel', label: '인력관리', icon: Users }
-            ].map(item => (
-              <button
-                key={item.id}
-                onClick={() => setCurrentPage(item.id)}
-                className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  currentPage === item.id 
-                    ? 'bg-blue-100 text-blue-700' 
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <item.icon className="h-4 w-4 mr-2" />
-                {item.label}
-              </button>
-            ))}
           </div>
         </div>
       </div>
@@ -1249,64 +1306,32 @@ const MaintenanceManagementSystem = () => {
   };
 
   // 인증 관련 함수
-  const simpleHash = (str: string) => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // 32비트 정수로 변환
-    }
-    return hash.toString();
+  const handleLoginSuccess = (user: any) => {
+    setCurrentUser(user);
+    setIsAuthenticated(true);
+    localStorage.setItem('isAuthenticated', 'true');
+    localStorage.setItem('currentUser', JSON.stringify(user));
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleLogout = async () => {
     try {
-      const passwordHash = simpleHash(loginForm.password);
+      // Supabase 로그아웃
+      const { error } = await supabase.auth.signOut();
       
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('username', loginForm.username)
-        .eq('password_hash', passwordHash)
-        .eq('is_active', true)
-        .single();
-        
-      if (error || !data) {
-        alert('아이디 또는 비밀번호가 틀렸습니다.');
-        return;
+      if (error) {
+        console.error('로그아웃 에러:', error);
       }
       
-      // 로그인 성공
-      const user = {
-        id: data.id,
-        username: data.username,
-        fullName: data.full_name,
-        role: data.role
-      };
-      
-      setCurrentUser(user);
-      setIsAuthenticated(true);
-      setShowLoginModal(false);
-      setLoginForm({ username: '', password: '' });
-      
-      // localStorage에 저장
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('currentUser', JSON.stringify(user));
-      
+      // 상태 초기화
+      setCurrentUser(null);
+      setIsAuthenticated(false);
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('currentUser');
+      setCurrentPage('dashboard');
     } catch (error) {
-      console.error('로그인 에러:', error);
-      alert('로그인 중 오류가 발생했습니다.');
+      console.error('로그아웃 중 오류 발생:', error);
+      alert('로그아웃 중 오류가 발생했습니다.');
     }
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('currentUser');
-    setCurrentPage('dashboard');
   };
 
   const handleDeleteWorkOrder = (id: string) => {
@@ -2517,6 +2542,11 @@ const MaintenanceManagementSystem = () => {
     }
   };
 
+  // 인증되지 않은 경우 로그인 페이지 표시
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {renderNavigation()}
@@ -2641,148 +2671,6 @@ const MaintenanceManagementSystem = () => {
           </div>
         </div>
       )}
-      
-      {/* Login Modal */}
-      {showLoginModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-md w-full mx-4">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold text-gray-900">로그인</h2>
-                <button
-                  onClick={() => {
-                    setShowLoginModal(false);
-                    setLoginForm({ username: '', password: '' });
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-              
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">사용자 ID</label>
-                  <input
-                    type="text"
-                    value={loginForm.username}
-                    onChange={(e) => setLoginForm(prev => ({ ...prev, username: e.target.value }))}
-                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">비밀번호</label>
-                  <input
-                    type="password"
-                    value={loginForm.password}
-                    onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
-                    className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                
-                <div className="flex gap-2">
-                  <button
-                    type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    로그인
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowLoginModal(false);
-                      setLoginForm({ username: '', password: '' });
-                    }}
-                    className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                  >
-                    취소
-                  </button>
-                </div>
-              </form>
-              
-              <div className="mt-4 p-3 bg-gray-50 rounded-md">
-                <p className="text-sm text-gray-600">
-                  <strong>테스트 계정:</strong><br />
-                  ID: admin<br />
-                  비밀번호: admin123
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-  
-  // 로그인하지 않은 경우 로그인 화면만 표시
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="max-w-md w-full">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">정비 업체 관리 시스템</h1>
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <img src="/wideincheon-logo.png" alt="위드인천에너지" className="h-8 w-auto" />
-                <span className="text-gray-400">×</span>
-                <img src="/youngjin-logo.png" alt="영진" className="h-8 w-auto" />
-              </div>
-            </div>
-            
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">사용자 ID</label>
-                <input
-                  type="text"
-                  value={loginForm.username}
-                  onChange={(e) => setLoginForm(prev => ({ ...prev, username: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">비밀번호</label>
-                <input
-                  type="password"
-                  value={loginForm.password}
-                  onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-              
-              <button
-                type="submit"
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                로그인
-              </button>
-            </form>
-            
-            <div className="mt-6 p-3 bg-gray-50 rounded-md">
-              <p className="text-sm text-gray-600">
-                <strong>테스트 계정:</strong><br />
-                ID: admin<br />
-                비밀번호: admin123
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  
-  // 로그인 후 정비 업체 관리 시스템 표시
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {renderNavigation()}
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        {renderContent()}
-      </main>
       
       {/* Work Order Detail Modal */}
       {selectedWorkOrder && (
