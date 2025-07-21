@@ -411,6 +411,10 @@ const MaintenanceManagementSystem = () => {
         setIsAuthenticated(true);
         localStorage.setItem('isAuthenticated', 'true');
         localStorage.setItem('currentUser', JSON.stringify(user));
+        
+        // Body 클래스 추가
+        document.body.classList.add('authenticated');
+        document.body.classList.remove('unauthenticated');
       } else {
         // Check localStorage as fallback
         const storedAuth = localStorage.getItem('isAuthenticated');
@@ -421,13 +425,25 @@ const MaintenanceManagementSystem = () => {
             const user = JSON.parse(storedUser);
             setCurrentUser(user);
             setIsAuthenticated(true);
+            
+            // Body 클래스 추가
+            document.body.classList.add('authenticated');
+            document.body.classList.remove('unauthenticated');
           } catch (error) {
             console.error('Failed to parse stored user:', error);
             setIsAuthenticated(false);
+            
+            // Body 클래스 추가
+            document.body.classList.add('unauthenticated');
+            document.body.classList.remove('authenticated');
           }
         } else {
           // No stored auth
           setIsAuthenticated(false);
+          
+          // Body 클래스 추가
+          document.body.classList.add('unauthenticated');
+          document.body.classList.remove('authenticated');
         }
       }
     };
@@ -442,6 +458,10 @@ const MaintenanceManagementSystem = () => {
         setIsAuthenticated(false);
         localStorage.removeItem('isAuthenticated');
         localStorage.removeItem('currentUser');
+        
+        // Body 클래스 추가
+        document.body.classList.add('unauthenticated');
+        document.body.classList.remove('authenticated');
       }
     });
     
@@ -1332,6 +1352,10 @@ const MaintenanceManagementSystem = () => {
     localStorage.setItem('isAuthenticated', 'true');
     localStorage.setItem('currentUser', JSON.stringify(user));
     setAuthView('login');
+    
+    // Body 클래스 추가
+    document.body.classList.add('authenticated');
+    document.body.classList.remove('unauthenticated');
   };
 
   const handleSignupSuccess = () => {
@@ -1353,6 +1377,10 @@ const MaintenanceManagementSystem = () => {
       localStorage.removeItem('isAuthenticated');
       localStorage.removeItem('currentUser');
       setCurrentPage('dashboard');
+      
+      // Body 클래스 추가
+      document.body.classList.add('unauthenticated');
+      document.body.classList.remove('authenticated');
     } catch (error) {
       console.error('로그아웃 중 오류 발생:', error);
       alert('로그아웃 중 오류가 발생했습니다.');

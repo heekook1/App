@@ -11,5 +11,40 @@
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
+    
+    <!-- Dify Chatbot Integration -->
+    <script>
+      window.difyChatbotConfig = {
+        token: 'LgVEnTaf3ncIaEct',
+        systemVariables: {
+          // user_id: 'YOU CAN DEFINE USER ID HERE',
+          // conversation_id: 'YOU CAN DEFINE CONVERSATION ID HERE, IT MUST BE A VALID UUID',
+        },
+        userVariables: {
+          // avatar_url: 'YOU CAN DEFINE USER AVATAR URL HERE',
+          // name: 'YOU CAN DEFINE USER NAME HERE',
+        },
+      }
+    </script>
+    <script
+      src="https://udify.app/embed.min.js"
+      id="LgVEnTaf3ncIaEct"
+      defer>
+    </script>
+    <style>
+      #dify-chatbot-bubble-button {
+        background-color: #1C64F2 !important;
+      }
+      #dify-chatbot-bubble-window {
+        width: 24rem !important;
+        height: 40rem !important;
+      }
+      
+      /* 로그인하지 않은 상태에서 챗봇 숨김 */
+      body.unauthenticated #dify-chatbot-bubble-button,
+      body.unauthenticated #dify-chatbot-bubble-window {
+        display: none !important;
+      }
+    </style>
   </body>
 </html>

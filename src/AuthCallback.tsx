@@ -19,6 +19,8 @@ const AuthCallback: React.FC = () => {
             setError(true);
             setMessage('이메일 인증에 실패했습니다. 링크가 만료되었거나 유효하지 않습니다.');
           } else {
+            // 인증 성공 후 로그아웃하여 자동 로그인 방지
+            await supabase.auth.signOut();
             setMessage('이메일 인증이 완료되었습니다! 잠시 후 로그인 페이지로 이동합니다.');
             // 3초 후 로그인 페이지로 리다이렉트
             setTimeout(() => {
@@ -26,6 +28,8 @@ const AuthCallback: React.FC = () => {
             }, 3000);
           }
         } else {
+          // 세션이 있어도 로그아웃하여 자동 로그인 방지
+          await supabase.auth.signOut();
           setMessage('이메일 인증이 완료되었습니다! 잠시 후 로그인 페이지로 이동합니다.');
           // 3초 후 로그인 페이지로 리다이렉트
           setTimeout(() => {
