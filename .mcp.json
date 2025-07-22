@@ -17,6 +17,17 @@
         "-y",
         "@upstash/context7-mcp"
       ]
+    },
+    "flowise": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@matthewhand/mcp-flowise"
+      ],
+      "env": {
+        "FLOWISE_API_KEY": "_FZAqMXWY1Ec-DB6FcTKQiYYnrN6AjvSfli5be8lKDs",
+        "FLOWISE_API_ENDPOINT": "http://localhost:3010"
+      }
     }
   }
 }
