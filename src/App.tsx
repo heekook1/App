@@ -245,6 +245,21 @@ const MaintenanceManagementSystem = () => {
       completionNote: '',
       attachments: [],
       type: '전기'
+    },
+    {
+      id: '25-4',
+      title: 'PLC 점검',
+      equipment: '제어반',
+      equipmentName: 'PLC-200',
+      description: 'PLC 프로그램 점검 및 백업',
+      requestDate: '2025-06-05',
+      dueDate: '2025-06-07',
+      workResult: '',
+      status: '대기',
+      assignee: '박정호',
+      completionNote: '',
+      attachments: [],
+      type: '제어'
     }
   ])
   );
@@ -558,22 +573,6 @@ const MaintenanceManagementSystem = () => {
     });
     
     XLSX.writeFile(workbook, '설비별_작업이력.xlsx');
-  };
-
-  const downloadEquipmentExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(equipment.map(eq => ({
-      '설비번호': eq.id,
-      '설비명': eq.name,
-      '모델': eq.model,
-      '제조사': eq.manufacturer,
-      '상태': eq.status,
-      '위치': eq.location,
-      '사양': Object.entries(eq.specifications).map(([key, value]) => `${key}: ${value}`).join(', ')
-    })));
-    
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, '설비관리');
-    XLSX.writeFile(workbook, '설비관리_데이터.xlsx');
   };
 
   // Storage 버킷 확인 함수
@@ -1266,7 +1265,7 @@ const MaintenanceManagementSystem = () => {
                     <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(order.status)}`}>
                       {order.status}
                     </span>
-                    <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${getTypeColor(order.type)}`}>
                       {order.type}
                     </span>
                   </div>
@@ -1548,6 +1547,7 @@ const MaintenanceManagementSystem = () => {
               <tr>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-20">번호</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-32">작업명</th>
+                <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-20">분류</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-24">설비명</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-32">기기명</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900" style={{ width: '400px' }}>작업내용</th>
@@ -1564,6 +1564,11 @@ const MaintenanceManagementSystem = () => {
                 <tr key={order.id} className="hover:bg-gray-50">
                   <td className="px-4 py-2 border-b text-sm font-mono whitespace-nowrap w-20">{order.id}</td>
                   <td className="px-4 py-2 border-b text-sm font-medium whitespace-nowrap w-32">{order.title}</td>
+                  <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-20">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${getTypeColor(order.type)}`}>
+                      {order.type}
+                    </span>
+                  </td>
                   <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-24">{order.equipment}</td>
                   <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-32">{order.equipmentName}</td>
                   <td className="px-4 py-2 border-b text-sm whitespace-pre-line" style={{ width: '400px' }}>{order.description}</td>
@@ -2030,22 +2035,13 @@ const MaintenanceManagementSystem = () => {
         <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">설비 관리</h2>
-            <div className="flex gap-3">
-              <button
-                onClick={downloadEquipmentExcel}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                <Download className="w-4 h-4" />
-                Excel 다운로드
-              </button>
-              <button
-                onClick={() => setShowEquipmentForm(true)}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                설비 추가
-              </button>
-            </div>
+            <button
+              onClick={() => setShowEquipmentForm(true)}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              설비 추가
+            </button>
           </div>
           
           {showEquipmentForm && (
@@ -2137,7 +2133,7 @@ const MaintenanceManagementSystem = () => {
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">상태</th>
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">마지막 정비일</th>
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">다음 정비일</th>
-                  <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">정비 이력</th>
+                  <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">상세 정보</th>
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">관리</th>
                 </tr>
               </thead>
@@ -2365,7 +2361,7 @@ const MaintenanceManagementSystem = () => {
                 >
                   <option value="매뉴얼">매뉴얼</option>
                   <option value="보고서">보고서</option>
-                  <option value="계약서">계약서</option>
+                  <option value="도면">도면</option>
                   <option value="기타">기타</option>
                 </select>
               </div>
@@ -2538,38 +2534,109 @@ const MaintenanceManagementSystem = () => {
           </div>
         )}
         
-        <div className="space-y-4">
-          {announcements.map(announcement => (
-            <div key={announcement.id} className="p-4 border rounded-lg hover:bg-gray-50">
-              <div className="flex items-start justify-between mb-3">
-                <h3 className="font-medium text-lg">{announcement.title}</h3>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(announcement.priority)}`}>
-                    {announcement.priority === 'urgent' ? '긴급' :
-                     announcement.priority === 'important' ? '중요' : '일반'}
-                  </span>
-                  <div className="flex gap-1">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b bg-gray-50">
+                <th className="text-left py-3 px-4 font-medium text-gray-700">우선순위</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">제목</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">작성자</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">작성일</th>
+                <th className="text-center py-3 px-4 font-medium text-gray-700">관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              {announcements.map((announcement) => (
+                <tr key={announcement.id} className="border-b hover:bg-gray-50">
+                  <td className="py-3 px-4">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(announcement.priority)}`}>
+                      {announcement.priority === 'urgent' ? '긴급' :
+                       announcement.priority === 'important' ? '중요' : '일반'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
                     <button
-                      onClick={() => handleEditAnnouncement(announcement)}
-                      className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                      onClick={() => setSelectedAnnouncement(announcement)}
+                      className="text-blue-600 hover:text-blue-800 hover:underline text-left"
                     >
-                      <Edit className="h-4 w-4" />
+                      {announcement.title}
                     </button>
-                    <button
-                      onClick={() => handleDeleteAnnouncement(announcement.id)}
-                      className="p-1 text-red-600 hover:bg-red-100 rounded"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <p className="text-gray-600 mb-3 whitespace-pre-line">{announcement.content}</p>
-              <p className="text-sm text-gray-500">{announcement.date} - {announcement.author}</p>
+                  </td>
+                  <td className="py-3 px-4 text-sm text-gray-600">{announcement.author}</td>
+                  <td className="py-3 px-4 text-sm text-gray-600">{announcement.date}</td>
+                  <td className="py-3 px-4">
+                    <div className="flex justify-center gap-1">
+                      <button
+                        onClick={() => handleEditAnnouncement(announcement)}
+                        className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteAnnouncement(announcement.id)}
+                        className="p-1 text-red-600 hover:bg-red-100 rounded"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          
+          {announcements.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <MessageSquare className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p>등록된 공지사항이 없습니다.</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
+      
+      {/* 공지사항 상세 모달 */}
+      {selectedAnnouncement && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedAnnouncement.title}</h2>
+                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <span>작성자: {selectedAnnouncement.author}</span>
+                    <span>작성일: {selectedAnnouncement.date}</span>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(selectedAnnouncement.priority)}`}>
+                      {selectedAnnouncement.priority === 'urgent' ? '긴급' :
+                       selectedAnnouncement.priority === 'important' ? '중요' : '일반'}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedAnnouncement(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="prose max-w-none">
+                <p className="text-gray-700 whitespace-pre-line leading-relaxed">
+                  {selectedAnnouncement.content}
+                </p>
+              </div>
+              
+              <div className="mt-6 pt-6 border-t flex justify-end">
+                <button
+                  onClick={() => setSelectedAnnouncement(null)}
+                  className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 

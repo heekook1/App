@@ -15,3 +15,76 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Dify 챗봇 버튼 호버 효과 */
+#dify-chatbot-bubble-button {
+  transition: all 0.3s ease !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+#dify-chatbot-bubble-button:hover {
+  transform: scale(1.1) translateY(-3px) !important;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* 버튼 내부 아이콘 회전 효과 */
+#dify-chatbot-bubble-button:hover svg {
+  animation: bounce 0.5s ease !important;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* 챗봇 창 열릴 때 애니메이션 */
+#dify-chatbot-bubble-window {
+  animation: slideIn 0.3s ease-out !important;
+  width: 540px !important;
+  max-width: 90vw !important;
+}
+
+/* 챗봇 메시지 텍스트 박스 너비 조정 */
+#dify-chatbot-bubble-window .markdown-body {
+  max-width: 100% !important;
+}
+
+#dify-chatbot-bubble-window .message-content {
+  max-width: 100% !important;
+}
+
+#dify-chatbot-bubble-window [class*="message"] {
+  max-width: 100% !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+
+/* 오른쪽 사용자 아이콘 숨기기 */
+#dify-chatbot-bubble-window div[style*="justify-content: flex-end"] svg[width="24"][height="24"] {
+  display: none !important;
+}
+
+/* 사용자 메시지 영역 확장 */
+#dify-chatbot-bubble-window div[style*="justify-content: flex-end"] {
+  gap: 0 !important;
+}
+
+/* 사용자 메시지 박스 전체 너비 활용 */
+#dify-chatbot-bubble-window div[style*="justify-content: flex-end"] > div:first-child {
+  max-width: 85% !important;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
