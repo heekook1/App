@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as React from 'react';
-import { Calendar, Users, Settings, FileText, MessageSquare, Wrench, Home, Plus, Edit, Trash2, X, Download, Upload, Eye } from 'lucide-react';
+import { Calendar, Users, Settings, FileText, MessageSquare, Wrench, Home, Plus, Edit, Trash2, X, Download, Upload, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabaseClient';
 import LoginPage from './LoginPage';
@@ -31,10 +31,10 @@ interface WorkOrder {
   dueDate: string;
   workResult: string;
   status: string;
-  assignee: string;
+  assignee: string[];
   completionNote: string;
   attachments: any[];
-  type: string;
+  type: string[];
 }
 
 interface Schedule {
@@ -66,6 +66,15 @@ interface Equipment {
   status: string;
   location: string;
   specifications: any;
+}
+
+interface Attendance {
+  id: string;
+  personnelId: number;
+  personnelName: string;
+  date: string;
+  type: '연차' | '반차' | '공가' | '병가' | '교육';
+  note?: string;
 }
 
 interface Document {
@@ -199,6 +208,19 @@ const MaintenanceManagementSystem = () => {
   ])
   );
 
+  // Attendance Management State
+  const [attendances, setAttendances] = useState<Attendance[]>(() =>
+    loadFromStorage('attendances', [])
+  );
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+  const [selectedAttendanceDate, setSelectedAttendanceDate] = useState<string>('');
+  const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
+  const [attendanceForm, setAttendanceForm] = useState({
+    personnelId: 0,
+    personnelName: '',
+    type: '연차' as '연차' | '반차' | '공가' | '병가' | '교육'
+  });
+
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>(() => 
     loadFromStorage('workOrders', [
     {
@@ -211,10 +233,10 @@ const MaintenanceManagementSystem = () => {
       dueDate: '2025-06-02',
       workResult: '오일필터 교체 완료. 누유 없음 확인.',
       status: '완료',
-      assignee: '한희명',
+      assignee: ['한희명'],
       completionNote: '정상 교체 완료',
       attachments: [],
-      type: '기계'
+      type: ['기계']
     },
     {
       id: '25-2',
@@ -226,10 +248,10 @@ const MaintenanceManagementSystem = () => {
       dueDate: '2025-06-05',
       workResult: '',
       status: '진행중',
-      assignee: '이상경',
+      assignee: ['이상경'],
       completionNote: '',
       attachments: [],
-      type: '기계'
+      type: ['기계']
     },
     {
       id: '25-3',
@@ -241,10 +263,10 @@ const MaintenanceManagementSystem = () => {
       dueDate: '2025-06-06',
       workResult: '',
       status: '진행중',
-      assignee: '김태연',
+      assignee: ['김태연'],
       completionNote: '',
       attachments: [],
-      type: '전기'
+      type: ['전기']
     },
     {
       id: '25-4',
@@ -256,10 +278,10 @@ const MaintenanceManagementSystem = () => {
       dueDate: '2025-06-07',
       workResult: '',
       status: '대기',
-      assignee: '박정호',
+      assignee: ['박정호'],
       completionNote: '',
       attachments: [],
-      type: '제어'
+      type: ['제어']
     }
   ])
   );
@@ -409,6 +431,91 @@ const MaintenanceManagementSystem = () => {
   // Save data to localStorage whenever state changes
   // Check authentication on mount
   React.useEffect(() => {
+    // Fix corrupted localStorage data
+    const fixCorruptedData = () => {
+      try {
+        // Check and fix personnel data
+        const personnelData = localStorage.getItem('personnel');
+        if (personnelData) {
+          try {
+            const parsed = JSON.parse(personnelData);
+            // If it's an array within an array, flatten it
+            if (Array.isArray(parsed) && parsed.length === 1 && Array.isArray(parsed[0])) {
+              localStorage.setItem('personnel', JSON.stringify(parsed[0]));
+              console.log('Fixed corrupted personnel data');
+            }
+          } catch (e) {
+            console.error('Error parsing personnel data:', e);
+          }
+        }
+
+        // Check and fix workOrders data
+        const workOrdersData = localStorage.getItem('workOrders');
+        if (workOrdersData) {
+          try {
+            const parsed = JSON.parse(workOrdersData);
+            // If it's an array within an array, flatten it
+            if (Array.isArray(parsed) && parsed.length === 1 && Array.isArray(parsed[0])) {
+              localStorage.setItem('workOrders', JSON.stringify(parsed[0]));
+              console.log('Fixed corrupted workOrders data');
+            }
+          } catch (e) {
+            console.error('Error parsing workOrders data:', e);
+          }
+        }
+
+        // Check and fix schedules data
+        const schedulesData = localStorage.getItem('schedules');
+        if (schedulesData) {
+          try {
+            const parsed = JSON.parse(schedulesData);
+            // If it's an array within an array, flatten it
+            if (Array.isArray(parsed) && parsed.length === 1 && Array.isArray(parsed[0])) {
+              localStorage.setItem('schedules', JSON.stringify(parsed[0]));
+              console.log('Fixed corrupted schedules data');
+            }
+          } catch (e) {
+            console.error('Error parsing schedules data:', e);
+          }
+        }
+
+        // Check and fix documents data
+        const documentsData = localStorage.getItem('documents');
+        if (documentsData) {
+          try {
+            const parsed = JSON.parse(documentsData);
+            // If it's an array within an array, flatten it
+            if (Array.isArray(parsed) && parsed.length === 1 && Array.isArray(parsed[0])) {
+              localStorage.setItem('documents', JSON.stringify(parsed[0]));
+              console.log('Fixed corrupted documents data');
+            }
+          } catch (e) {
+            console.error('Error parsing documents data:', e);
+          }
+        }
+
+        // Check and fix notices data
+        const noticesData = localStorage.getItem('notices');
+        if (noticesData) {
+          try {
+            const parsed = JSON.parse(noticesData);
+            // If it's an array within an array, flatten it
+            if (Array.isArray(parsed) && parsed.length === 1 && Array.isArray(parsed[0])) {
+              localStorage.setItem('notices', JSON.stringify(parsed[0]));
+              console.log('Fixed corrupted notices data');
+            }
+          } catch (e) {
+            console.error('Error parsing notices data:', e);
+          }
+        }
+      } catch (error) {
+        console.error('Error fixing corrupted data:', error);
+      }
+    };
+
+    // Run data fix before checking auth
+    fixCorruptedData();
+
     const checkAuth = async () => {
       // First check Supabase Auth session
       const { data: { session } } = await supabase.auth.getSession();
@@ -818,18 +925,19 @@ const MaintenanceManagementSystem = () => {
   // Navigation
   const renderNavigation = () => (
     <nav className="bg-white shadow-sm border-b">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-20">
-          <div className="flex items-center space-x-8">
-            <div className="flex flex-col items-center">
-              <h1 className="text-xl font-semibold text-gray-900 mb-1">정비 업체 관리 시스템</h1>
-              <div className="flex items-center gap-2 justify-center w-full">
-                <img src="/wideincheon-logo.png" alt="위드인천에너지" className="h-6 w-auto" />
-                <span className="text-gray-400 text-sm">×</span>
-                <img src="/youngjin-logo.png" alt="영진" className="h-6 w-auto" />
-              </div>
+      <div className="w-full px-2 sm:px-4 lg:px-6">
+        <div className="flex items-center justify-between h-20">
+          <div className="flex flex-col items-center">
+            <h1 className="text-lg font-semibold text-gray-900 mb-1">정비 업체 관리 시스템</h1>
+            <div className="flex items-center gap-2 justify-center">
+              <img src="/wideincheon-logo.png" alt="위드인천에너지" className="h-5 w-auto" />
+              <span className="text-gray-400 text-xs">×</span>
+              <img src="/youngjin-logo.png" alt="영진" className="h-5 w-auto" />
             </div>
-            <div className="flex space-x-1">
+          </div>
+          
+          <div className="flex justify-center flex-1">
+            <div className="flex space-x-2">
               {[
                 { id: 'dashboard', label: '대시보드', icon: Home },
                 { id: 'announcements', label: '공지사항', icon: MessageSquare },
@@ -837,15 +945,16 @@ const MaintenanceManagementSystem = () => {
                 { id: 'schedule', label: '작업 일정', icon: Calendar },
                 { id: 'equipment', label: '설비관리', icon: Settings },
                 { id: 'documents', label: '문서관리', icon: FileText },
-                { id: 'personnel', label: '인력관리', icon: Users }
+                { id: 'personnel', label: '인력관리', icon: Users },
+                { id: 'attendance', label: '근태관리', icon: Calendar }
               ].map(item => (
                 <button
                   key={item.id}
                   onClick={() => setCurrentPage(item.id)}
-                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                     currentPage === item.id 
-                      ? 'bg-blue-100 text-blue-700' 
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                      ? 'bg-blue-600 text-white shadow-lg transform scale-105' 
+                      : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50 hover:shadow-md'
                   }`}
                 >
                   <item.icon className="h-4 w-4 mr-2" />
@@ -872,8 +981,8 @@ const MaintenanceManagementSystem = () => {
 
   // Dashboard
   const renderDashboard = () => (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { title: '전체 작업', value: workOrders.length, color: 'bg-blue-500' },
           { title: '진행중 작업', value: workOrders.filter(w => w.status === '진행중').length, color: 'bg-yellow-500' },
@@ -894,15 +1003,15 @@ const MaintenanceManagementSystem = () => {
         ))}
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
           <h3 className="text-lg font-semibold mb-4">최근 작업</h3>
           <div className="space-y-3">
             {workOrders.slice(0, 5).map(order => (
               <div key={order.id} className="flex items-center justify-between p-3 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => handleWorkOrderClick(order)}>
                 <div className="flex-1">
                   <p className="font-medium text-sm">{order.title}</p>
-                  <p className="text-xs text-gray-500">{order.equipment} - {order.assignee}</p>
+                  <p className="text-xs text-gray-500">{order.equipment} - {Array.isArray(order.assignee) ? order.assignee.join(', ') : order.assignee}</p>
                 </div>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                   {order.status}
@@ -912,7 +1021,48 @@ const MaintenanceManagementSystem = () => {
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <h3 className="text-lg font-semibold mb-4">근태 현황</h3>
+          <div className="space-y-3">
+            {personnel.map(person => {
+              const today = new Date(new Date().getTime() + (9 * 60 * 60 * 1000)).toISOString().split('T')[0]; // 한국 시간(UTC+9)
+              const todayAttendance = attendances.find(
+                att => att.date === today && att.personnelId === person.id
+              );
+              const attendanceStatus = todayAttendance?.type || '출근';
+              
+              // 디버깅용 로그 (임시)
+              if (person.id === 1) { // 한희명만 로그 출력하여 중복 방지
+                console.log(`Debug - Person: ${person.name}, ID: ${person.id}, Today: ${today}`);
+                console.log('All attendances array:', attendances);
+                console.log('Found Attendance:', todayAttendance);
+                console.log(`Status: ${attendanceStatus}`);
+              }
+              
+              return (
+                <div key={`${person.id}-${attendances.length}`} className="flex items-center justify-between p-3 border rounded">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{person.name}</p>
+                    <p className="text-xs text-gray-500">{person.position} - {person.field}</p>
+                    <p className="text-xs text-gray-500">{person.phone}</p>
+                  </div>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    attendanceStatus === '연차' ? 'bg-red-100 text-red-800' :
+                    attendanceStatus === '반차' ? 'bg-yellow-100 text-yellow-800' :
+                    attendanceStatus === '공가' ? 'bg-blue-100 text-blue-800' :
+                    attendanceStatus === '병가' ? 'bg-purple-100 text-purple-800' :
+                    attendanceStatus === '교육' ? 'bg-green-100 text-green-800' :
+                    'bg-green-100 text-green-800'
+                  }`}>
+                    {attendanceStatus}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
           <h3 className="text-lg font-semibold mb-4">최근 공지사항</h3>
           <div className="space-y-3">
             {announcements.slice(0, 5).map(announcement => (
@@ -1073,7 +1223,7 @@ const MaintenanceManagementSystem = () => {
             {daySchedules.slice(0, 2).map(schedule => (
               <div
                 key={schedule.id}
-                className={`text-xs px-1 py-0.5 rounded truncate ${getTypeColor(schedule.type)}`}
+                className={`text-xs px-1 py-0.5 rounded truncate ${getTypeColor(Array.isArray(schedule.type) ? schedule.type[0] : schedule.type)}`}
                 title={`${schedule.title} - ${schedule.assignee} (${schedule.type})`}
               >
                 {schedule.title}
@@ -1122,7 +1272,7 @@ const MaintenanceManagementSystem = () => {
   };
 
   const renderSchedule = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">작업 일정</h2>
@@ -1265,9 +1415,15 @@ const MaintenanceManagementSystem = () => {
                     <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(order.status)}`}>
                       {order.status}
                     </span>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${getTypeColor(order.type)}`}>
-                      {order.type}
-                    </span>
+                    {Array.isArray(order.type) ? order.type.map((t, idx) => (
+                      <span key={idx} className={`px-2 py-1 rounded text-xs font-medium ${getTypeColor(t)}`}>
+                        {t}
+                      </span>
+                    )) : (
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${getTypeColor(order.type)}`}>
+                        {order.type}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1281,6 +1437,11 @@ const MaintenanceManagementSystem = () => {
   // Work Order Management
   const [showWorkOrderForm, setShowWorkOrderForm] = useState(false);
   const [editingWorkOrder, setEditingWorkOrder] = useState<WorkOrder | null>(null);
+  const [fixedAssignees, setFixedAssignees] = useState<string[]>(() =>
+    loadFromStorage('fixedAssignees', ['강희국', '박정훈', '이윤직', '김동욱', '박정일'])
+  );
+  const [showAssigneeModal, setShowAssigneeModal] = useState(false);
+  const [newAssigneeName, setNewAssigneeName] = useState('');
   const [workOrderForm, setWorkOrderForm] = useState({
     title: '',
     equipment: '',
@@ -1288,8 +1449,8 @@ const MaintenanceManagementSystem = () => {
     description: '',
     dueDate: '',
     workResult: '',
-    assignee: '',
-    type: '기계'
+    assignee: [] as string[],
+    type: [] as string[]
   });
 
   const handleWorkOrderSubmit = (e: React.FormEvent) => {
@@ -1320,8 +1481,8 @@ const MaintenanceManagementSystem = () => {
       description: '',
       dueDate: '',
       workResult: '',
-      assignee: '',
-      type: '기계'
+      assignee: [],
+      type: []
     });
   };
 
@@ -1390,6 +1551,102 @@ const MaintenanceManagementSystem = () => {
     setWorkOrders(prev => prev.filter(order => order.id !== id));
   };
 
+  const handleAddAssignee = () => {
+    if (newAssigneeName.trim() && !fixedAssignees.includes(newAssigneeName.trim())) {
+      const updatedAssignees = [...fixedAssignees, newAssigneeName.trim()];
+      setFixedAssignees(updatedAssignees);
+      saveToStorage('fixedAssignees', updatedAssignees);
+      setNewAssigneeName('');
+    }
+  };
+
+  const handleDeleteAssignee = (name: string) => {
+    const updatedAssignees = fixedAssignees.filter(a => a !== name);
+    setFixedAssignees(updatedAssignees);
+    saveToStorage('fixedAssignees', updatedAssignees);
+    // 현재 선택된 담당자에서도 제거
+    setWorkOrderForm(prev => ({
+      ...prev,
+      assignee: prev.assignee.filter(a => a !== name)
+    }));
+  };
+
+  // Attendance Management Functions
+  const handleAttendanceDelete = (attendanceId: string) => {
+    const updatedAttendances = attendances.filter(att => att.id !== attendanceId);
+    setAttendances(updatedAttendances);
+    saveToStorage('attendances', updatedAttendances);
+  };
+
+  const handleAttendanceSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // 담당자 선택 필수 검증
+    if (attendanceForm.personnelId === 0) {
+      alert('담당자를 선택해주세요.');
+      return;
+    }
+
+    const newAttendance: Attendance = {
+      id: `${selectedAttendanceDate}-${attendanceForm.personnelId}`,
+      personnelId: attendanceForm.personnelId,
+      personnelName: attendanceForm.personnelName,
+      date: selectedAttendanceDate,
+      type: attendanceForm.type
+    };
+
+    // 디버깅용 로그 (임시)
+    console.log('New Attendance Registration:', newAttendance);
+    console.log('Selected Date:', selectedAttendanceDate);
+    console.log('Personnel ID:', attendanceForm.personnelId);
+
+    // Remove existing attendance for same person and date
+    const filteredAttendances = attendances.filter(
+      att => !(att.date === selectedAttendanceDate && att.personnelId === attendanceForm.personnelId)
+    );
+    
+    const updatedAttendances = [...filteredAttendances, newAttendance];
+    console.log('Updated Attendances Array:', updatedAttendances);
+    
+    setAttendances(updatedAttendances);
+    saveToStorage('attendances', updatedAttendances);
+    
+    setShowAttendanceModal(false);
+    setAttendanceForm({
+      personnelId: 0,
+      personnelName: '',
+      type: '연차'
+    });
+  };
+
+  const getAttendanceForDate = (date: string) => {
+    return attendances.filter(att => att.date === date);
+  };
+
+  const getTodayAttendanceStatus = (personnelId: number) => {
+    const today = new Date(new Date().getTime() + (9 * 60 * 60 * 1000)).toISOString().split('T')[0]; // 한국 시간(UTC+9)
+    const todayAttendance = attendances.find(
+      att => att.date === today && att.personnelId === personnelId
+    );
+    return todayAttendance?.type || '출근';
+  };
+
+  const handlePrevMonth = () => {
+    setCurrentCalendarDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setMonth(newDate.getMonth() - 1);
+      return newDate;
+    });
+  };
+
+  const handleNextMonth = () => {
+    setCurrentCalendarDate(prev => {
+      const newDate = new Date(prev);
+      newDate.setMonth(newDate.getMonth() + 1);
+      return newDate;
+    });
+  };
+
   const handleUpdateWorkOrderStatus = (id: string, status: string) => {
     // 완료 상태로 변경하려는 경우 작업 결과가 있는지 확인
     if (status === '완료') {
@@ -1406,7 +1663,7 @@ const MaintenanceManagementSystem = () => {
   };
 
   const renderWorkOrder = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">작업 관리</h2>
@@ -1432,7 +1689,7 @@ const MaintenanceManagementSystem = () => {
           <div className="mb-6 p-4 border rounded-lg bg-gray-50">
             <h3 className="font-medium mb-4">{editingWorkOrder ? '작업 수정' : '새 작업 등록'}</h3>
             <form onSubmit={handleWorkOrderSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <input
                   type="text"
                   placeholder="작업 제목"
@@ -1473,26 +1730,62 @@ const MaintenanceManagementSystem = () => {
                   required
                   placeholder="작업일"
                 />
-                <select
-                  value={workOrderForm.assignee}
-                  onChange={(e) => setWorkOrderForm(prev => ({ ...prev, assignee: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  required
-                >
-                  <option value="">담당자 선택</option>
-                  {personnel.map(person => (
-                    <option key={person.id} value={person.name}>{person.name}</option>
-                  ))}
-                </select>
-                <select
-                  value={workOrderForm.type}
-                  onChange={(e) => setWorkOrderForm(prev => ({ ...prev, type: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg"
-                >
-                  <option value="기계">기계</option>
-                  <option value="전기">전기</option>
-                  <option value="제어">제어</option>
-                </select>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-gray-700">담당자 선택 (중복 가능)</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowAssigneeModal(true)}
+                      className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                      <Plus className="h-3 w-3" />
+                      관리
+                    </button>
+                  </div>
+                  <div className="space-y-2 border rounded-lg p-3 max-h-40 overflow-y-auto">
+                    {[...fixedAssignees, ...personnel.map(p => p.name)].filter((name, index, self) => self.indexOf(name) === index).map((name, index) => (
+                      <label key={index} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          value={name}
+                          checked={workOrderForm.assignee.includes(name)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setWorkOrderForm(prev => ({ ...prev, assignee: [...prev.assignee, name] }));
+                            } else {
+                              setWorkOrderForm(prev => ({ ...prev, assignee: prev.assignee.filter(a => a !== name) }));
+                            }
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">{name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">분야 선택 (중복 가능)</label>
+                  <div className="space-y-2 border rounded-lg p-3">
+                    {['기계', '전기', '제어'].map((field) => (
+                      <label key={field} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          value={field}
+                          checked={workOrderForm.type.includes(field)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setWorkOrderForm(prev => ({ ...prev, type: [...prev.type, field] }));
+                            } else {
+                              setWorkOrderForm(prev => ({ ...prev, type: prev.type.filter(t => t !== field) }));
+                            }
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">{field}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
               <textarea
                 placeholder="작업 내용"
@@ -1528,8 +1821,8 @@ const MaintenanceManagementSystem = () => {
                       description: '',
                       dueDate: '',
                       workResult: '',
-                      assignee: '',
-                      type: '기계'
+                      assignee: [],
+                      type: []
                     });
                   }}
                   className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
@@ -1540,9 +1833,106 @@ const MaintenanceManagementSystem = () => {
             </form>
           </div>
         )}
+
+        {/* 담당자 관리 모달 */}
+        {showAssigneeModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">담당자 관리</h3>
+                <button
+                  onClick={() => {
+                    setShowAssigneeModal(false);
+                    setNewAssigneeName('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="mb-4">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newAssigneeName}
+                    onChange={(e) => setNewAssigneeName(e.target.value)}
+                    placeholder="새 담당자 이름"
+                    className="flex-1 px-3 py-2 border rounded-lg"
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddAssignee())}
+                  />
+                  <button
+                    onClick={handleAddAssignee}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    추가
+                  </button>
+                </div>
+              </div>
+              
+              <div className="space-y-4 max-h-60 overflow-y-auto">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">고정 담당자 목록</h4>
+                  <div className="space-y-1">
+                    {fixedAssignees.map((name) => (
+                      <div key={name} className="flex items-center justify-between p-2 border rounded hover:bg-gray-50">
+                        <span className="text-sm">{name}</span>
+                        <button
+                          onClick={() => handleDeleteAssignee(name)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">인력관리 담당자</h4>
+                  <div className="space-y-1">
+                    {personnel.map((person) => (
+                      <div key={person.id} className="flex items-center justify-between p-2 border rounded hover:bg-gray-50">
+                        <span className="text-sm">{person.name}</span>
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`정말로 ${person.name}님을 삭제하시겠습니까?`)) {
+                              setPersonnel(prev => prev.filter(p => p.id !== person.id));
+                              saveToStorage('personnel', personnel.filter(p => p.id !== person.id));
+                              // 현재 선택된 담당자에서도 제거
+                              setWorkOrderForm(prev => ({
+                                ...prev,
+                                assignee: prev.assignee.filter(a => a !== person.name)
+                              }));
+                            }
+                          }}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => {
+                    setShowAssigneeModal(false);
+                    setNewAssigneeName('');
+                  }}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         
         <div className="overflow-x-auto">
-          <table className="w-full border border-gray-200" style={{ minWidth: '1600px' }}>
+          <table className="w-full border border-gray-200" style={{ minWidth: '100%' }}>
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-20">번호</th>
@@ -1565,9 +1955,17 @@ const MaintenanceManagementSystem = () => {
                   <td className="px-4 py-2 border-b text-sm font-mono whitespace-nowrap w-20">{order.id}</td>
                   <td className="px-4 py-2 border-b text-sm font-medium whitespace-nowrap w-32">{order.title}</td>
                   <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-20">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${getTypeColor(order.type)}`}>
-                      {order.type}
-                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {Array.isArray(order.type) ? order.type.map((t, idx) => (
+                        <span key={idx} className={`px-2 py-1 rounded text-xs font-medium ${getTypeColor(t)}`}>
+                          {t}
+                        </span>
+                      )) : (
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${getTypeColor(order.type)}`}>
+                          {order.type}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-24">{order.equipment}</td>
                   <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-32">{order.equipmentName}</td>
@@ -1587,7 +1985,7 @@ const MaintenanceManagementSystem = () => {
                       <option value="지연">지연</option>
                     </select>
                   </td>
-                  <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-24">{order.assignee}</td>
+                  <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-24">{Array.isArray(order.assignee) ? order.assignee.join(', ') : order.assignee}</td>
                   <td className="px-4 py-2 border-b text-sm w-20">
                     <div className="flex gap-1">
                       <button
@@ -1689,7 +2087,7 @@ const MaintenanceManagementSystem = () => {
   };
 
   const renderPersonnel = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">인력 관리</h2>
@@ -1858,6 +2256,186 @@ const MaintenanceManagementSystem = () => {
     </div>
   );
 
+  // Attendance Management
+  const renderAttendance = () => (
+    <div className="space-y-4">
+      <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <div className="flex flex-col items-center mb-4">
+          <h2 className="text-lg font-semibold mb-3">근태 관리</h2>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handlePrevMonth}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <span className="font-medium text-lg min-w-[120px] text-center">
+              {currentCalendarDate.getFullYear()}년 {currentCalendarDate.getMonth() + 1}월
+            </span>
+            <button
+              onClick={handleNextMonth}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-7 gap-2 mb-4">
+          {['일', '월', '화', '수', '목', '금', '토'].map(day => (
+            <div key={day} className="text-center font-medium py-2 text-gray-600">
+              {day}
+            </div>
+          ))}
+        </div>
+        
+        <div className="grid grid-cols-7 gap-2">
+          {Array.from({ length: 35 }, (_, i) => {
+            const firstDay = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), 1);
+            const lastDay = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 0);
+            const startDate = new Date(firstDay);
+            startDate.setDate(startDate.getDate() - firstDay.getDay());
+            
+            const currentDate = new Date(startDate);
+            currentDate.setDate(currentDate.getDate() + i);
+            
+            const dateStr = new Date(currentDate.getTime() + (9 * 60 * 60 * 1000)).toISOString().split('T')[0]; // 한국 시간(UTC+9)
+            const isCurrentMonth = currentDate.getMonth() === currentCalendarDate.getMonth();
+            const dayAttendances = getAttendanceForDate(dateStr);
+            
+            return (
+              <div
+                key={i}
+                onClick={() => {
+                  setSelectedAttendanceDate(dateStr);
+                  setShowAttendanceModal(true);
+                }}
+                className={`min-h-[80px] p-1 border rounded cursor-pointer hover:bg-blue-50 ${
+                  isCurrentMonth ? 'bg-white' : 'bg-gray-100'
+                }`}
+              >
+                <div className="text-xs text-gray-600 mb-1">
+                  {currentDate.getDate()}
+                </div>
+                <div className="space-y-1">
+                  {dayAttendances.map(att => (
+                    <div key={att.id} className={`text-xs p-1 rounded group relative ${
+                      att.type === '연차' ? 'bg-red-100 text-red-800' :
+                      att.type === '반차' ? 'bg-yellow-100 text-yellow-800' :
+                      att.type === '공가' ? 'bg-blue-100 text-blue-800' :
+                      att.type === '병가' ? 'bg-purple-100 text-purple-800' :
+                      att.type === '교육' ? 'bg-green-100 text-green-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <span className="flex-1">{att.personnelName}: {att.type}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`${att.personnelName}의 ${att.type} 근태를 삭제하시겠습니까?`)) {
+                              handleAttendanceDelete(att.id);
+                            }
+                          }}
+                          className="opacity-0 group-hover:opacity-100 ml-1 p-0.5 hover:bg-red-500 hover:text-white rounded transition-all"
+                          title="삭제"
+                        >
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 근태 등록 모달 */}
+      {showAttendanceModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">근태 등록</h3>
+              <button
+                onClick={() => setShowAttendanceModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleAttendanceSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  날짜: {selectedAttendanceDate}
+                </label>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">담당자</label>
+                <select
+                  value={attendanceForm.personnelId}
+                  onChange={(e) => {
+                    const selectedId = parseInt(e.target.value);
+                    const selectedPerson = personnel.find(p => p.id === selectedId);
+                    setAttendanceForm(prev => ({
+                      ...prev,
+                      personnelId: selectedId,
+                      personnelName: selectedPerson?.name || ''
+                    }));
+                  }}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  required
+                >
+                  <option value={0}>담당자 선택</option>
+                  {personnel.map(person => (
+                    <option key={person.id} value={person.id}>{person.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">근태 유형</label>
+                <select
+                  value={attendanceForm.type}
+                  onChange={(e) => setAttendanceForm(prev => ({ 
+                    ...prev, 
+                    type: e.target.value as '연차' | '반차' | '공가' | '병가' | '교육'
+                  }))}
+                  className="w-full px-3 py-2 border rounded-lg"
+                >
+                  <option value="연차">연차</option>
+                  <option value="반차">반차</option>
+                  <option value="공가">공가</option>
+                  <option value="병가">병가</option>
+                  <option value="교육">교육</option>
+                </select>
+              </div>
+              
+              
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAttendanceModal(false)}
+                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  등록
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   // Equipment Management
   const [showEquipmentForm, setShowEquipmentForm] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
@@ -1944,8 +2522,8 @@ const MaintenanceManagementSystem = () => {
       const { lastMaintenance, nextMaintenance } = getMaintenanceDates(selectedEquipment.name);
       
       return (
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="space-y-4">
+          <div className="bg-white p-4 rounded-lg shadow-sm border">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">설비 상세정보</h2>
               <button
@@ -1985,7 +2563,7 @@ const MaintenanceManagementSystem = () => {
               <h3 className="font-medium text-lg mb-3">작업 이력</h3>
               {maintenanceHistory.length > 0 ? (
                 <div className="overflow-x-auto">
-                  <table className="w-full border border-gray-200" style={{ minWidth: '1600px' }}>
+                  <table className="w-full border border-gray-200" style={{ minWidth: '100%' }}>
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-20">번호</th>
@@ -2031,8 +2609,8 @@ const MaintenanceManagementSystem = () => {
 
     // Equipment list view
     return (
-      <div className="space-y-6">
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <div className="space-y-4">
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">설비 관리</h2>
             <button
@@ -2451,7 +3029,7 @@ const MaintenanceManagementSystem = () => {
   };
 
   const renderAnnouncements = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">공지사항</h2>
@@ -2642,7 +3220,7 @@ const MaintenanceManagementSystem = () => {
 
   // Chat
   const renderChat = () => (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h2 className="text-lg font-semibold mb-4">실시간 소통</h2>
         <p className="text-gray-500">실시간 채팅 기능이 여기에 표시됩니다.</p>
@@ -2657,6 +3235,7 @@ const MaintenanceManagementSystem = () => {
       case 'schedule': return renderSchedule();
       case 'workorder': return renderWorkOrder();
       case 'personnel': return renderPersonnel();
+      case 'attendance': return renderAttendance();
       case 'equipment': return renderEquipment();
       case 'documents': return renderDocuments();
       case 'announcements': return renderAnnouncements();
@@ -2695,7 +3274,7 @@ const MaintenanceManagementSystem = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {renderNavigation()}
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <main className="w-full py-4 px-2 sm:px-4 lg:px-6">
         {renderContent()}
       </main>
       
