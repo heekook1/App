@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 
 interface LoginPageProps {
@@ -14,6 +14,19 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onShowSignup, onS
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [rememberEmail, setRememberEmail] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // 컴포넌트 마운트 시 저장된 이메일만 불러오기 (비밀번호는 저장하지 않음)
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('savedEmail');
+    const savedRememberEmail = localStorage.getItem('rememberEmail') === 'true';
+
+    if (savedEmail && savedRememberEmail) {
+      setLoginForm(prev => ({ ...prev, email: savedEmail }));
+      setRememberEmail(true);
+    }
+  }, []);
 
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -60,6 +73,22 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onShowSignup, onS
           company: authData.user.user_metadata?.company || '',
           phone: authData.user.user_metadata?.phone || ''
         };
+        
+        // 아이디 저장 처리
+        if (rememberEmail) {
+          localStorage.setItem('savedEmail', loginForm.email);
+          localStorage.setItem('rememberEmail', 'true');
+        } else {
+          localStorage.removeItem('savedEmail');
+          localStorage.removeItem('rememberEmail');
+        }
+        
+        // Remember Me 처리 - localStorage에 저장하여 App.tsx에서 활용
+        if (rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
+        } else {
+          localStorage.setItem('rememberMe', 'false');
+        }
         
         onLoginSuccess(user);
       }
@@ -112,6 +141,34 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onShowSignup, onS
               placeholder="비밀번호를 입력하세요"
               required
             />
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="rememberEmail"
+                checked={rememberEmail}
+                onChange={(e) => setRememberEmail(e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="rememberEmail" className="ml-2 block text-sm text-gray-700">
+                아이디 저장
+              </label>
+            </div>
+            
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="rememberMe" className="ml-2 block text-sm text-gray-700">
+                로그인 상태 유지
+              </label>
+            </div>
           </div>
           
           {error && (

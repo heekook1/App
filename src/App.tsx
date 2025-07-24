@@ -88,6 +88,40 @@ interface Document {
   fileData?: string; // Base64 encoded file data for local storage
 }
 
+interface DailyReport {
+  id: string;
+  date: string;
+  mechanical: {
+    today: string;
+    tomorrow: string;
+  };
+  youngjinMechanical: {
+    today: string;
+    tomorrow: string;
+  };
+  electrical: {
+    today: string;
+    tomorrow: string;
+  };
+  youngjinElectrical: {
+    today: string;
+    tomorrow: string;
+  };
+  control: {
+    today: string;
+    tomorrow: string;
+  };
+  youngjinControl: {
+    today: string;
+    tomorrow: string;
+  };
+  attendanceStatus: string;
+  safetySlogan: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 
 // Load data from localStorage
 const loadFromStorage = <T,>(key: string, defaultData: T): T => {
@@ -220,6 +254,39 @@ const MaintenanceManagementSystem = () => {
     personnelName: '',
     type: '연차' as '연차' | '반차' | '공가' | '병가' | '교육'
   });
+
+  // 한국 시간 헬퍼 함수
+  const getKoreanDate = () => {
+    return new Date(new Date().getTime() + (9 * 60 * 60 * 1000)).toISOString().split('T')[0];
+  };
+
+  const getKoreanDateTime = () => {
+    return new Date(new Date().getTime() + (9 * 60 * 60 * 1000)).toISOString();
+  };
+
+  // 업무일지 상태
+  const [dailyReports, setDailyReports] = useState<DailyReport[]>(() =>
+    loadFromStorage('dailyReports', [])
+  );
+  const [showDailyReportModal, setShowDailyReportModal] = useState(false);
+  const [selectedDailyReport, setSelectedDailyReport] = useState<DailyReport | null>(null);
+  const [dailyReportForm, setDailyReportForm] = useState<DailyReport>({
+    id: '',
+    date: getKoreanDate(),
+    mechanical: { today: '', tomorrow: '' },
+    youngjinMechanical: { today: '', tomorrow: '' },
+    electrical: { today: '', tomorrow: '' },
+    youngjinElectrical: { today: '', tomorrow: '' },
+    control: { today: '', tomorrow: '' },
+    youngjinControl: { today: '', tomorrow: '' },
+    attendanceStatus: '',
+    safetySlogan: '',
+    createdBy: '',
+    createdAt: '',
+    updatedAt: ''
+  });
+  const [dailyReportSearchDate, setDailyReportSearchDate] = useState('');
+  const [dailyReportSelectedMonth, setDailyReportSelectedMonth] = useState(getKoreanDate().slice(0, 7));
 
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>(() => 
     loadFromStorage('workOrders', [
@@ -587,8 +654,21 @@ const MaintenanceManagementSystem = () => {
       }
     });
     
+    // Remember Me 기능을 위한 beforeunload 이벤트 추가
+    const handleBeforeUnload = () => {
+      const rememberMe = localStorage.getItem('rememberMe') === 'true';
+      if (!rememberMe) {
+        // Remember Me가 체크되지 않았으면 로그아웃 처리
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('currentUser');
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
     return () => {
       subscription.unsubscribe();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, []);
 
@@ -611,6 +691,10 @@ const MaintenanceManagementSystem = () => {
   React.useEffect(() => {
     saveToStorage('equipment', equipment);
   }, [equipment]);
+
+  React.useEffect(() => {
+    saveToStorage('dailyReports', dailyReports);
+  }, [dailyReports]);
 
   // Handle click events
   const handleWorkOrderClick = (workOrder: WorkOrder) => {
@@ -946,7 +1030,8 @@ const MaintenanceManagementSystem = () => {
                 { id: 'equipment', label: '설비관리', icon: Settings },
                 { id: 'documents', label: '문서관리', icon: FileText },
                 { id: 'personnel', label: '인력관리', icon: Users },
-                { id: 'attendance', label: '근태관리', icon: Calendar }
+                { id: 'attendance', label: '근태관리', icon: Calendar },
+                { id: 'dailyreport', label: '업무일지', icon: FileText }
               ].map(item => (
                 <button
                   key={item.id}
@@ -1624,11 +1709,122 @@ const MaintenanceManagementSystem = () => {
   };
 
   const getTodayAttendanceStatus = (personnelId: number) => {
-    const today = new Date(new Date().getTime() + (9 * 60 * 60 * 1000)).toISOString().split('T')[0]; // 한국 시간(UTC+9)
+    const today = getKoreanDate(); // 한국 시간(UTC+9)
     const todayAttendance = attendances.find(
       att => att.date === today && att.personnelId === personnelId
     );
     return todayAttendance?.type || '출근';
+  };
+
+  // 업무일지 관리 함수들
+  const handleDailyReportSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const now = getKoreanDateTime();
+    const reportToSave = {
+      ...dailyReportForm,
+      id: selectedDailyReport ? selectedDailyReport.id : Date.now().toString(),
+      createdBy: currentUser?.fullName || '사용자',
+      createdAt: selectedDailyReport ? selectedDailyReport.createdAt : now,
+      updatedAt: now
+    };
+
+    let updatedReports;
+    if (selectedDailyReport) {
+      // 수정
+      updatedReports = dailyReports.map(report =>
+        report.id === selectedDailyReport.id ? reportToSave : report
+      );
+    } else {
+      // 새로 추가
+      updatedReports = [...dailyReports, reportToSave];
+    }
+
+    setDailyReports(updatedReports);
+    saveToStorage('dailyReports', updatedReports);
+    
+    // 폼 초기화
+    setShowDailyReportModal(false);
+    setSelectedDailyReport(null);
+    setDailyReportForm({
+      id: '',
+      date: getKoreanDate(),
+      mechanical: { today: '', tomorrow: '' },
+      youngjinMechanical: { today: '', tomorrow: '' },
+      electrical: { today: '', tomorrow: '' },
+      youngjinElectrical: { today: '', tomorrow: '' },
+      control: { today: '', tomorrow: '' },
+      youngjinControl: { today: '', tomorrow: '' },
+      attendanceStatus: '',
+      safetySlogan: '',
+      createdBy: '',
+      createdAt: '',
+      updatedAt: ''
+    });
+  };
+
+  const handleDailyReportEdit = (report: DailyReport) => {
+    setSelectedDailyReport(report);
+    setDailyReportForm(report);
+    setShowDailyReportModal(true);
+  };
+
+  const handleDailyReportDelete = (reportId: string) => {
+    if (window.confirm('정말 삭제하시겠습니까?')) {
+      const updatedReports = dailyReports.filter(report => report.id !== reportId);
+      setDailyReports(updatedReports);
+      saveToStorage('dailyReports', updatedReports);
+    }
+  };
+
+  const exportDailyReportsToExcel = (month: string) => {
+    const [year, monthNum] = month.split('-');
+    const monthReports = dailyReports.filter(report => 
+      report.date.startsWith(month)
+    ).sort((a, b) => a.date.localeCompare(b.date));
+
+    if (monthReports.length === 0) {
+      alert('해당 월에 작성된 업무일지가 없습니다.');
+      return;
+    }
+
+    const wb = XLSX.utils.book_new();
+    
+    // 각 일자별로 시트 생성
+    monthReports.forEach(report => {
+      const date = new Date(report.date);
+      const sheetName = `${date.getMonth() + 1}.${date.getDate()}`;
+      
+      // 엑셀 데이터 구조 생성
+      const wsData = [
+        ['일일업무현황'],
+        ['', ''],
+        [`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`],
+        ['구분', '금일', '명일'],
+        ['기계', report.mechanical.today || '', report.mechanical.tomorrow || ''],
+        ['영진(기계)', report.youngjinMechanical.today || '', report.youngjinMechanical.tomorrow || ''],
+        ['전기', report.electrical.today || '', report.electrical.tomorrow || ''],
+        ['영진(전기)', report.youngjinElectrical.today || '', report.youngjinElectrical.tomorrow || ''],
+        ['제어', report.control.today || '', report.control.tomorrow || ''],
+        ['영진(제어)', report.youngjinControl.today || '', report.youngjinControl.tomorrow || ''],
+        ['근태현황', report.attendanceStatus || '', ''],
+        ['안전구호', report.safetySlogan || '', '']
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      
+      // 열 너비 설정
+      ws['!cols'] = [
+        { wch: 15 },
+        { wch: 40 },
+        { wch: 40 }
+      ];
+
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    });
+
+    // 파일 다운로드
+    XLSX.writeFile(wb, `업무일지_${year}년${monthNum}월.xlsx`);
   };
 
   const handlePrevMonth = () => {
@@ -3218,6 +3414,389 @@ const MaintenanceManagementSystem = () => {
     </div>
   );
 
+  // 업무일지 관리
+  const renderDailyReport = () => {
+    const filteredReports = dailyReports.filter(report => 
+      dailyReportSearchDate ? report.date.includes(dailyReportSearchDate) : true
+    ).sort((a, b) => b.date.localeCompare(a.date));
+
+    return (
+      <div className="space-y-6">
+        {/* 헤더 */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">업무일지 관리</h2>
+              <p className="text-gray-600 mt-1">일일 업무 현황을 기록하고 관리합니다</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="month"
+                value={dailyReportSelectedMonth}
+                onChange={(e) => setDailyReportSelectedMonth(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={() => exportDailyReportsToExcel(dailyReportSelectedMonth)}
+                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                월별 엑셀 다운로드
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedDailyReport(null);
+                  setDailyReportForm({
+                    id: '',
+                    date: getKoreanDate(),
+                    mechanical: { today: '', tomorrow: '' },
+                    youngjinMechanical: { today: '', tomorrow: '' },
+                    electrical: { today: '', tomorrow: '' },
+                    youngjinElectrical: { today: '', tomorrow: '' },
+                    control: { today: '', tomorrow: '' },
+                    youngjinControl: { today: '', tomorrow: '' },
+                    attendanceStatus: '',
+                    safetySlogan: '',
+                    createdBy: '',
+                    createdAt: '',
+                    updatedAt: ''
+                  });
+                  setShowDailyReportModal(true);
+                }}
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                업무일지 등록
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 검색 */}
+        <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="flex gap-4">
+            <input
+              type="date"
+              value={dailyReportSearchDate}
+              onChange={(e) => setDailyReportSearchDate(e.target.value)}
+              placeholder="날짜로 검색"
+              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+            />
+            <button
+              onClick={() => setDailyReportSearchDate('')}
+              className="px-4 py-2 text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              초기화
+            </button>
+          </div>
+        </div>
+
+        {/* 업무일지 목록 */}
+        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">날짜</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작성자</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">안전구호</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작성일시</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredReports.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                      등록된 업무일지가 없습니다.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredReports.map(report => (
+                    <tr key={report.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {new Date(report.date).toLocaleDateString('ko-KR')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {report.createdBy}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                        {report.safetySlogan || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(report.createdAt).toLocaleString('ko-KR')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                        <button
+                          onClick={() => handleDailyReportEdit(report)}
+                          className="text-blue-600 hover:text-blue-800 inline-flex items-center"
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          수정
+                        </button>
+                        <button
+                          onClick={() => handleDailyReportDelete(report.id)}
+                          className="text-red-600 hover:text-red-800 inline-flex items-center"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          삭제
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* 업무일지 등록/수정 모달 */}
+        {showDailyReportModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center p-6 border-b">
+                <h3 className="text-xl font-semibold">
+                  {selectedDailyReport ? '업무일지 수정' : '업무일지 등록'}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowDailyReportModal(false);
+                    setSelectedDailyReport(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <form onSubmit={handleDailyReportSubmit} className="p-6 space-y-6">
+                {/* 날짜 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">날짜</label>
+                  <input
+                    type="date"
+                    value={dailyReportForm.date}
+                    onChange={(e) => setDailyReportForm(prev => ({ ...prev, date: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+
+                {/* 업무 현황 테이블 */}
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 w-32">구분</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700">금일</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-700">명일</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      <tr className="bg-green-50">
+                        <td className="px-4 py-3 text-xs font-medium text-gray-900">기계</td>
+                        <td className="px-4 py-3">
+                          <textarea
+                            value={dailyReportForm.mechanical.today}
+                            onChange={(e) => setDailyReportForm(prev => ({
+                              ...prev,
+                              mechanical: { ...prev.mechanical, today: e.target.value }
+                            }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            rows={8}
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <textarea
+                            value={dailyReportForm.mechanical.tomorrow}
+                            onChange={(e) => setDailyReportForm(prev => ({
+                              ...prev,
+                              mechanical: { ...prev.mechanical, tomorrow: e.target.value }
+                            }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            rows={8}
+                          />
+                        </td>
+                      </tr>
+                      <tr className="bg-blue-50">
+                        <td className="px-4 py-3 text-xs font-medium text-gray-900">영진(기계)</td>
+                        <td className="px-4 py-3">
+                          <textarea
+                            value={dailyReportForm.youngjinMechanical.today}
+                            onChange={(e) => setDailyReportForm(prev => ({
+                              ...prev,
+                              youngjinMechanical: { ...prev.youngjinMechanical, today: e.target.value }
+                            }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            rows={8}
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <textarea
+                            value={dailyReportForm.youngjinMechanical.tomorrow}
+                            onChange={(e) => setDailyReportForm(prev => ({
+                              ...prev,
+                              youngjinMechanical: { ...prev.youngjinMechanical, tomorrow: e.target.value }
+                            }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            rows={8}
+                          />
+                        </td>
+                      </tr>
+                      <tr className="bg-green-50">
+                        <td className="px-4 py-3 text-xs font-medium text-gray-900">전기</td>
+                        <td className="px-4 py-3">
+                          <textarea
+                            value={dailyReportForm.electrical.today}
+                            onChange={(e) => setDailyReportForm(prev => ({
+                              ...prev,
+                              electrical: { ...prev.electrical, today: e.target.value }
+                            }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            rows={8}
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <textarea
+                            value={dailyReportForm.electrical.tomorrow}
+                            onChange={(e) => setDailyReportForm(prev => ({
+                              ...prev,
+                              electrical: { ...prev.electrical, tomorrow: e.target.value }
+                            }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            rows={8}
+                          />
+                        </td>
+                      </tr>
+                      <tr className="bg-blue-50">
+                        <td className="px-4 py-3 text-xs font-medium text-gray-900">영진(전기)</td>
+                        <td className="px-4 py-3">
+                          <textarea
+                            value={dailyReportForm.youngjinElectrical.today}
+                            onChange={(e) => setDailyReportForm(prev => ({
+                              ...prev,
+                              youngjinElectrical: { ...prev.youngjinElectrical, today: e.target.value }
+                            }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            rows={8}
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <textarea
+                            value={dailyReportForm.youngjinElectrical.tomorrow}
+                            onChange={(e) => setDailyReportForm(prev => ({
+                              ...prev,
+                              youngjinElectrical: { ...prev.youngjinElectrical, tomorrow: e.target.value }
+                            }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            rows={8}
+                          />
+                        </td>
+                      </tr>
+                      <tr className="bg-green-50">
+                        <td className="px-4 py-3 text-xs font-medium text-gray-900">제어</td>
+                        <td className="px-4 py-3">
+                          <textarea
+                            value={dailyReportForm.control.today}
+                            onChange={(e) => setDailyReportForm(prev => ({
+                              ...prev,
+                              control: { ...prev.control, today: e.target.value }
+                            }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            rows={8}
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <textarea
+                            value={dailyReportForm.control.tomorrow}
+                            onChange={(e) => setDailyReportForm(prev => ({
+                              ...prev,
+                              control: { ...prev.control, tomorrow: e.target.value }
+                            }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            rows={8}
+                          />
+                        </td>
+                      </tr>
+                      <tr className="bg-blue-50">
+                        <td className="px-4 py-3 text-xs font-medium text-gray-900">영진(제어)</td>
+                        <td className="px-4 py-3">
+                          <textarea
+                            value={dailyReportForm.youngjinControl.today}
+                            onChange={(e) => setDailyReportForm(prev => ({
+                              ...prev,
+                              youngjinControl: { ...prev.youngjinControl, today: e.target.value }
+                            }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            rows={8}
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <textarea
+                            value={dailyReportForm.youngjinControl.tomorrow}
+                            onChange={(e) => setDailyReportForm(prev => ({
+                              ...prev,
+                              youngjinControl: { ...prev.youngjinControl, tomorrow: e.target.value }
+                            }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            rows={8}
+                          />
+                        </td>
+                      </tr>
+                      <tr className="bg-yellow-50">
+                        <td className="px-4 py-3 text-xs font-medium text-gray-900">근태현황</td>
+                        <td className="px-4 py-3" colSpan={2}>
+                          <textarea
+                            value={dailyReportForm.attendanceStatus}
+                            onChange={(e) => setDailyReportForm(prev => ({ ...prev, attendanceStatus: e.target.value }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            rows={1}
+                            placeholder="근태 현황을 입력하세요"
+                          />
+                        </td>
+                      </tr>
+                      <tr className="bg-yellow-50">
+                        <td className="px-4 py-3 text-xs font-medium text-gray-900">안전구호</td>
+                        <td className="px-4 py-3" colSpan={2}>
+                          <textarea
+                            value={dailyReportForm.safetySlogan}
+                            onChange={(e) => setDailyReportForm(prev => ({ ...prev, safetySlogan: e.target.value }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            rows={1}
+                            placeholder="안전구호를 입력하세요"
+                          />
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4 border-t">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDailyReportModal(false);
+                      setSelectedDailyReport(null);
+                    }}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    {selectedDailyReport ? '수정' : '등록'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Chat
   const renderChat = () => (
     <div className="space-y-4">
@@ -3239,6 +3818,7 @@ const MaintenanceManagementSystem = () => {
       case 'equipment': return renderEquipment();
       case 'documents': return renderDocuments();
       case 'announcements': return renderAnnouncements();
+      case 'dailyreport': return renderDailyReport();
       case 'chat': return renderChat();
       default: return renderDashboard();
     }
