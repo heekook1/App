@@ -1096,7 +1096,7 @@ const MaintenanceManagementSystem = () => {
               <div key={order.id} className="flex items-center justify-between p-3 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => handleWorkOrderClick(order)}>
                 <div className="flex-1">
                   <p className="font-medium text-sm">{order.title}</p>
-                  <p className="text-xs text-gray-500">{order.equipment} - {Array.isArray(order.assignee) ? order.assignee.join(', ') : order.assignee}</p>
+                  <p className="text-xs text-gray-500">담당자 : {Array.isArray(order.assignee) ? order.assignee.join(', ') : order.assignee}</p>
                 </div>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                   {order.status}
@@ -1361,13 +1361,6 @@ const MaintenanceManagementSystem = () => {
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">작업 일정</h2>
-          <button
-            onClick={() => setShowScheduleForm(true)}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            일정 추가
-          </button>
         </div>
         
         {/* Calendar View */}
@@ -1720,6 +1713,15 @@ const MaintenanceManagementSystem = () => {
   const handleDailyReportSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // 중복 체크: 같은 날짜에 이미 등록된 업무일지가 있는지 확인
+    if (!selectedDailyReport) {
+      const existingReport = dailyReports.find(report => report.date === dailyReportForm.date);
+      if (existingReport) {
+        alert('해당 날짜에 이미 업무일지가 등록되어 있습니다.\n수정하시려면 해당 업무일지를 선택하여 수정해주세요.');
+        return;
+      }
+    }
+    
     const now = getKoreanDateTime();
     const reportToSave = {
       ...dailyReportForm,
@@ -1793,32 +1795,230 @@ const MaintenanceManagementSystem = () => {
     // 각 일자별로 시트 생성
     monthReports.forEach(report => {
       const date = new Date(report.date);
-      const sheetName = `${date.getMonth() + 1}.${date.getDate()}`;
+      const dayNum = date.getDate();
+      const sheetName = `${date.getMonth() + 1}.${dayNum}`;
       
-      // 엑셀 데이터 구조 생성
+      // 날짜 포맷팅
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+      
+      // 엑셀 데이터 구조 생성 (원본 양식과 동일하게)
       const wsData = [
-        ['일일업무현황'],
-        ['', ''],
-        [`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`],
-        ['구분', '금일', '명일'],
-        ['기계', report.mechanical.today || '', report.mechanical.tomorrow || ''],
-        ['영진(기계)', report.youngjinMechanical.today || '', report.youngjinMechanical.tomorrow || ''],
-        ['전기', report.electrical.today || '', report.electrical.tomorrow || ''],
-        ['영진(전기)', report.youngjinElectrical.today || '', report.youngjinElectrical.tomorrow || ''],
-        ['제어', report.control.today || '', report.control.tomorrow || ''],
-        ['영진(제어)', report.youngjinControl.today || '', report.youngjinControl.tomorrow || ''],
-        ['근태현황', report.attendanceStatus || '', ''],
-        ['안전구호', report.safetySlogan || '', '']
+        ['일 일 업 무 현 황'],
+        ['', '', '', '', dateStr],
+        ['구분', '금일', '', '명일', ''],
+        [],
+        ['기 계', report.mechanical.today || '', '', report.mechanical.tomorrow || '', ''],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        ['영진(기계)', report.youngjinMechanical.today || '', '', report.youngjinMechanical.tomorrow || '', ''],
+        [],
+        [],
+        [],
+        [],
+        [],
+        ['제 어', report.control.today || '', '', report.control.tomorrow || '', ''],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        ['영진(제어)', report.youngjinControl.today || '', '', report.youngjinControl.tomorrow || '', ''],
+        [],
+        [],
+        [],
+        [],
+        [],
+        ['전기', report.electrical.today || '', '', report.electrical.tomorrow || '', ''],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [],
+        ['영진(전기)', report.youngjinElectrical.today || '', '', report.youngjinElectrical.tomorrow || '', ''],
+        [],
+        [],
+        [],
+        [],
+        ['근태현황', '', '', '', ''],
+        ['안전구호', report.attendanceStatus + ' / ' + report.safetySlogan || '', '', '', '']
       ];
 
       const ws = XLSX.utils.aoa_to_sheet(wsData);
       
+      // 병합 설정 (원본과 동일하게)
+      const merges = [
+        // 제목
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
+        // 구분 헤더
+        { s: { r: 2, c: 1 }, e: { r: 2, c: 2 } },
+        { s: { r: 2, c: 3 }, e: { r: 2, c: 4 } },
+        // 기계 섹션
+        { s: { r: 4, c: 0 }, e: { r: 11, c: 0 } },
+        { s: { r: 4, c: 1 }, e: { r: 11, c: 2 } },
+        { s: { r: 4, c: 3 }, e: { r: 11, c: 4 } },
+        // 영진(기계) 섹션
+        { s: { r: 12, c: 0 }, e: { r: 17, c: 0 } },
+        { s: { r: 12, c: 1 }, e: { r: 17, c: 2 } },
+        { s: { r: 12, c: 3 }, e: { r: 17, c: 4 } },
+        // 제어 섹션
+        { s: { r: 18, c: 0 }, e: { r: 25, c: 0 } },
+        { s: { r: 18, c: 1 }, e: { r: 25, c: 2 } },
+        { s: { r: 18, c: 3 }, e: { r: 25, c: 4 } },
+        // 영진(제어) 섹션
+        { s: { r: 26, c: 0 }, e: { r: 31, c: 0 } },
+        { s: { r: 26, c: 1 }, e: { r: 31, c: 2 } },
+        { s: { r: 26, c: 3 }, e: { r: 31, c: 4 } },
+        // 전기 섹션
+        { s: { r: 32, c: 0 }, e: { r: 39, c: 0 } },
+        { s: { r: 32, c: 1 }, e: { r: 39, c: 2 } },
+        { s: { r: 32, c: 3 }, e: { r: 39, c: 4 } },
+        // 영진(전기) 섹션
+        { s: { r: 40, c: 0 }, e: { r: 46, c: 0 } },
+        { s: { r: 40, c: 1 }, e: { r: 46, c: 2 } },
+        { s: { r: 40, c: 3 }, e: { r: 46, c: 4 } },
+        // 근태현황
+        { s: { r: 47, c: 0 }, e: { r: 47, c: 4 } },
+        // 안전구호
+        { s: { r: 48, c: 0 }, e: { r: 48, c: 0 } },
+        { s: { r: 48, c: 1 }, e: { r: 48, c: 4 } }
+      ];
+      
+      ws['!merges'] = merges;
+      
+      // 병합 후 모든 셀의 정렬 다시 강제 설정
+      for (let R = 0; R <= 48; R++) {
+        for (let C = 0; C <= 4; C++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+          if (ws[cellAddress] && ws[cellAddress].s) {
+            // 금일/명일 내용 영역은 무조건 위쪽 정렬
+            if (C > 0 && R >= 4 && R <= 46) {
+              ws[cellAddress].s.alignment = {
+                vertical: 'top',
+                horizontal: 'left',
+                wrapText: true
+              };
+              ws[cellAddress].s.font = { sz: 10 };  // 글씨 크기 10
+            }
+            // 구분란은 가운데 정렬
+            else if (C === 0 && R >= 4 && R <= 46) {
+              ws[cellAddress].s.alignment = {
+                vertical: 'center',
+                horizontal: 'center',
+                wrapText: true,
+                readingOrder: 0,
+                shrinkToFit: false
+              };
+            }
+          }
+        }
+      }
+      
       // 열 너비 설정
       ws['!cols'] = [
-        { wch: 15 },
-        { wch: 40 },
-        { wch: 40 }
+        { wch: 10 },  // 구분
+        { wch: 40 },  // 금일 첫번째 컬럼
+        { wch: 10 },  // 금일 두번째 컬럼 (병합용)
+        { wch: 40 },  // 명일 첫번째 컬럼
+        { wch: 10 }   // 명일 두번째 컬럼 (병합용)
       ];
+      
+      // 행 높이 설정
+      ws['!rows'] = [];
+      for (let i = 0; i <= 48; i++) {
+        if (i === 0) {
+          ws['!rows'][i] = { hpt: 25 };  // 제목
+        } else if (i === 2) {
+          ws['!rows'][i] = { hpt: 18 };  // 구분 헤더
+        } else if (i === 47 || i === 48) {
+          ws['!rows'][i] = { hpt: 20 };  // 근태현황, 안전구호
+        } else {
+          ws['!rows'][i] = { hpt: 18 };  // 원래 높이로 복구
+        }
+      }
+
+      // 스타일 적용을 위한 범위 설정
+      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:E49');
+      
+      // 셀 스타일 설정
+      for (let R = 0; R <= range.e.r; ++R) {
+        for (let C = 0; C <= range.e.c; ++C) {
+          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+          
+          if (!ws[cellAddress]) {
+            ws[cellAddress] = { v: '', t: 's' };
+          }
+          
+          // 기본 테두리 스타일
+          ws[cellAddress].s = {
+            border: {
+              top: { style: 'thin', color: { rgb: '000000' } },
+              bottom: { style: 'thin', color: { rgb: '000000' } },
+              left: { style: 'thin', color: { rgb: '000000' } },
+              right: { style: 'thin', color: { rgb: '000000' } }
+            },
+            alignment: {
+              vertical: 'top',
+              horizontal: 'left',
+              wrapText: true
+            },
+            font: { sz: 10 }  // 글씨 크기 10으로 설정
+          };
+          
+          // 제목 스타일
+          if (R === 0) {
+            ws[cellAddress].s.font = { bold: true, sz: 16 };
+            ws[cellAddress].s.alignment.horizontal = 'center';
+            ws[cellAddress].s.fill = { fgColor: { rgb: 'FFFFFF' } };
+          }
+          
+          // 날짜 스타일
+          if (R === 1 && C === 4) {
+            ws[cellAddress].s.font = { bold: true };
+            ws[cellAddress].s.alignment.horizontal = 'center';
+          }
+          
+          // 구분 헤더 스타일
+          if (R === 2) {
+            ws[cellAddress].s.fill = { fgColor: { rgb: 'E8F5E9' } };
+            ws[cellAddress].s.font = { bold: true };
+            ws[cellAddress].s.alignment.horizontal = 'center';
+          }
+          
+          // 구분 컬럼 스타일 (세로) - 모든 병합된 영역에 색상 적용하되 텍스트는 첫 번째만
+          if (C === 0 && R >= 4 && R <= 46) {
+            ws[cellAddress].s.fill = { fgColor: { rgb: 'E8F5E9' } };
+            ws[cellAddress].s.alignment.horizontal = 'center';
+            ws[cellAddress].s.alignment.vertical = 'center';
+            // 첫 번째 행에만 굵은 글씨 적용
+            if ([4, 12, 18, 26, 32, 40].includes(R)) {
+              ws[cellAddress].s.font = { bold: true };
+            }
+          }
+          
+          // 근태현황 행 스타일
+          if (R === 47) {
+            ws[cellAddress].s.fill = { fgColor: { rgb: 'E8F5E9' } };
+            ws[cellAddress].s.font = { bold: true };
+            ws[cellAddress].s.alignment.horizontal = 'center';
+          }
+          
+          // 안전구호 행 스타일
+          if (R === 48 && C === 0) {
+            ws[cellAddress].s.fill = { fgColor: { rgb: 'E8F5E9' } };
+            ws[cellAddress].s.font = { bold: true };
+            ws[cellAddress].s.alignment.horizontal = 'center';
+          }
+        }
+      }
 
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
     });
@@ -3134,7 +3334,7 @@ const MaintenanceManagementSystem = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="매뉴얼">매뉴얼</option>
-                  <option value="보고서">보고서</option>
+                  <option value="데이타 시트">데이타 시트</option>
                   <option value="도면">도면</option>
                   <option value="기타">기타</option>
                 </select>
@@ -3644,56 +3844,6 @@ const MaintenanceManagementSystem = () => {
                         </td>
                       </tr>
                       <tr className="bg-green-50">
-                        <td className="px-4 py-3 text-xs font-medium text-gray-900">전기</td>
-                        <td className="px-4 py-3">
-                          <textarea
-                            value={dailyReportForm.electrical.today}
-                            onChange={(e) => setDailyReportForm(prev => ({
-                              ...prev,
-                              electrical: { ...prev.electrical, today: e.target.value }
-                            }))}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
-                            rows={8}
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <textarea
-                            value={dailyReportForm.electrical.tomorrow}
-                            onChange={(e) => setDailyReportForm(prev => ({
-                              ...prev,
-                              electrical: { ...prev.electrical, tomorrow: e.target.value }
-                            }))}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
-                            rows={8}
-                          />
-                        </td>
-                      </tr>
-                      <tr className="bg-blue-50">
-                        <td className="px-4 py-3 text-xs font-medium text-gray-900">영진(전기)</td>
-                        <td className="px-4 py-3">
-                          <textarea
-                            value={dailyReportForm.youngjinElectrical.today}
-                            onChange={(e) => setDailyReportForm(prev => ({
-                              ...prev,
-                              youngjinElectrical: { ...prev.youngjinElectrical, today: e.target.value }
-                            }))}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
-                            rows={8}
-                          />
-                        </td>
-                        <td className="px-4 py-3">
-                          <textarea
-                            value={dailyReportForm.youngjinElectrical.tomorrow}
-                            onChange={(e) => setDailyReportForm(prev => ({
-                              ...prev,
-                              youngjinElectrical: { ...prev.youngjinElectrical, tomorrow: e.target.value }
-                            }))}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
-                            rows={8}
-                          />
-                        </td>
-                      </tr>
-                      <tr className="bg-green-50">
                         <td className="px-4 py-3 text-xs font-medium text-gray-900">제어</td>
                         <td className="px-4 py-3">
                           <textarea
@@ -3737,6 +3887,56 @@ const MaintenanceManagementSystem = () => {
                             onChange={(e) => setDailyReportForm(prev => ({
                               ...prev,
                               youngjinControl: { ...prev.youngjinControl, tomorrow: e.target.value }
+                            }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            rows={8}
+                          />
+                        </td>
+                      </tr>
+                      <tr className="bg-green-50">
+                        <td className="px-4 py-3 text-xs font-medium text-gray-900">전기</td>
+                        <td className="px-4 py-3">
+                          <textarea
+                            value={dailyReportForm.electrical.today}
+                            onChange={(e) => setDailyReportForm(prev => ({
+                              ...prev,
+                              electrical: { ...prev.electrical, today: e.target.value }
+                            }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            rows={8}
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <textarea
+                            value={dailyReportForm.electrical.tomorrow}
+                            onChange={(e) => setDailyReportForm(prev => ({
+                              ...prev,
+                              electrical: { ...prev.electrical, tomorrow: e.target.value }
+                            }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            rows={8}
+                          />
+                        </td>
+                      </tr>
+                      <tr className="bg-blue-50">
+                        <td className="px-4 py-3 text-xs font-medium text-gray-900">영진(전기)</td>
+                        <td className="px-4 py-3">
+                          <textarea
+                            value={dailyReportForm.youngjinElectrical.today}
+                            onChange={(e) => setDailyReportForm(prev => ({
+                              ...prev,
+                              youngjinElectrical: { ...prev.youngjinElectrical, today: e.target.value }
+                            }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            rows={8}
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <textarea
+                            value={dailyReportForm.youngjinElectrical.tomorrow}
+                            onChange={(e) => setDailyReportForm(prev => ({
+                              ...prev,
+                              youngjinElectrical: { ...prev.youngjinElectrical, tomorrow: e.target.value }
                             }))}
                             className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
                             rows={8}
@@ -3894,11 +4094,11 @@ const MaintenanceManagementSystem = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">설비</label>
+                    <label className="block text-sm font-medium text-gray-700">설비명</label>
                     <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.equipment}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">설비명</label>
+                    <label className="block text-sm font-medium text-gray-700">기기명</label>
                     <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.equipmentName}</p>
                   </div>
                 </div>
@@ -4012,11 +4212,11 @@ const MaintenanceManagementSystem = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">설비</label>
+                    <label className="block text-sm font-medium text-gray-700">설비명</label>
                     <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.equipment}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">설비명</label>
+                    <label className="block text-sm font-medium text-gray-700">기기명</label>
                     <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.equipmentName}</p>
                   </div>
                 </div>
