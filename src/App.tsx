@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import * as React from 'react';
 import { Calendar, Users, Settings, FileText, MessageSquare, Wrench, Home, Plus, Edit, Trash2, X, Download, Upload, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { supabase } from './supabaseClient';
 import LoginPage from './LoginPage';
 import SignupPage from './SignupPage';
@@ -233,76 +234,16 @@ const MaintenanceManagementSystem = () => {
   
   // 문서 관리 상태
   const [documents, setDocuments] = useState<Document[]>(() => 
-    loadFromStorage('documents', [
-      {
-        id: 1,
-        name: '안전매뉴얼_v2.pdf',
-        size: 2048576,
-        type: 'application/pdf',
-        category: '안전',
-        uploadDate: '2025-06-01',
-        description: '작업 안전 가이드라인'
-      },
-      {
-        id: 2,
-        name: '정비절차서.docx',
-        size: 1024768,
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        category: '매뉴얼',
-        uploadDate: '2025-05-28',
-        description: '표준 정비 절차'
-      }
-    ])
+    loadFromStorage('documents', [])
   );
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [uploadCategory, setUploadCategory] = useState('매뉴얼');
   const [uploadDescription, setUploadDescription] = useState('');
 
-  // Sample data - in real app this would come from backend
+  // Personnel data
   const [personnel, setPersonnel] = useState<Personnel[]>(() => 
-    loadFromStorage('personnel', [
-    {
-      id: 1,
-      name: '한희명',
-      position: '과장',
-      field: '전기',
-      phone: '010-1111-2222',
-      hireDate: '2021-03-15',
-      certifications: ['전기기사', '전기기능사'],
-      accessHistory: ['2024-06-30', '2024-07-01']
-    },
-    {
-      id: 2,
-      name: '이상경',
-      position: '대리',
-      field: '기계',
-      phone: '010-3333-4444',
-      hireDate: '2022-07-20',
-      certifications: ['기계정비산업기사'],
-      accessHistory: ['2024-06-29', '2024-06-30']
-    },
-    {
-      id: 3,
-      name: '김태연',
-      position: '팀장',
-      field: '제어',
-      phone: '010-5555-6666',
-      hireDate: '2020-11-10',
-      certifications: ['제어산업기사'],
-      accessHistory: ['2024-06-28', '2024-06-30', '2024-07-01']
-    },
-    {
-      id: 4,
-      name: '이중원',
-      position: '사원',
-      field: '기계',
-      phone: '010-7777-8888',
-      hireDate: '2023-02-01',
-      certifications: ['기계정비기능사'],
-      accessHistory: ['2024-06-29']
-    }
-  ])
+    loadFromStorage('personnel', [])
   );
 
   // Attendance Management State
@@ -352,147 +293,19 @@ const MaintenanceManagementSystem = () => {
   const [dailyReportSelectedMonth, setDailyReportSelectedMonth] = useState(getKoreanDate().slice(0, 7));
 
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>(() => 
-    loadFromStorage('workOrders', [
-    {
-      id: '25-1',
-      title: '오일필터 교체',
-      equipment: '터빈',
-      equipmentName: 'T-3000',
-      description: '오일필터 정기 교체',
-      requestDate: '2025-06-01',
-      dueDate: '2025-06-02',
-      workResult: '오일필터 교체 완료. 누유 없음 확인.',
-      status: '완료',
-      assignee: ['한희명'],
-      completionNote: '정상 교체 완료',
-      attachments: [],
-      type: ['기계']
-    },
-    {
-      id: '25-2',
-      title: '밸브 교정',
-      equipment: '보일러',
-      equipmentName: 'B-2500',
-      description: '압력 밸브 교정',
-      requestDate: '2025-06-03',
-      dueDate: '2025-06-05',
-      workResult: '',
-      status: '진행중',
-      assignee: ['이상경'],
-      completionNote: '',
-      attachments: [],
-      type: ['기계']
-    },
-    {
-      id: '25-3',
-      title: '케이블 점검',
-      equipment: '발전기',
-      equipmentName: 'G-1800',
-      description: '전원 케이블 절연 점검',
-      requestDate: '2025-06-04',
-      dueDate: '2025-06-06',
-      workResult: '',
-      status: '진행중',
-      assignee: ['김태연'],
-      completionNote: '',
-      attachments: [],
-      type: ['전기']
-    },
-    {
-      id: '25-4',
-      title: 'PLC 점검',
-      equipment: '제어반',
-      equipmentName: 'PLC-200',
-      description: 'PLC 프로그램 점검 및 백업',
-      requestDate: '2025-06-05',
-      dueDate: '2025-06-07',
-      workResult: '',
-      status: '대기',
-      assignee: ['박정호'],
-      completionNote: '',
-      attachments: [],
-      type: ['제어']
-    }
-  ])
+    loadFromStorage('workOrders', [])
   );
 
   const [schedules, setSchedules] = useState<Schedule[]>(() => 
-    loadFromStorage('schedules', [
-    {
-      id: 1,
-      scheduleNumber: '25-1',
-      title: '터빈 정기점검',
-      date: '2025-07-02',
-      type: '기계',
-      equipment: '터빈',
-      equipmentName: 'T-3000',
-      assignee: '한희명',
-      description: '정기점검'
-    },
-    {
-      id: 2,
-      scheduleNumber: '25-2',
-      title: '보일러 점검',
-      date: '2025-07-05',
-      type: '기계',
-      equipment: '보일러',
-      equipmentName: 'B-2500',
-      assignee: '이상경',
-      description: '압력 점검'
-    }
-  ])
+    loadFromStorage('schedules', [])
   );
 
   const [announcements, setAnnouncements] = useState<Announcement[]>(() => 
-    loadFromStorage('announcements', [
-    {
-      id: 1,
-      title: '안전교육 실시 안내',
-      content: '다음 주 월요일 오전 10시 안전교육을 실시합니다.',
-      date: '2025-06-29',
-      author: '관리자',
-      priority: 'important'
-    },
-    {
-      id: 2,
-      title: '정기점검 일정 공지',
-      content: '7월 첫째 주 정기점검 일정을 확인해주세요.',
-      date: '2025-06-28',
-      author: '관리자',
-      priority: 'normal'
-    }
-  ])
+    loadFromStorage('announcements', [])
   );
 
   const [equipment, setEquipment] = useState<Equipment[]>(() => 
-    loadFromStorage('equipment', [
-    {
-      id: 1,
-      name: 'T-3000',
-      model: 'Turbine-3000',
-      manufacturer: 'TurboTech',
-      status: '정상',
-      location: '발전동 1층',
-      specifications: {
-        power: '3000kW',
-        type: '스팀터빈',
-        fuel: '천연가스'
-      }
-    },
-    {
-      id: 2,
-      name: 'B-2500',
-      model: 'Boiler-2500',
-      manufacturer: 'HeatSys',
-      status: '점검중',
-      location: '보일러실',
-      specifications: {
-        pressure: '25bar',
-        temperature: '400°C',
-        output: '2500kW'
-      }
-    }
-  ])
+    loadFromStorage('equipment', [])
   );
 
   // Generate work order number based on current year
@@ -813,7 +626,8 @@ const MaintenanceManagementSystem = () => {
         '기기명': order.equipmentName,
         '작업내용': convertToExcelBulletText(order.description),
         '작업일': order.dueDate, // 완료예정일을 작업일로 사용
-        '담당자': order.assignee
+        '담당자': order.assignee,
+        '작업결과': order.workResult || '-'  // 작업결과 추가
       });
       return groups;
     }, {} as Record<string, any[]>);
@@ -832,7 +646,8 @@ const MaintenanceManagementSystem = () => {
         { wch: 15 }, // 기기명
         { wch: 50 }, // 작업내용
         { wch: 12 }, // 작업일
-        { wch: 10 }  // 담당자
+        { wch: 10 }, // 담당자
+        { wch: 50 }  // 작업결과
       ];
       worksheet['!cols'] = colWidths;
       
@@ -843,25 +658,42 @@ const MaintenanceManagementSystem = () => {
       if (!worksheet['!rows']) worksheet['!rows'] = [];
       
       for (let row = range.s.r + 1; row <= range.e.r; row++) {
-        const cellAddress = XLSX.utils.encode_cell({ r: row, c: 4 }); // E열 (작업내용)
-        if (worksheet[cellAddress]) {
-          // wrapText 적용
-          if (!worksheet[cellAddress].s) worksheet[cellAddress].s = {};
-          if (!worksheet[cellAddress].s.alignment) worksheet[cellAddress].s.alignment = {};
-          worksheet[cellAddress].s.alignment.wrapText = true;
-          worksheet[cellAddress].s.alignment.vertical = 'top';
+        // 작업내용 열 (E열, 인덱스 4)
+        const contentCell = XLSX.utils.encode_cell({ r: row, c: 4 });
+        // 작업결과 열 (H열, 인덱스 7)
+        const resultCell = XLSX.utils.encode_cell({ r: row, c: 7 });
+        
+        let maxLineCount = 1;
+        
+        // 작업내용 열 wrapText 적용
+        if (worksheet[contentCell]) {
+          if (!worksheet[contentCell].s) worksheet[contentCell].s = {};
+          if (!worksheet[contentCell].s.alignment) worksheet[contentCell].s.alignment = {};
+          worksheet[contentCell].s.alignment.wrapText = true;
+          worksheet[contentCell].s.alignment.vertical = 'top';
           
-          // 줄바꿈 개수에 따른 행 높이 계산
-          const content = worksheet[cellAddress].v || '';
-          const lineCount = (content.toString().match(/\n/g) || []).length + 1;
-          
-          // 행 높이 설정 (각 줄당 약 18 포인트)
-          // hidden: false를 명시적으로 설정해 행이 표시되도록 함
-          worksheet['!rows'][row] = {
-            hpx: lineCount * 18,  // hpx (height in pixels)
-            hidden: false
-          };
+          const content = worksheet[contentCell].v || '';
+          const contentLineCount = (content.toString().match(/\n/g) || []).length + 1;
+          maxLineCount = Math.max(maxLineCount, contentLineCount);
         }
+        
+        // 작업결과 열 wrapText 적용
+        if (worksheet[resultCell]) {
+          if (!worksheet[resultCell].s) worksheet[resultCell].s = {};
+          if (!worksheet[resultCell].s.alignment) worksheet[resultCell].s.alignment = {};
+          worksheet[resultCell].s.alignment.wrapText = true;
+          worksheet[resultCell].s.alignment.vertical = 'top';
+          
+          const result = worksheet[resultCell].v || '';
+          const resultLineCount = (result.toString().match(/\n/g) || []).length + 1;
+          maxLineCount = Math.max(maxLineCount, resultLineCount);
+        }
+        
+        // 행 높이 설정 (작업내용과 작업결과 중 더 긴 것 기준)
+        worksheet['!rows'][row] = {
+          hpx: maxLineCount * 18,  // hpx (height in pixels)
+          hidden: false
+        };
       }
       
       XLSX.utils.book_append_sheet(workbook, worksheet, equipmentName);
@@ -1883,7 +1715,7 @@ const MaintenanceManagementSystem = () => {
     }
   };
 
-  const exportDailyReportsToExcel = (month: string) => {
+  const exportDailyReportsToExcel = async (month: string) => {
     const [year, monthNum] = month.split('-');
     const monthReports = dailyReports.filter(report => 
       report.date.startsWith(month)
@@ -1894,7 +1726,8 @@ const MaintenanceManagementSystem = () => {
       return;
     }
 
-    const wb = XLSX.utils.book_new();
+    // ExcelJS 워크북 생성
+    const workbook = new ExcelJS.Workbook();
     
     // 각 일자별로 시트 생성
     monthReports.forEach(report => {
@@ -1905,230 +1738,137 @@ const MaintenanceManagementSystem = () => {
       // 날짜 포맷팅
       const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
       
-      // 엑셀 데이터 구조 생성 (원본 양식과 동일하게)
-      const wsData = [
-        ['일 일 업 무 현 황'],
-        ['', '', '', '', dateStr],
-        ['구분', '금일', '', '명일', ''],
-        [],
-        ['기 계', report.mechanical.today || '', '', report.mechanical.tomorrow || '', ''],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        ['영진(기계)', report.youngjinMechanical.today || '', '', report.youngjinMechanical.tomorrow || '', ''],
-        [],
-        [],
-        [],
-        [],
-        [],
-        ['제 어', report.control.today || '', '', report.control.tomorrow || '', ''],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        ['영진(제어)', report.youngjinControl.today || '', '', report.youngjinControl.tomorrow || '', ''],
-        [],
-        [],
-        [],
-        [],
-        [],
-        ['전기', report.electrical.today || '', '', report.electrical.tomorrow || '', ''],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        [],
-        ['영진(전기)', report.youngjinElectrical.today || '', '', report.youngjinElectrical.tomorrow || '', ''],
-        [],
-        [],
-        [],
-        [],
-        ['근태현황', '', '', '', ''],
-        ['안전구호', report.attendanceStatus + ' / ' + report.safetySlogan || '', '', '', '']
-      ];
-
-      const ws = XLSX.utils.aoa_to_sheet(wsData);
-      
-      // 병합 설정 (원본과 동일하게)
-      const merges = [
-        // 제목
-        { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } },
-        // 구분 헤더
-        { s: { r: 2, c: 1 }, e: { r: 2, c: 2 } },
-        { s: { r: 2, c: 3 }, e: { r: 2, c: 4 } },
-        // 기계 섹션
-        { s: { r: 4, c: 0 }, e: { r: 11, c: 0 } },
-        { s: { r: 4, c: 1 }, e: { r: 11, c: 2 } },
-        { s: { r: 4, c: 3 }, e: { r: 11, c: 4 } },
-        // 영진(기계) 섹션
-        { s: { r: 12, c: 0 }, e: { r: 17, c: 0 } },
-        { s: { r: 12, c: 1 }, e: { r: 17, c: 2 } },
-        { s: { r: 12, c: 3 }, e: { r: 17, c: 4 } },
-        // 제어 섹션
-        { s: { r: 18, c: 0 }, e: { r: 25, c: 0 } },
-        { s: { r: 18, c: 1 }, e: { r: 25, c: 2 } },
-        { s: { r: 18, c: 3 }, e: { r: 25, c: 4 } },
-        // 영진(제어) 섹션
-        { s: { r: 26, c: 0 }, e: { r: 31, c: 0 } },
-        { s: { r: 26, c: 1 }, e: { r: 31, c: 2 } },
-        { s: { r: 26, c: 3 }, e: { r: 31, c: 4 } },
-        // 전기 섹션
-        { s: { r: 32, c: 0 }, e: { r: 39, c: 0 } },
-        { s: { r: 32, c: 1 }, e: { r: 39, c: 2 } },
-        { s: { r: 32, c: 3 }, e: { r: 39, c: 4 } },
-        // 영진(전기) 섹션
-        { s: { r: 40, c: 0 }, e: { r: 46, c: 0 } },
-        { s: { r: 40, c: 1 }, e: { r: 46, c: 2 } },
-        { s: { r: 40, c: 3 }, e: { r: 46, c: 4 } },
-        // 근태현황
-        { s: { r: 47, c: 0 }, e: { r: 47, c: 4 } },
-        // 안전구호
-        { s: { r: 48, c: 0 }, e: { r: 48, c: 0 } },
-        { s: { r: 48, c: 1 }, e: { r: 48, c: 4 } }
-      ];
-      
-      ws['!merges'] = merges;
-      
-      // 병합 후 모든 셀의 정렬 다시 강제 설정
-      for (let R = 0; R <= 48; R++) {
-        for (let C = 0; C <= 4; C++) {
-          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-          if (ws[cellAddress] && ws[cellAddress].s) {
-            // 금일/명일 내용 영역은 무조건 위쪽 정렬
-            if (C > 0 && R >= 4 && R <= 46) {
-              ws[cellAddress].s.alignment = {
-                vertical: 'top',
-                horizontal: 'left',
-                wrapText: true
-              };
-              ws[cellAddress].s.font = { sz: 10 };  // 글씨 크기 10
-            }
-            // 구분란은 가운데 정렬
-            else if (C === 0 && R >= 4 && R <= 46) {
-              ws[cellAddress].s.alignment = {
-                vertical: 'center',
-                horizontal: 'center',
-                wrapText: true,
-                readingOrder: 0,
-                shrinkToFit: false
-              };
-            }
-          }
-        }
-      }
+      // 워크시트 생성
+      const worksheet = workbook.addWorksheet(sheetName);
       
       // 열 너비 설정
-      ws['!cols'] = [
-        { wch: 10 },  // 구분
-        { wch: 40 },  // 금일 첫번째 컬럼
-        { wch: 10 },  // 금일 두번째 컬럼 (병합용)
-        { wch: 40 },  // 명일 첫번째 컬럼
-        { wch: 10 }   // 명일 두번째 컬럼 (병합용)
+      worksheet.getColumn(1).width = 15;  // 구분
+      worksheet.getColumn(2).width = 40;  // 금일 첫번째
+      worksheet.getColumn(3).width = 10;  // 금일 두번째 (병합용)
+      worksheet.getColumn(4).width = 40;  // 명일 첫번째
+      worksheet.getColumn(5).width = 10;  // 명일 두번째 (병합용)
+      
+      // 데이터 입력
+      // 제목
+      worksheet.mergeCells('A1:E1');
+      const titleCell = worksheet.getCell('A1');
+      titleCell.value = '일 일 업 무 현 황';
+      titleCell.font = { bold: true, size: 16 };
+      titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+      
+      // 2행 전체 병합 및 날짜 표시
+      worksheet.mergeCells('A2:E2');  // A2부터 E2까지 전체 병합
+      const dateCell = worksheet.getCell('A2');
+      dateCell.value = dateStr;
+      dateCell.font = { bold: true, color: { argb: 'FF0000FF' } };  // 파란색
+      dateCell.alignment = { vertical: 'middle', horizontal: 'right' };  // 오른쪽 정렬
+      
+      // 구분 헤더
+      worksheet.getCell('A3').value = '구분';
+      worksheet.mergeCells('B3:C3');
+      worksheet.getCell('B3').value = '금일';
+      worksheet.mergeCells('D3:E3');
+      worksheet.getCell('D3').value = '명일';
+      
+      // 헤더 스타일 설정
+      ['A3', 'B3', 'D3'].forEach(cell => {
+        const c = worksheet.getCell(cell);
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+        c.font = { bold: true };
+        c.alignment = { vertical: 'middle', horizontal: 'center' };
+      });
+      
+      // 섹션 데이터 (4행 삭제로 인해 모든 행 번호가 1씩 감소)
+      const sections = [
+        { title: '기 계', startRow: 4, endRow: 11, today: report.mechanical.today, tomorrow: report.mechanical.tomorrow },
+        { title: '영진(기계)', startRow: 12, endRow: 17, today: report.youngjinMechanical.today, tomorrow: report.youngjinMechanical.tomorrow },
+        { title: '제 어', startRow: 18, endRow: 25, today: report.control.today, tomorrow: report.control.tomorrow },
+        { title: '영진(제어)', startRow: 26, endRow: 31, today: report.youngjinControl.today, tomorrow: report.youngjinControl.tomorrow },
+        { title: '전기', startRow: 32, endRow: 39, today: report.electrical.today, tomorrow: report.electrical.tomorrow },
+        { title: '영진(전기)', startRow: 40, endRow: 46, today: report.youngjinElectrical.today, tomorrow: report.youngjinElectrical.tomorrow }
       ];
       
-      // 행 높이 설정
-      ws['!rows'] = [];
-      for (let i = 0; i <= 48; i++) {
-        if (i === 0) {
-          ws['!rows'][i] = { hpt: 25 };  // 제목
-        } else if (i === 2) {
-          ws['!rows'][i] = { hpt: 18 };  // 구분 헤더
-        } else if (i === 47 || i === 48) {
-          ws['!rows'][i] = { hpt: 20 };  // 근태현황, 안전구호
-        } else {
-          ws['!rows'][i] = { hpt: 18 };  // 원래 높이로 복구
-        }
-      }
-
-      // 스타일 적용을 위한 범위 설정
-      const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:E49');
+      // 각 섹션 설정
+      sections.forEach(section => {
+        // 구분 컬럼 병합 및 설정
+        worksheet.mergeCells(`A${section.startRow}:A${section.endRow}`);
+        const titleCell = worksheet.getCell(`A${section.startRow}`);
+        titleCell.value = section.title;
+        titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+        titleCell.font = { bold: true };
+        titleCell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+        
+        // 금일 병합 및 내용 설정
+        worksheet.mergeCells(`B${section.startRow}:C${section.endRow}`);
+        const todayCell = worksheet.getCell(`B${section.startRow}`);
+        todayCell.value = section.today || '';
+        todayCell.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+        todayCell.font = { size: 10 };
+        
+        // 명일 병합 및 내용 설정
+        worksheet.mergeCells(`D${section.startRow}:E${section.endRow}`);
+        const tomorrowCell = worksheet.getCell(`D${section.startRow}`);
+        tomorrowCell.value = section.tomorrow || '';
+        tomorrowCell.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+        tomorrowCell.font = { size: 10 };
+      });
       
-      // 셀 스타일 설정
-      for (let R = 0; R <= range.e.r; ++R) {
-        for (let C = 0; C <= range.e.c; ++C) {
-          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-          
-          if (!ws[cellAddress]) {
-            ws[cellAddress] = { v: '', t: 's' };
-          }
-          
-          // 기본 테두리 스타일
-          ws[cellAddress].s = {
-            border: {
-              top: { style: 'thin', color: { rgb: '000000' } },
-              bottom: { style: 'thin', color: { rgb: '000000' } },
-              left: { style: 'thin', color: { rgb: '000000' } },
-              right: { style: 'thin', color: { rgb: '000000' } }
-            },
-            alignment: {
-              vertical: 'top',
-              horizontal: 'left',
-              wrapText: true
-            },
-            font: { sz: 10 }  // 글씨 크기 10으로 설정
+      // 근태현황 (안전구호와 같은 형식)
+      worksheet.getCell('A47').value = '근태현황';
+      worksheet.getCell('A47').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+      worksheet.getCell('A47').font = { bold: true };
+      worksheet.getCell('A47').alignment = { vertical: 'middle', horizontal: 'center' };
+      
+      worksheet.mergeCells('B47:E47');
+      const attendanceCell = worksheet.getCell('B47');
+      attendanceCell.value = report.attendanceStatus || '';
+      attendanceCell.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+      
+      // 안전구호
+      worksheet.getCell('A48').value = '안전구호';
+      worksheet.getCell('A48').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } };
+      worksheet.getCell('A48').font = { bold: true };
+      worksheet.getCell('A48').alignment = { vertical: 'middle', horizontal: 'center' };
+      
+      worksheet.mergeCells('B48:E48');
+      const safetyCell = worksheet.getCell('B48');
+      safetyCell.value = report.safetySlogan || '';
+      safetyCell.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+      
+      // 모든 셀에 테두리 적용
+      for (let row = 1; row <= 48; row++) {
+        for (let col = 1; col <= 5; col++) {
+          const cell = worksheet.getCell(row, col);
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
           };
-          
-          // 제목 스타일
-          if (R === 0) {
-            ws[cellAddress].s.font = { bold: true, sz: 16 };
-            ws[cellAddress].s.alignment.horizontal = 'center';
-            ws[cellAddress].s.fill = { fgColor: { rgb: 'FFFFFF' } };
-          }
-          
-          // 날짜 스타일
-          if (R === 1 && C === 4) {
-            ws[cellAddress].s.font = { bold: true };
-            ws[cellAddress].s.alignment.horizontal = 'center';
-          }
-          
-          // 구분 헤더 스타일
-          if (R === 2) {
-            ws[cellAddress].s.fill = { fgColor: { rgb: 'E8F5E9' } };
-            ws[cellAddress].s.font = { bold: true };
-            ws[cellAddress].s.alignment.horizontal = 'center';
-          }
-          
-          // 구분 컬럼 스타일 (세로) - 모든 병합된 영역에 색상 적용하되 텍스트는 첫 번째만
-          if (C === 0 && R >= 4 && R <= 46) {
-            ws[cellAddress].s.fill = { fgColor: { rgb: 'E8F5E9' } };
-            ws[cellAddress].s.alignment.horizontal = 'center';
-            ws[cellAddress].s.alignment.vertical = 'center';
-            // 첫 번째 행에만 굵은 글씨 적용
-            if ([4, 12, 18, 26, 32, 40].includes(R)) {
-              ws[cellAddress].s.font = { bold: true };
-            }
-          }
-          
-          // 근태현황 행 스타일
-          if (R === 47) {
-            ws[cellAddress].s.fill = { fgColor: { rgb: 'E8F5E9' } };
-            ws[cellAddress].s.font = { bold: true };
-            ws[cellAddress].s.alignment.horizontal = 'center';
-          }
-          
-          // 안전구호 행 스타일
-          if (R === 48 && C === 0) {
-            ws[cellAddress].s.fill = { fgColor: { rgb: 'E8F5E9' } };
-            ws[cellAddress].s.font = { bold: true };
-            ws[cellAddress].s.alignment.horizontal = 'center';
-          }
         }
       }
-
-      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      
+      // 행 높이 설정
+      worksheet.getRow(1).height = 25;  // 제목
+      worksheet.getRow(3).height = 18;  // 구분 헤더
+      worksheet.getRow(47).height = 20; // 근태현황
+      worksheet.getRow(48).height = 20; // 안전구호
+      
+      // 나머지 행 높이
+      for (let i = 4; i <= 46; i++) {
+        worksheet.getRow(i).height = 18;
+      }
     });
 
     // 파일 다운로드
-    XLSX.writeFile(wb, `업무일지_${year}년${monthNum}월.xlsx`);
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `업무일지_${year}년${monthNum}월.xlsx`;
+    link.click();
+    window.URL.revokeObjectURL(url);
   };
 
   const handlePrevMonth = () => {
