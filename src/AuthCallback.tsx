@@ -8,16 +8,23 @@ const AuthCallback: React.FC = () => {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        // URL에서 인증 코드 확인
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (!data.session) {
-          // 세션이 없으면 URL의 코드로 세션 교환 시도
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(window.location.href);
+        // URL fragment에서 토큰 확인 (#access_token=... 형태)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        const type = hashParams.get('type');
 
-          if (exchangeError) {
+        if (accessToken && type === 'signup') {
+          // 토큰으로 세션 설정
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || ''
+          });
+
+          if (error) {
+            console.error('Session set error:', error);
             setError(true);
-            setMessage('이메일 인증에 실패했습니다. 링크가 만료되었거나 유효하지 않습니다.');
+            setMessage('이메일 인증에 실패했습니다. 다시 시도해주세요.');
           } else {
             // 인증 성공 후 로그아웃하여 자동 로그인 방지
             await supabase.auth.signOut();
@@ -28,13 +35,20 @@ const AuthCallback: React.FC = () => {
             }, 3000);
           }
         } else {
-          // 세션이 있어도 로그아웃하여 자동 로그인 방지
-          await supabase.auth.signOut();
-          setMessage('이메일 인증이 완료되었습니다! 잠시 후 로그인 페이지로 이동합니다.');
-          // 3초 후 로그인 페이지로 리다이렉트
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 3000);
+          // URL에 토큰이 없으면 일반적인 세션 확인
+          const { data } = await supabase.auth.getSession();
+          
+          if (data.session) {
+            // 세션이 있어도 로그아웃하여 자동 로그인 방지
+            await supabase.auth.signOut();
+            setMessage('이메일 인증이 완료되었습니다! 잠시 후 로그인 페이지로 이동합니다.');
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 3000);
+          } else {
+            setError(true);
+            setMessage('유효하지 않은 인증 링크입니다.');
+          }
         }
       } catch (error) {
         console.error('Auth callback error:', error);
