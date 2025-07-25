@@ -141,6 +141,69 @@ const saveToStorage = <T,>(key: string, data: T) => {
   }
 };
 
+// Convert description to bullet points
+const formatDescriptionAsBulletPoints = (description: string | undefined): React.ReactElement => {
+  if (!description) return <span className="text-gray-500">내용 없음</span>;
+  
+  // Split by various delimiters: bullet points (•), periods followed by space, hyphens, or newlines
+  const lines = description
+    .split(/[•\n]|(?<=\.)\s+(?=[가-힣A-Za-z])|^\s*[-]\s*|^\s*\d+\.\s*/m)
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+  
+  // If no meaningful lines after splitting, show the original text
+  if (lines.length === 0 || (lines.length === 1 && lines[0] === description.trim())) {
+    // For single line text without clear separators, check if it contains multiple sentences
+    const sentences = description.match(/[^.!?]+[.!?]+/g);
+    if (sentences && sentences.length > 1) {
+      return (
+        <ul className="list-disc list-inside space-y-1">
+          {sentences.map((sentence, index) => (
+            <li key={index} className="text-sm text-gray-900">
+              {sentence.trim()}
+            </li>
+          ))}
+        </ul>
+      );
+    }
+    // Otherwise show as single paragraph
+    return <p className="text-sm text-gray-900 whitespace-pre-line">{description}</p>;
+  }
+  
+  return (
+    <ul className="list-disc list-inside space-y-1">
+      {lines.map((line, index) => (
+        <li key={index} className="text-sm text-gray-900">
+          {line}
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+// Convert description to Excel-friendly bullet points
+const convertToExcelBulletText = (description: string | undefined): string => {
+  if (!description) return '내용 없음';
+  
+  // Split by various delimiters
+  const lines = description
+    .split(/[•\n]|(?<=\.)\s+(?=[가-힣A-Za-z])|^\s*[-]\s*|^\s*\d+\.\s*/m)
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+  
+  // If no meaningful lines after splitting, check for sentences
+  if (lines.length === 0 || (lines.length === 1 && lines[0] === description.trim())) {
+    const sentences = description.match(/[^.!?]+[.!?]+/g);
+    if (sentences && sentences.length > 1) {
+      return sentences.map(sentence => `• ${sentence.trim()}`).join('\n');
+    }
+    return description;
+  }
+  
+  // Return as bullet points with newlines
+  return lines.map(line => `• ${line}`).join('\n');
+};
+
 const MaintenanceManagementSystem = () => {
   // URL 경로 확인
   const pathname = window.location.pathname;
@@ -748,7 +811,7 @@ const MaintenanceManagementSystem = () => {
         '작업명': order.title,
         '설비명': order.equipment,
         '기기명': order.equipmentName,
-        '작업내용': order.description,
+        '작업내용': convertToExcelBulletText(order.description),
         '작업일': order.dueDate, // 완료예정일을 작업일로 사용
         '담당자': order.assignee
       });
@@ -760,6 +823,47 @@ const MaintenanceManagementSystem = () => {
     // 각 설비별로 시트 생성
     Object.keys(equipmentGroups).forEach(equipmentName => {
       const worksheet = XLSX.utils.json_to_sheet(equipmentGroups[equipmentName]);
+      
+      // 열 너비 설정
+      const colWidths = [
+        { wch: 10 }, // 작업번호
+        { wch: 30 }, // 작업명
+        { wch: 15 }, // 설비명
+        { wch: 15 }, // 기기명
+        { wch: 50 }, // 작업내용
+        { wch: 12 }, // 작업일
+        { wch: 10 }  // 담당자
+      ];
+      worksheet['!cols'] = colWidths;
+      
+      // 작업내용 열에 wrapText 적용 및 행 높이 설정
+      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+      
+      // 모든 행에 대한 높이 설정
+      if (!worksheet['!rows']) worksheet['!rows'] = [];
+      
+      for (let row = range.s.r + 1; row <= range.e.r; row++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: row, c: 4 }); // E열 (작업내용)
+        if (worksheet[cellAddress]) {
+          // wrapText 적용
+          if (!worksheet[cellAddress].s) worksheet[cellAddress].s = {};
+          if (!worksheet[cellAddress].s.alignment) worksheet[cellAddress].s.alignment = {};
+          worksheet[cellAddress].s.alignment.wrapText = true;
+          worksheet[cellAddress].s.alignment.vertical = 'top';
+          
+          // 줄바꿈 개수에 따른 행 높이 계산
+          const content = worksheet[cellAddress].v || '';
+          const lineCount = (content.toString().match(/\n/g) || []).length + 1;
+          
+          // 행 높이 설정 (각 줄당 약 18 포인트)
+          // hidden: false를 명시적으로 설정해 행이 표시되도록 함
+          worksheet['!rows'][row] = {
+            hpx: lineCount * 18,  // hpx (height in pixels)
+            hidden: false
+          };
+        }
+      }
+      
       XLSX.utils.book_append_sheet(workbook, worksheet, equipmentName);
     });
     
@@ -2935,7 +3039,7 @@ const MaintenanceManagementSystem = () => {
                 <h3 className="font-medium text-lg mb-3">기본 정보</h3>
                 <div className="space-y-2">
                   <p><span className="font-medium">설비명:</span> {selectedEquipment.name}</p>
-                  <p><span className="font-medium">모델명:</span> {selectedEquipment.model}</p>
+                  <p><span className="font-medium">기기번호:</span> {selectedEquipment.model}</p>
                   <p><span className="font-medium">제조사:</span> {selectedEquipment.manufacturer}</p>
                   <p><span className="font-medium">위치:</span> {selectedEquipment.location}</p>
                   <p><span className="font-medium">상태:</span> 
@@ -3033,7 +3137,7 @@ const MaintenanceManagementSystem = () => {
                   />
                   <input
                     type="text"
-                    placeholder="모델명"
+                    placeholder="기기번호"
                     value={equipmentForm.model}
                     onChange={(e) => setEquipmentForm(prev => ({ ...prev, model: e.target.value }))}
                     className="w-full px-3 py-2 border rounded-lg"
@@ -3102,7 +3206,7 @@ const MaintenanceManagementSystem = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">설비명</th>
-                  <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">모델명</th>
+                  <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">기기번호</th>
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">제조사</th>
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">상태</th>
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">마지막 정비일</th>
@@ -4105,12 +4209,12 @@ const MaintenanceManagementSystem = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">작업 내용</label>
-                  <p className="mt-1 text-sm text-gray-900 whitespace-pre-line">{selectedWorkOrder?.description}</p>
+                  <div className="mt-1">{formatDescriptionAsBulletPoints(selectedWorkOrder?.description)}</div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">요청일</label>
+                    <label className="block text-sm font-medium text-gray-700">등록일</label>
                     <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.requestDate}</p>
                   </div>
                   <div>
@@ -4223,12 +4327,12 @@ const MaintenanceManagementSystem = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">작업 내용</label>
-                  <p className="mt-1 text-sm text-gray-900 whitespace-pre-line">{selectedWorkOrder?.description}</p>
+                  <div className="mt-1">{formatDescriptionAsBulletPoints(selectedWorkOrder?.description)}</div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">요청일</label>
+                    <label className="block text-sm font-medium text-gray-700">등록일</label>
                     <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.requestDate}</p>
                   </div>
                   <div>
