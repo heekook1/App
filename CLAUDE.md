@@ -23,7 +23,7 @@ npm install
 # 개발 서버 시작
 npm start
 
-# 서버가 http://localhost:3000 에서 실행됩니다
+# 서버가 https://app-three-ashy.vercel.app 에서 실행됩니다
 ```
 
 ### 3. 빌드 및 배포
