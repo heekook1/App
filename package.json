@@ -1,10 +1,11 @@
 {
   "name": "maintenance-management-system",
   "version": "1.0.0",
+  "homepage": "/",
   "scripts": {
-    "start": "craco start",
-    "build": "craco build",
-    "test": "craco test",
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
   "dependencies": {

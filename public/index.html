@@ -16,11 +16,21 @@
     <div id="root"></div>
     
     <!-- Dify Chatbot Integration -->
-    <script src="%PUBLIC_URL%/chatbot-config.js"></script>
+    <script>
+      window.difyChatbotConfig = {
+        token: 'LgVEnTaf3ncIaEct'
+      };
+    </script>
     <script
       src="https://udify.app/embed.min.js"
       id="LgVEnTaf3ncIaEct"
       defer>
     </script>
+    <style>
+      body.unauthenticated #dify-chatbot-bubble-button,
+      body.unauthenticated #dify-chatbot-bubble-window {
+        display: none !important;
+      }
+    </style>
   </body>
 </html>
