@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as React from 'react';
-import { Calendar, Users, Settings, FileText, MessageSquare, Wrench, Home, Plus, Edit, Trash2, X, Download, Upload, Eye, ChevronLeft, ChevronRight, Database } from 'lucide-react';
+import { Calendar, Users, Settings, FileText, MessageSquare, Wrench, Home, Plus, Edit, Trash2, X, Download, Upload, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { supabase } from './supabaseClient';
@@ -525,11 +525,11 @@ const MaintenanceManagementSystem = () => {
     
     checkAuth();
     
-    // 인증 후 Supabase 데이터 로드
+    // 인증 후 자동 데이터 동기화
     const loadDataIfAuthenticated = async () => {
       const storedAuth = localStorage.getItem('isAuthenticated');
       if (storedAuth === 'true') {
-        await loadAllDataFromSupabase();
+        await autoSyncData();
       }
     };
     
@@ -1020,17 +1020,74 @@ const MaintenanceManagementSystem = () => {
     </nav>
   );
 
-  // 데이터 마이그레이션 핸들러
-  const handleMigrateData = async () => {
-    if (window.confirm('localStorage의 모든 데이터를 Supabase로 마이그레이션하시겠습니까?\n\n이 작업은 중복 데이터를 생성할 수 있습니다.')) {
-      const success = await migrateDataToSupabase();
-      if (success) {
-        alert('✅ 데이터 마이그레이션이 완료되었습니다!\n이제 다른 기기/브라우저에서도 동일한 데이터를 확인할 수 있습니다.');
-        // 마이그레이션 후 데이터 새로고침
-        await loadAllDataFromSupabase();
+  // 자동 데이터 동기화 (localStorage와 Supabase 병합)
+  const autoSyncData = async () => {
+    try {
+      console.log('🔄 자동 데이터 동기화 시작...');
+      
+      // 1. Supabase에서 최신 데이터 로드
+      const [
+        supabasePersonnel,
+        supabaseWorkOrders,
+        supabaseSchedules,
+        supabaseAnnouncements,
+        supabaseEquipment,
+        supabaseAttendances,
+        supabaseDailyReports
+      ] = await Promise.all([
+        loadPersonnelFromSupabase(),
+        loadWorkOrdersFromSupabase(),
+        loadSchedulesFromSupabase(),
+        loadAnnouncementsFromSupabase(),
+        loadEquipmentFromSupabase(),
+        loadAttendancesFromSupabase(),
+        loadDailyReportsFromSupabase()
+      ]);
+
+      // 2. localStorage 데이터 확인
+      const localPersonnel = JSON.parse(localStorage.getItem('personnel') || '[]');
+      const localAnnouncements = JSON.parse(localStorage.getItem('announcements') || '[]');
+      const localAttendances = JSON.parse(localStorage.getItem('attendances') || '[]');
+
+      // 3. localStorage에만 있는 새 데이터가 있다면 Supabase로 업로드
+      if (localPersonnel.length > 0 || localAnnouncements.length > 0 || localAttendances.length > 0) {
+        console.log('📤 로컬 데이터를 Supabase로 동기화 중...');
+        await migrateDataToSupabase();
+        
+        // 동기화 후 다시 최신 데이터 로드
+        const updatedData = await Promise.all([
+          loadPersonnelFromSupabase(),
+          loadWorkOrdersFromSupabase(),
+          loadSchedulesFromSupabase(),
+          loadAnnouncementsFromSupabase(),
+          loadEquipmentFromSupabase(),
+          loadAttendancesFromSupabase(),
+          loadDailyReportsFromSupabase()
+        ]);
+        
+        setPersonnel(updatedData[0]);
+        setWorkOrders(updatedData[1]);
+        setSchedules(updatedData[2]);
+        setAnnouncements(updatedData[3]);
+        setEquipment(updatedData[4]);
+        setAttendances(updatedData[5]);
+        setDailyReports(updatedData[6]);
       } else {
-        alert('❌ 마이그레이션 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+        // 4. Supabase 데이터를 상태에 설정
+        setPersonnel(supabasePersonnel);
+        setWorkOrders(supabaseWorkOrders);
+        setSchedules(supabaseSchedules);
+        setAnnouncements(supabaseAnnouncements);
+        setEquipment(supabaseEquipment);
+        setAttendances(supabaseAttendances);
+        setDailyReports(supabaseDailyReports);
       }
+      
+      console.log('✅ 자동 데이터 동기화 완료');
+    } catch (error) {
+      console.error('❌ 자동 동기화 오류:', error);
+      // 오류 발생 시 localStorage 데이터 사용
+      console.log('🔄 localStorage 데이터로 폴백...');
     }
   };
 
@@ -1074,25 +1131,6 @@ const MaintenanceManagementSystem = () => {
   // Dashboard
   const renderDashboard = () => (
     <div className="space-y-4">
-      {/* 데이터 마이그레이션 알림 */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <Database className="h-5 w-5 text-blue-600 mr-3" />
-            <div>
-              <h4 className="text-sm font-medium text-blue-900">Supabase 데이터베이스 연동</h4>
-              <p className="text-xs text-blue-700">localStorage 데이터를 Supabase로 마이그레이션하면 모든 기기에서 동일한 데이터를 사용할 수 있습니다.</p>
-            </div>
-          </div>
-          <button
-            onClick={handleMigrateData}
-            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
-          >
-            데이터 마이그레이션
-          </button>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { title: '전체 작업', value: workOrders.length, color: 'bg-blue-500' },
