@@ -867,33 +867,33 @@ const MaintenanceManagementSystem = () => {
     try {
       console.log('🔄 Supabase에서 데이터 로드 중...');
       
-      console.log('📋 인력 데이터 로드 시작...');
-      const personnelData = await loadPersonnelFromSupabase();
-      console.log('📋 인력 데이터 로드 완료:', personnelData.length, '건');
+      // 모든 데이터를 병렬로 로드 (빈 데이터도 정상 처리)
+      const [
+        personnelData,
+        workOrdersData,
+        schedulesData,
+        announcementsData,
+        equipmentData,
+        attendancesData,
+        dailyReportsData
+      ] = await Promise.all([
+        loadPersonnelFromSupabase().catch(err => { console.error('인력 데이터 로드 실패:', err); return []; }),
+        loadWorkOrdersFromSupabase().catch(err => { console.error('작업지시서 로드 실패:', err); return []; }),
+        loadSchedulesFromSupabase().catch(err => { console.error('일정 로드 실패:', err); return []; }),
+        loadAnnouncementsFromSupabase().catch(err => { console.error('공지사항 로드 실패:', err); return []; }),
+        loadEquipmentFromSupabase().catch(err => { console.error('설비 로드 실패:', err); return []; }),
+        loadAttendancesFromSupabase().catch(err => { console.error('근태 로드 실패:', err); return []; }),
+        loadDailyReportsFromSupabase().catch(err => { console.error('업무일지 로드 실패:', err); return []; })
+      ]);
       
-      console.log('🔧 작업지시서 데이터 로드 시작...');
-      const workOrdersData = await loadWorkOrdersFromSupabase();
-      console.log('🔧 작업지시서 데이터 로드 완료:', workOrdersData.length, '건');
-      
-      console.log('📅 일정 데이터 로드 시작...');
-      const schedulesData = await loadSchedulesFromSupabase();
-      console.log('📅 일정 데이터 로드 완료:', schedulesData.length, '건');
-      
-      console.log('📢 공지사항 데이터 로드 시작...');
-      const announcementsData = await loadAnnouncementsFromSupabase();
-      console.log('📢 공지사항 데이터 로드 완룮:', announcementsData.length, '건');
-      
-      console.log('⚙️ 설비 데이터 로드 시작...');
-      const equipmentData = await loadEquipmentFromSupabase();
-      console.log('⚙️ 설비 데이터 로드 완료:', equipmentData.length, '건');
-      
-      console.log('📊 근태 데이터 로드 시작...');
-      const attendancesData = await loadAttendancesFromSupabase();
-      console.log('📊 근태 데이터 로드 완료:', attendancesData.length, '건');
-      
-      console.log('📝 업무일지 데이터 로드 시작...');
-      const dailyReportsData = await loadDailyReportsFromSupabase();
-      console.log('📝 업무일지 데이터 로드 완료:', dailyReportsData.length, '건');
+      console.log('📊 데이터 로드 결과:');
+      console.log('- 인력:', personnelData.length, '건');
+      console.log('- 작업지시서:', workOrdersData.length, '건');
+      console.log('- 일정:', schedulesData.length, '건');
+      console.log('- 공지사항:', announcementsData.length, '건');
+      console.log('- 설비:', equipmentData.length, '건');
+      console.log('- 근태:', attendancesData.length, '건');
+      console.log('- 업무일지:', dailyReportsData.length, '건');
 
       setPersonnel(personnelData);
       setWorkOrders(workOrdersData);
