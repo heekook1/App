@@ -10,7 +10,6 @@ import ForgotPasswordPage from './ForgotPasswordPage';
 import AuthCallback from './AuthCallback';
 import ResetPasswordPage from './ResetPasswordPage';
 import { 
-  migrateDataToSupabase, 
   loadPersonnelFromSupabase, 
   loadWorkOrdersFromSupabase, 
   loadSchedulesFromSupabase, 
@@ -134,23 +133,6 @@ interface DailyReport {
 }
 
 
-// Load data from localStorage
-const loadFromStorage = <T,>(key: string, defaultData: T): T => {
-  try {
-    const saved = localStorage.getItem(key);
-    return saved ? JSON.parse(saved) : defaultData;
-  } catch {
-    return defaultData;
-  }
-};
-
-const saveToStorage = <T,>(key: string, data: T) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch (error) {
-    console.error('Failed to save to localStorage:', error);
-  }
-};
 
 // Convert description to bullet points
 const formatDescriptionAsBulletPoints = (description: string | undefined): React.ReactElement => {
@@ -228,13 +210,8 @@ const MaintenanceManagementSystem = () => {
     return <ResetPasswordPage />;
   }
   // 인증 상태
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('isAuthenticated') === 'true';
-  });
-  const [currentUser, setCurrentUser] = useState(() => {
-    const user = localStorage.getItem('currentUser');
-    return user ? JSON.parse(user) : null;
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [authView, setAuthView] = useState<'login' | 'signup' | 'forgot-password'>('login');
   
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -243,23 +220,17 @@ const MaintenanceManagementSystem = () => {
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   
   // 문서 관리 상태
-  const [documents, setDocuments] = useState<Document[]>(() => 
-    loadFromStorage('documents', [])
-  );
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [uploadCategory, setUploadCategory] = useState('매뉴얼');
   const [uploadDescription, setUploadDescription] = useState('');
 
   // Personnel data
-  const [personnel, setPersonnel] = useState<Personnel[]>(() => 
-    loadFromStorage('personnel', [])
-  );
+  const [personnel, setPersonnel] = useState<Personnel[]>([]);
 
   // Attendance Management State
-  const [attendances, setAttendances] = useState<Attendance[]>(() =>
-    loadFromStorage('attendances', [])
-  );
+  const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [selectedAttendanceDate, setSelectedAttendanceDate] = useState<string>('');
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
@@ -279,9 +250,7 @@ const MaintenanceManagementSystem = () => {
   };
 
   // 업무일지 상태
-  const [dailyReports, setDailyReports] = useState<DailyReport[]>(() =>
-    loadFromStorage('dailyReports', [])
-  );
+  const [dailyReports, setDailyReports] = useState<DailyReport[]>([]);
   const [showDailyReportModal, setShowDailyReportModal] = useState(false);
   const [selectedDailyReport, setSelectedDailyReport] = useState<DailyReport | null>(null);
   const [dailyReportForm, setDailyReportForm] = useState<DailyReport>({
@@ -302,21 +271,13 @@ const MaintenanceManagementSystem = () => {
   const [dailyReportSearchDate, setDailyReportSearchDate] = useState('');
   const [dailyReportSelectedMonth, setDailyReportSelectedMonth] = useState(getKoreanDate().slice(0, 7));
 
-  const [workOrders, setWorkOrders] = useState<WorkOrder[]>(() => 
-    loadFromStorage('workOrders', [])
-  );
+  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
 
-  const [schedules, setSchedules] = useState<Schedule[]>(() => 
-    loadFromStorage('schedules', [])
-  );
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
 
-  const [announcements, setAnnouncements] = useState<Announcement[]>(() => 
-    loadFromStorage('announcements', [])
-  );
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
-  const [equipment, setEquipment] = useState<Equipment[]>(() => 
-    loadFromStorage('equipment', [])
-  );
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
 
   // Generate work order number based on current year
   const generateWorkOrderId = () => {
@@ -381,93 +342,8 @@ const MaintenanceManagementSystem = () => {
     ).sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
   };
 
-  // Save data to localStorage whenever state changes
   // Check authentication on mount
   React.useEffect(() => {
-    // Fix corrupted localStorage data
-    const fixCorruptedData = () => {
-      try {
-        // Check and fix personnel data
-        const personnelData = localStorage.getItem('personnel');
-        if (personnelData) {
-          try {
-            const parsed = JSON.parse(personnelData);
-            // If it's an array within an array, flatten it
-            if (Array.isArray(parsed) && parsed.length === 1 && Array.isArray(parsed[0])) {
-              localStorage.setItem('personnel', JSON.stringify(parsed[0]));
-              console.log('Fixed corrupted personnel data');
-            }
-          } catch (e) {
-            console.error('Error parsing personnel data:', e);
-          }
-        }
-
-        // Check and fix workOrders data
-        const workOrdersData = localStorage.getItem('workOrders');
-        if (workOrdersData) {
-          try {
-            const parsed = JSON.parse(workOrdersData);
-            // If it's an array within an array, flatten it
-            if (Array.isArray(parsed) && parsed.length === 1 && Array.isArray(parsed[0])) {
-              localStorage.setItem('workOrders', JSON.stringify(parsed[0]));
-              console.log('Fixed corrupted workOrders data');
-            }
-          } catch (e) {
-            console.error('Error parsing workOrders data:', e);
-          }
-        }
-
-        // Check and fix schedules data
-        const schedulesData = localStorage.getItem('schedules');
-        if (schedulesData) {
-          try {
-            const parsed = JSON.parse(schedulesData);
-            // If it's an array within an array, flatten it
-            if (Array.isArray(parsed) && parsed.length === 1 && Array.isArray(parsed[0])) {
-              localStorage.setItem('schedules', JSON.stringify(parsed[0]));
-              console.log('Fixed corrupted schedules data');
-            }
-          } catch (e) {
-            console.error('Error parsing schedules data:', e);
-          }
-        }
-
-        // Check and fix documents data
-        const documentsData = localStorage.getItem('documents');
-        if (documentsData) {
-          try {
-            const parsed = JSON.parse(documentsData);
-            // If it's an array within an array, flatten it
-            if (Array.isArray(parsed) && parsed.length === 1 && Array.isArray(parsed[0])) {
-              localStorage.setItem('documents', JSON.stringify(parsed[0]));
-              console.log('Fixed corrupted documents data');
-            }
-          } catch (e) {
-            console.error('Error parsing documents data:', e);
-          }
-        }
-
-        // Check and fix notices data
-        const noticesData = localStorage.getItem('notices');
-        if (noticesData) {
-          try {
-            const parsed = JSON.parse(noticesData);
-            // If it's an array within an array, flatten it
-            if (Array.isArray(parsed) && parsed.length === 1 && Array.isArray(parsed[0])) {
-              localStorage.setItem('notices', JSON.stringify(parsed[0]));
-              console.log('Fixed corrupted notices data');
-            }
-          } catch (e) {
-            console.error('Error parsing notices data:', e);
-          }
-        }
-      } catch (error) {
-        console.error('Error fixing corrupted data:', error);
-      }
-    };
-
-    // Run data fix before checking auth
-    fixCorruptedData();
 
     const checkAuth = async () => {
       // First check Supabase Auth session
@@ -484,52 +360,26 @@ const MaintenanceManagementSystem = () => {
         
         setCurrentUser(user);
         setIsAuthenticated(true);
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('currentUser', JSON.stringify(user));
         
         // Body 클래스 추가
         document.body.classList.add('authenticated');
         document.body.classList.remove('unauthenticated');
       } else {
-        // Check localStorage as fallback
-        const storedAuth = localStorage.getItem('isAuthenticated');
-        const storedUser = localStorage.getItem('currentUser');
+        // No auth session found
+        setIsAuthenticated(false);
         
-        if (storedAuth === 'true' && storedUser) {
-          try {
-            const user = JSON.parse(storedUser);
-            setCurrentUser(user);
-            setIsAuthenticated(true);
-            
-            // Body 클래스 추가
-            document.body.classList.add('authenticated');
-            document.body.classList.remove('unauthenticated');
-          } catch (error) {
-            console.error('Failed to parse stored user:', error);
-            setIsAuthenticated(false);
-            
-            // Body 클래스 추가
-            document.body.classList.add('unauthenticated');
-            document.body.classList.remove('authenticated');
-          }
-        } else {
-          // No stored auth
-          setIsAuthenticated(false);
-          
-          // Body 클래스 추가
-          document.body.classList.add('unauthenticated');
-          document.body.classList.remove('authenticated');
-        }
+        // Body 클래스 추가
+        document.body.classList.add('unauthenticated');
+        document.body.classList.remove('authenticated');
       }
     };
     
     checkAuth();
     
-    // 인증 후 자동 데이터 동기화
+    // 인증 후 Supabase 데이터 로드
     const loadDataIfAuthenticated = async () => {
-      const storedAuth = localStorage.getItem('isAuthenticated');
-      if (storedAuth === 'true') {
-        await autoSyncData();
+      if (isAuthenticated) {
+        await loadAllDataFromSupabase();
       }
     };
     
@@ -541,8 +391,7 @@ const MaintenanceManagementSystem = () => {
         // User logged out
         setCurrentUser(null);
         setIsAuthenticated(false);
-        localStorage.removeItem('isAuthenticated');
-        localStorage.removeItem('currentUser');
+        // Local storage cleanup no longer needed
         
         // Body 클래스 추가
         document.body.classList.add('unauthenticated');
@@ -555,8 +404,7 @@ const MaintenanceManagementSystem = () => {
       const rememberMe = localStorage.getItem('rememberMe') === 'true';
       if (!rememberMe) {
         // Remember Me가 체크되지 않았으면 로그아웃 처리
-        localStorage.removeItem('isAuthenticated');
-        localStorage.removeItem('currentUser');
+        // Local storage cleanup no longer needed
       }
     };
     
@@ -568,29 +416,6 @@ const MaintenanceManagementSystem = () => {
     };
   }, []);
 
-  React.useEffect(() => {
-    saveToStorage('personnel', personnel);
-  }, [personnel]);
-
-  React.useEffect(() => {
-    saveToStorage('workOrders', workOrders);
-  }, [workOrders]);
-
-  React.useEffect(() => {
-    saveToStorage('schedules', schedules);
-  }, [schedules]);
-
-  React.useEffect(() => {
-    saveToStorage('announcements', announcements);
-  }, [announcements]);
-
-  React.useEffect(() => {
-    saveToStorage('equipment', equipment);
-  }, [equipment]);
-
-  React.useEffect(() => {
-    saveToStorage('dailyReports', dailyReports);
-  }, [dailyReports]);
 
   // Handle click events
   const handleWorkOrderClick = (workOrder: WorkOrder) => {
@@ -854,7 +679,7 @@ const MaintenanceManagementSystem = () => {
       // 로컬 상태 업데이트
       const updatedDocuments = [...documents, ...uploadedDocuments];
       setDocuments(updatedDocuments);
-      saveToStorage('documents', updatedDocuments);
+      // Documents now stored in Supabase only
       
       // 상태 초기화
       setSelectedFiles(null);
@@ -904,7 +729,7 @@ const MaintenanceManagementSystem = () => {
       // 로컬 상태에서 삭제
       const updatedDocuments = documents.filter(doc => doc.id !== documentId);
       setDocuments(updatedDocuments);
-      saveToStorage('documents', updatedDocuments);
+      // Documents now stored in Supabase only
       alert('문서가 삭제되었습니다.');
     } catch (error) {
       console.error('문서 삭제 중 오류:', error);
@@ -912,10 +737,7 @@ const MaintenanceManagementSystem = () => {
     }
   };
 
-  // Save documents to localStorage whenever documents change
-  useEffect(() => {
-    saveToStorage('documents', documents);
-  }, [documents]);
+  // Documents are now managed through Supabase only
   
   // Supabase에서 문서 목록 가져오기
   useEffect(() => {
@@ -943,16 +765,8 @@ const MaintenanceManagementSystem = () => {
           }));
           
           // 로컬 문서와 병합 (중복 제거)
-          const localDocuments = loadFromStorage<Document[]>('documents', []);
-          const mergedDocuments = [...supabaseDocuments];
-          
-          localDocuments.forEach(localDoc => {
-            if (!mergedDocuments.find(doc => doc.id === localDoc.id)) {
-              mergedDocuments.push(localDoc);
-            }
-          });
-          
-          setDocuments(mergedDocuments);
+          // Use only Supabase documents
+          setDocuments(supabaseDocuments);
         }
       } catch (error) {
         console.error('문서 목록 가져오기 중 오류:', error);
@@ -1020,77 +834,6 @@ const MaintenanceManagementSystem = () => {
     </nav>
   );
 
-  // 자동 데이터 동기화 (localStorage와 Supabase 병합)
-  const autoSyncData = async () => {
-    try {
-      console.log('🔄 자동 데이터 동기화 시작...');
-      
-      // 1. Supabase에서 최신 데이터 로드
-      const [
-        supabasePersonnel,
-        supabaseWorkOrders,
-        supabaseSchedules,
-        supabaseAnnouncements,
-        supabaseEquipment,
-        supabaseAttendances,
-        supabaseDailyReports
-      ] = await Promise.all([
-        loadPersonnelFromSupabase(),
-        loadWorkOrdersFromSupabase(),
-        loadSchedulesFromSupabase(),
-        loadAnnouncementsFromSupabase(),
-        loadEquipmentFromSupabase(),
-        loadAttendancesFromSupabase(),
-        loadDailyReportsFromSupabase()
-      ]);
-
-      // 2. localStorage 데이터 확인
-      const localPersonnel = JSON.parse(localStorage.getItem('personnel') || '[]');
-      const localAnnouncements = JSON.parse(localStorage.getItem('announcements') || '[]');
-      const localAttendances = JSON.parse(localStorage.getItem('attendances') || '[]');
-
-      // 3. localStorage에만 있는 새 데이터가 있다면 Supabase로 업로드
-      if (localPersonnel.length > 0 || localAnnouncements.length > 0 || localAttendances.length > 0) {
-        console.log('📤 로컬 데이터를 Supabase로 동기화 중...');
-        await migrateDataToSupabase();
-        
-        // 동기화 후 다시 최신 데이터 로드
-        const updatedData = await Promise.all([
-          loadPersonnelFromSupabase(),
-          loadWorkOrdersFromSupabase(),
-          loadSchedulesFromSupabase(),
-          loadAnnouncementsFromSupabase(),
-          loadEquipmentFromSupabase(),
-          loadAttendancesFromSupabase(),
-          loadDailyReportsFromSupabase()
-        ]);
-        
-        setPersonnel(updatedData[0]);
-        setWorkOrders(updatedData[1]);
-        setSchedules(updatedData[2]);
-        setAnnouncements(updatedData[3]);
-        setEquipment(updatedData[4]);
-        setAttendances(updatedData[5]);
-        setDailyReports(updatedData[6]);
-      } else {
-        // 4. Supabase 데이터를 상태에 설정
-        setPersonnel(supabasePersonnel);
-        setWorkOrders(supabaseWorkOrders);
-        setSchedules(supabaseSchedules);
-        setAnnouncements(supabaseAnnouncements);
-        setEquipment(supabaseEquipment);
-        setAttendances(supabaseAttendances);
-        setDailyReports(supabaseDailyReports);
-      }
-      
-      console.log('✅ 자동 데이터 동기화 완료');
-    } catch (error) {
-      console.error('❌ 자동 동기화 오류:', error);
-      // 오류 발생 시 localStorage 데이터 사용
-      console.log('🔄 localStorage 데이터로 폴백...');
-    }
-  };
-
   // Supabase에서 모든 데이터 로드
   const loadAllDataFromSupabase = async () => {
     try {
@@ -1123,9 +866,117 @@ const MaintenanceManagementSystem = () => {
       setDailyReports(dailyReportsData);
       
       console.log('✅ Supabase 데이터 로드 완료');
+      
+      // Realtime 구독 설정
+      setupRealtimeSubscriptions();
     } catch (error) {
       console.error('❌ Supabase 데이터 로드 오류:', error);
     }
+  };
+
+  // Realtime 구독 설정 함수
+  const setupRealtimeSubscriptions = () => {
+    console.log('🔴 Realtime 구독 설정 중...');
+    
+    // 공지사항 실시간 구독
+    const announcementsSubscription = supabase
+      .channel('announcements_changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'announcements'
+      }, async (payload) => {
+        console.log('📢 공지사항 변경 감지:', payload);
+        const newData = await loadAnnouncementsFromSupabase();
+        setAnnouncements(newData);
+      })
+      .subscribe();
+
+    // 작업지시서 실시간 구독
+    const workOrdersSubscription = supabase
+      .channel('work_orders_changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'work_orders'
+      }, async (payload) => {
+        console.log('🔧 작업지시서 변경 감지:', payload);
+        const newData = await loadWorkOrdersFromSupabase();
+        setWorkOrders(newData);
+      })
+      .subscribe();
+
+    // 인력관리 실시간 구독
+    const personnelSubscription = supabase
+      .channel('personnel_changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'personnel'
+      }, async (payload) => {
+        console.log('👥 인력 변경 감지:', payload);
+        const newData = await loadPersonnelFromSupabase();
+        setPersonnel(newData);
+      })
+      .subscribe();
+
+    // 일정관리 실시간 구독
+    const schedulesSubscription = supabase
+      .channel('schedules_changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'schedules'
+      }, async (payload) => {
+        console.log('📅 일정 변경 감지:', payload);
+        const newData = await loadSchedulesFromSupabase();
+        setSchedules(newData);
+      })
+      .subscribe();
+
+    // 설비관리 실시간 구독
+    const equipmentSubscription = supabase
+      .channel('equipment_changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'equipment'
+      }, async (payload) => {
+        console.log('⚙️ 설비 변경 감지:', payload);
+        const newData = await loadEquipmentFromSupabase();
+        setEquipment(newData);
+      })
+      .subscribe();
+
+    // 근태관리 실시간 구독
+    const attendancesSubscription = supabase
+      .channel('attendances_changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'attendances'
+      }, async (payload) => {
+        console.log('📊 근태 변경 감지:', payload);
+        const newData = await loadAttendancesFromSupabase();
+        setAttendances(newData);
+      })
+      .subscribe();
+
+    // 업무일지 실시간 구독
+    const dailyReportsSubscription = supabase
+      .channel('daily_reports_changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'daily_reports'
+      }, async (payload) => {
+        console.log('📝 업무일지 변경 감지:', payload);
+        const newData = await loadDailyReportsFromSupabase();
+        setDailyReports(newData);
+      })
+      .subscribe();
+
+    console.log('🟢 모든 Realtime 구독 완료! 이제 실시간 동기화가 활성화되었습니다! 🎉');
   };
 
   // Dashboard
@@ -1581,7 +1432,7 @@ const MaintenanceManagementSystem = () => {
   const [showWorkOrderForm, setShowWorkOrderForm] = useState(false);
   const [editingWorkOrder, setEditingWorkOrder] = useState<WorkOrder | null>(null);
   const [fixedAssignees, setFixedAssignees] = useState<string[]>(() =>
-    loadFromStorage('fixedAssignees', ['강희국', '박정훈', '이윤직', '김동욱', '박정일'])
+    ['강희국', '박정훈', '이윤직', '김동욱', '박정일']
   );
   const [showAssigneeModal, setShowAssigneeModal] = useState(false);
   const [newAssigneeName, setNewAssigneeName] = useState('');
@@ -1652,8 +1503,7 @@ const MaintenanceManagementSystem = () => {
     }
     setCurrentUser(user);
     setIsAuthenticated(true);
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('currentUser', JSON.stringify(user));
+    // Authentication state managed by Supabase
     setAuthView('login');
     
     // Body 클래스 추가
@@ -1677,8 +1527,7 @@ const MaintenanceManagementSystem = () => {
       // 상태 초기화
       setCurrentUser(null);
       setIsAuthenticated(false);
-      localStorage.removeItem('isAuthenticated');
-      localStorage.removeItem('currentUser');
+      // Local storage cleanup no longer needed
       setCurrentPage('dashboard');
       
       // Body 클래스 추가
@@ -1698,7 +1547,7 @@ const MaintenanceManagementSystem = () => {
     if (newAssigneeName.trim() && !fixedAssignees.includes(newAssigneeName.trim())) {
       const updatedAssignees = [...fixedAssignees, newAssigneeName.trim()];
       setFixedAssignees(updatedAssignees);
-      saveToStorage('fixedAssignees', updatedAssignees);
+      // Fixed assignees are now hardcoded
       setNewAssigneeName('');
     }
   };
@@ -1706,7 +1555,7 @@ const MaintenanceManagementSystem = () => {
   const handleDeleteAssignee = (name: string) => {
     const updatedAssignees = fixedAssignees.filter(a => a !== name);
     setFixedAssignees(updatedAssignees);
-    saveToStorage('fixedAssignees', updatedAssignees);
+    // Fixed assignees are now hardcoded
     // 현재 선택된 담당자에서도 제거
     setWorkOrderForm(prev => ({
       ...prev,
@@ -1850,7 +1699,7 @@ const MaintenanceManagementSystem = () => {
     }
 
     setDailyReports(updatedReports);
-    saveToStorage('dailyReports', updatedReports);
+    // Daily reports now stored in Supabase only
     
     // 폼 초기화
     setShowDailyReportModal(false);
@@ -1882,7 +1731,7 @@ const MaintenanceManagementSystem = () => {
     if (window.confirm('정말 삭제하시겠습니까?')) {
       const updatedReports = dailyReports.filter(report => report.id !== reportId);
       setDailyReports(updatedReports);
-      saveToStorage('dailyReports', updatedReports);
+      // Daily reports now stored in Supabase only
     }
   };
 
@@ -2309,7 +2158,7 @@ const MaintenanceManagementSystem = () => {
                           onClick={() => {
                             if (window.confirm(`정말로 ${person.name}님을 삭제하시겠습니까?`)) {
                               setPersonnel(prev => prev.filter(p => p.id !== person.id));
-                              saveToStorage('personnel', personnel.filter(p => p.id !== person.id));
+                              // Personnel now managed through Supabase only
                               // 현재 선택된 담당자에서도 제거
                               setWorkOrderForm(prev => ({
                                 ...prev,
