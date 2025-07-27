@@ -364,6 +364,9 @@ const MaintenanceManagementSystem = () => {
         // Body 클래스 추가
         document.body.classList.add('authenticated');
         document.body.classList.remove('unauthenticated');
+        
+        // 인증 성공 시 데이터 로드
+        await loadAllDataFromSupabase();
       } else {
         // No auth session found
         setIsAuthenticated(false);
@@ -376,16 +379,41 @@ const MaintenanceManagementSystem = () => {
     
     checkAuth();
     
-    // 인증 후 Supabase 데이터 로드
-    const loadDataIfAuthenticated = async () => {
-      if (isAuthenticated) {
-        await loadAllDataFromSupabase();
+    // 인증 후 Supabase 데이터 로드는 checkAuth에서 처리
+    
+    // Supabase Auth 상태 변화 감지
+    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('🔐 Auth 상태 변화:', event, session);
+      
+      if (session) {
+        const user = {
+          id: session.user.id,
+          username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
+          fullName: session.user.user_metadata?.full_name || '사용자',
+          role: session.user.user_metadata?.role || 'user'
+        };
+        
+        setCurrentUser(user);
+        setIsAuthenticated(true);
+        document.body.classList.add('authenticated');
+        document.body.classList.remove('unauthenticated');
+        
+        // 로그인 시 데이터 로드
+        if (event === 'SIGNED_IN') {
+          await loadAllDataFromSupabase();
+        }
+      } else {
+        setCurrentUser(null);
+        setIsAuthenticated(false);
+        document.body.classList.add('unauthenticated');
+        document.body.classList.remove('authenticated');
       }
+    });
+    
+    // 컴포넌트 언마운트 시 인증 리스너 정리
+    return () => {
+      authSubscription.unsubscribe();
     };
-    
-    loadDataIfAuthenticated();
-    
-    // Subscribe to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
         // User logged out
