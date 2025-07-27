@@ -5,18 +5,13 @@ export const loadPersonnelFromSupabase = async () => {
   try {
     console.log('🔍 personnel 테이블 접근 시도...');
     
-    // 5초 타임아웃 설정
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('personnel 테이블 요청 타임아웃')), 5000)
-    );
+    // 타임아웃 제거하고 실제 에러 확인
+    console.log('🌐 Supabase 연결 확인 중...');
     
-    const dataPromise = supabase
+    const { data, error } = await supabase
       .from('personnel')
       .select('*')
       .order('id');
-    
-    const result = await Promise.race([dataPromise, timeoutPromise]);
-    const { data, error } = result as any;
       
     if (error) {
       console.error('❌ 인력 데이터 로드 오류:', error);
