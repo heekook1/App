@@ -4,10 +4,19 @@ import { supabase } from '../supabaseClient';
 export const loadPersonnelFromSupabase = async () => {
   try {
     console.log('🔍 personnel 테이블 접근 시도...');
-    const { data, error } = await supabase
+    
+    // 5초 타임아웃 설정
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('personnel 테이블 요청 타임아웃')), 5000)
+    );
+    
+    const dataPromise = supabase
       .from('personnel')
       .select('*')
       .order('id');
+    
+    const result = await Promise.race([dataPromise, timeoutPromise]);
+    const { data, error } = result as any;
       
     if (error) {
       console.error('❌ 인력 데이터 로드 오류:', error);
@@ -15,9 +24,15 @@ export const loadPersonnelFromSupabase = async () => {
       return [];
     }
     
-    console.log('✅ personnel 테이블 접근 성공, 데이터:', data?.length || 0, '건');
+    console.log('✅ personnel 테이뺔 접근 성공, 데이터:', data?.length || 0, '건');
     
-    return data.map(person => ({
+    // 데이터가 없으면 빈 배열 반환
+    if (!data || data.length === 0) {
+      console.log('📌 personnel 테이블이 비어있음 - 빈 배열 반환');
+      return [];
+    }
+    
+    return data.map((person: any) => ({
       id: person.id,
       name: person.name,
       position: person.position,
