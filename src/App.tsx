@@ -1677,13 +1677,30 @@ const MaintenanceManagementSystem = () => {
   };
 
   // Attendance Management Functions
-  const handleAttendanceDelete = (attendanceId: string) => {
-    const updatedAttendances = attendances.filter(att => att.id !== attendanceId);
-    setAttendances(updatedAttendances);
-    saveToStorage('attendances', updatedAttendances);
+  const handleAttendanceDelete = async (attendanceId: string) => {
+    try {
+      // Supabase에서 삭제
+      const { error } = await supabase
+        .from('attendances')
+        .delete()
+        .eq('id', attendanceId);
+        
+      if (error) {
+        console.error('근태 삭제 오류:', error);
+        alert('근태 삭제 중 오류가 발생했습니다.');
+        return;
+      }
+      
+      // 로컬 상태 업데이트
+      const updatedAttendances = attendances.filter(att => att.id !== attendanceId);
+      setAttendances(updatedAttendances);
+    } catch (error) {
+      console.error('근태 삭제 오류:', error);
+      alert('근태 삭제 중 오류가 발생했습니다.');
+    }
   };
 
-  const handleAttendanceSubmit = (e: React.FormEvent) => {
+  const handleAttendanceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // 담당자 선택 필수 검증
@@ -1692,36 +1709,61 @@ const MaintenanceManagementSystem = () => {
       return;
     }
 
-    const newAttendance: Attendance = {
-      id: `${selectedAttendanceDate}-${attendanceForm.personnelId}`,
-      personnelId: attendanceForm.personnelId,
-      personnelName: attendanceForm.personnelName,
-      date: selectedAttendanceDate,
-      type: attendanceForm.type
-    };
+    try {
+      // 기존 근태 기록 삭제 (같은 날짜, 같은 사람)
+      await supabase
+        .from('attendances')
+        .delete()
+        .eq('date', selectedAttendanceDate)
+        .eq('personnel_id', attendanceForm.personnelId);
 
-    // 디버깅용 로그 (임시)
-    console.log('New Attendance Registration:', newAttendance);
-    console.log('Selected Date:', selectedAttendanceDate);
-    console.log('Personnel ID:', attendanceForm.personnelId);
+      // 새 근태 기록 추가
+      const newAttendance = {
+        personnel_id: attendanceForm.personnelId,
+        personnel_name: attendanceForm.personnelName,
+        date: selectedAttendanceDate,
+        type: attendanceForm.type
+      };
 
-    // Remove existing attendance for same person and date
-    const filteredAttendances = attendances.filter(
-      att => !(att.date === selectedAttendanceDate && att.personnelId === attendanceForm.personnelId)
-    );
-    
-    const updatedAttendances = [...filteredAttendances, newAttendance];
-    console.log('Updated Attendances Array:', updatedAttendances);
-    
-    setAttendances(updatedAttendances);
-    saveToStorage('attendances', updatedAttendances);
-    
-    setShowAttendanceModal(false);
-    setAttendanceForm({
-      personnelId: 0,
-      personnelName: '',
-      type: '연차'
-    });
+      const { data, error } = await supabase
+        .from('attendances')
+        .insert(newAttendance)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('근태 등록 오류:', error);
+        alert('근태 등록 중 오류가 발생했습니다.');
+        return;
+      }
+
+      // 로컬 상태 업데이트
+      const newAttendanceWithId: Attendance = {
+        id: data.id,
+        personnelId: data.personnel_id,
+        personnelName: data.personnel_name,
+        date: data.date,
+        type: data.type
+      };
+
+      // 기존 데이터에서 같은 날짜, 같은 사람 제거 후 새 데이터 추가
+      const filteredAttendances = attendances.filter(
+        att => !(att.date === selectedAttendanceDate && att.personnelId === attendanceForm.personnelId)
+      );
+      
+      const updatedAttendances = [...filteredAttendances, newAttendanceWithId];
+      setAttendances(updatedAttendances);
+      
+      setShowAttendanceModal(false);
+      setAttendanceForm({
+        personnelId: 0,
+        personnelName: '',
+        type: '연차'
+      });
+    } catch (error) {
+      console.error('근태 등록 오류:', error);
+      alert('근태 등록 중 오류가 발생했습니다.');
+    }
   };
 
   const getAttendanceForDate = (date: string) => {
@@ -2355,32 +2397,94 @@ const MaintenanceManagementSystem = () => {
   });
   const [newCertification, setNewCertification] = useState('');
 
-  const handlePersonnelSubmit = (e: React.FormEvent) => {
+  const handlePersonnelSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingPersonnel) {
-      setPersonnel(prev => prev.map(person => 
-        person.id === editingPersonnel.id 
-          ? { ...person, ...personnelForm, accessHistory: person.accessHistory }
-          : person
-      ));
-      setEditingPersonnel(null);
-    } else {
-      const newPerson: Personnel = {
-        id: Math.max(...personnel.map(p => p.id), 0) + 1,
-        ...personnelForm,
-        accessHistory: []
-      };
-      setPersonnel(prev => [...prev, newPerson]);
+    try {
+      if (editingPersonnel) {
+        // 수정
+        const updatedPerson = { 
+          ...editingPersonnel, 
+          ...personnelForm, 
+          accessHistory: editingPersonnel.accessHistory 
+        };
+        
+        // Supabase 업데이트
+        const { error } = await supabase
+          .from('personnel')
+          .update({
+            name: updatedPerson.name,
+            position: updatedPerson.position,
+            field: updatedPerson.field,
+            phone: updatedPerson.phone,
+            hire_date: updatedPerson.hireDate,
+            certifications: updatedPerson.certifications,
+            access_history: updatedPerson.accessHistory
+          })
+          .eq('id', editingPersonnel.id);
+          
+        if (error) {
+          console.error('인력 수정 오류:', error);
+          alert('인력 정보 수정 중 오류가 발생했습니다.');
+          return;
+        }
+        
+        // 로컬 상태 업데이트
+        setPersonnel(prev => prev.map(person => 
+          person.id === editingPersonnel.id ? updatedPerson : person
+        ));
+        setEditingPersonnel(null);
+      } else {
+        // 추가
+        const newPerson = {
+          name: personnelForm.name,
+          position: personnelForm.position,
+          field: personnelForm.field,
+          phone: personnelForm.phone,
+          hire_date: personnelForm.hireDate,
+          certifications: personnelForm.certifications,
+          access_history: []
+        };
+        
+        // Supabase 추가
+        const { data, error } = await supabase
+          .from('personnel')
+          .insert(newPerson)
+          .select()
+          .single();
+          
+        if (error) {
+          console.error('인력 추가 오류:', error);
+          alert('인력 추가 중 오류가 발생했습니다.');
+          return;
+        }
+        
+        // 로컬 상태 업데이트
+        const newPersonWithId: Personnel = {
+          id: data.id,
+          name: data.name,
+          position: data.position,
+          field: data.field,
+          phone: data.phone,
+          hireDate: data.hire_date,
+          certifications: data.certifications || [],
+          accessHistory: data.access_history || []
+        };
+        setPersonnel(prev => [...prev, newPersonWithId]);
+      }
+      
+      setShowPersonnelForm(false);
+      setPersonnelForm({
+        name: '',
+        position: '',
+        field: '',
+        phone: '',
+        hireDate: '',
+        certifications: []
+      });
+    } catch (error) {
+      console.error('인력 관리 오류:', error);
+      alert('인력 관리 중 오류가 발생했습니다.');
     }
-    setShowPersonnelForm(false);
-    setPersonnelForm({
-      name: '',
-      position: '',
-      field: '',
-      phone: '',
-      hireDate: '',
-      certifications: []
-    });
   };
 
   const handleEditPersonnel = (person: Personnel) => {
@@ -2396,8 +2500,26 @@ const MaintenanceManagementSystem = () => {
     setShowPersonnelForm(true);
   };
 
-  const handleDeletePersonnel = (id: number) => {
-    setPersonnel(prev => prev.filter(person => person.id !== id));
+  const handleDeletePersonnel = async (id: number) => {
+    try {
+      // Supabase에서 삭제
+      const { error } = await supabase
+        .from('personnel')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        console.error('인력 삭제 오류:', error);
+        alert('인력 삭제 중 오류가 발생했습니다.');
+        return;
+      }
+      
+      // 로컬 상태 업데이트
+      setPersonnel(prev => prev.filter(person => person.id !== id));
+    } catch (error) {
+      console.error('인력 삭제 오류:', error);
+      alert('인력 삭제 중 오류가 발생했습니다.');
+    }
   };
 
   const addCertification = () => {
@@ -3320,30 +3442,81 @@ const MaintenanceManagementSystem = () => {
     author: '관리자'
   });
 
-  const handleAnnouncementSubmit = (e: React.FormEvent) => {
+  const handleAnnouncementSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingAnnouncement) {
-      setAnnouncements(prev => prev.map(announcement => 
-        announcement.id === editingAnnouncement.id 
-          ? { ...announcement, ...announcementForm }
-          : announcement
-      ));
-      setEditingAnnouncement(null);
-    } else {
-      const newAnnouncement: Announcement = {
-        id: Math.max(...announcements.map(a => a.id), 0) + 1,
-        ...announcementForm,
-        date: new Date().toISOString().split('T')[0]
-      };
-      setAnnouncements(prev => [...prev, newAnnouncement]);
+    try {
+      if (editingAnnouncement) {
+        // 수정
+        const updatedAnnouncement = { ...editingAnnouncement, ...announcementForm };
+        
+        // Supabase 업데이트
+        const { error } = await supabase
+          .from('announcements')
+          .update({
+            title: updatedAnnouncement.title,
+            content: updatedAnnouncement.content,
+            priority: updatedAnnouncement.priority,
+            author: updatedAnnouncement.author
+          })
+          .eq('id', editingAnnouncement.id);
+          
+        if (error) {
+          console.error('공지사항 수정 오류:', error);
+          alert('공지사항 수정 중 오류가 발생했습니다.');
+          return;
+        }
+        
+        // 로컬 상태 업데이트
+        setAnnouncements(prev => prev.map(announcement => 
+          announcement.id === editingAnnouncement.id ? updatedAnnouncement : announcement
+        ));
+        setEditingAnnouncement(null);
+      } else {
+        // 추가
+        const newAnnouncement = {
+          title: announcementForm.title,
+          content: announcementForm.content,
+          priority: announcementForm.priority,
+          author: announcementForm.author,
+          date: new Date().toISOString().split('T')[0]
+        };
+        
+        // Supabase 추가
+        const { data, error } = await supabase
+          .from('announcements')
+          .insert(newAnnouncement)
+          .select()
+          .single();
+          
+        if (error) {
+          console.error('공지사항 추가 오류:', error);
+          alert('공지사항 추가 중 오류가 발생했습니다.');
+          return;
+        }
+        
+        // 로컬 상태 업데이트
+        const newAnnouncementWithId: Announcement = {
+          id: data.id,
+          title: data.title,
+          content: data.content,
+          date: data.date,
+          author: data.author,
+          priority: data.priority
+        };
+        setAnnouncements(prev => [...prev, newAnnouncementWithId]);
+      }
+      
+      setShowAnnouncementForm(false);
+      setAnnouncementForm({
+        title: '',
+        content: '',
+        priority: 'normal',
+        author: '관리자'
+      });
+    } catch (error) {
+      console.error('공지사항 관리 오류:', error);
+      alert('공지사항 관리 중 오류가 발생했습니다.');
     }
-    setShowAnnouncementForm(false);
-    setAnnouncementForm({
-      title: '',
-      content: '',
-      priority: 'normal',
-      author: '관리자'
-    });
   };
 
   const handleEditAnnouncement = (announcement: Announcement) => {
@@ -3357,8 +3530,26 @@ const MaintenanceManagementSystem = () => {
     setShowAnnouncementForm(true);
   };
 
-  const handleDeleteAnnouncement = (id: number) => {
-    setAnnouncements(prev => prev.filter(announcement => announcement.id !== id));
+  const handleDeleteAnnouncement = async (id: number) => {
+    try {
+      // Supabase에서 삭제
+      const { error } = await supabase
+        .from('announcements')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        console.error('공지사항 삭제 오류:', error);
+        alert('공지사항 삭제 중 오류가 발생했습니다.');
+        return;
+      }
+      
+      // 로컬 상태 업데이트
+      setAnnouncements(prev => prev.filter(announcement => announcement.id !== id));
+    } catch (error) {
+      console.error('공지사항 삭제 오류:', error);
+      alert('공지사항 삭제 중 오류가 발생했습니다.');
+    }
   };
 
   const renderAnnouncements = () => (
