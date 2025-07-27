@@ -1069,7 +1069,8 @@ const MaintenanceManagementSystem = () => {
                   </div>
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                     attendanceStatus === '연차' ? 'bg-red-100 text-red-800' :
-                    attendanceStatus === '반차' ? 'bg-yellow-100 text-yellow-800' :
+                    attendanceStatus === '반차(오전)' ? 'bg-yellow-100 text-yellow-800' :
+                    attendanceStatus === '반차(오후)' ? 'bg-orange-100 text-orange-800' :
                     attendanceStatus === '공가' ? 'bg-blue-100 text-blue-800' :
                     attendanceStatus === '병가' ? 'bg-purple-100 text-purple-800' :
                     attendanceStatus === '교육' ? 'bg-green-100 text-green-800' :
