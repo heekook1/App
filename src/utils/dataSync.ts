@@ -4,18 +4,32 @@ import { supabase } from '../supabaseClient';
 export const loadPersonnelFromSupabase = async () => {
   try {
     console.log('🔍 personnel 테이블 접근 시도...');
+    console.log('🌐 Fetch로 직접 API 호출 시도...');
     
-    // 타임아웃 제거하고 실제 에러 확인
-    console.log('🌐 Supabase 연결 확인 중...');
+    // fetch로 직접 호출
+    const response = await fetch('https://olwicbbmmokcvlqcrkqn.supabase.co/rest/v1/personnel?select=*&order=id', {
+      headers: {
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sd2ljYmJtbW9rY3ZscWNya3FuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MDU3NDUsImV4cCI6MjA2Nzk4MTc0NX0.0yg_n6aOfLnd3d3y_jYkZVPNIniYvaOVAewW9ERALNo',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sd2ljYmJtbW9rY3ZscWNya3FuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MDU3NDUsImV4cCI6MjA2Nzk4MTc0NX0.0yg_n6aOfLnd3d3y_jYkZVPNIniYvaOVAewW9ERALNo',
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation'
+      }
+    });
     
-    const { data, error } = await supabase
-      .from('personnel')
-      .select('*')
-      .order('id');
+    console.log('📡 Fetch 응답 상태:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Fetch 오류:', errorText);
+      return [];
+    }
+    
+    const data = await response.json();
+    console.log('✅ Fetch 성공, 데이터:', data.length, '건');
       
-    if (error) {
-      console.error('❌ 인력 데이터 로드 오류:', error);
-      console.error('❌ 에러 상세:', JSON.stringify(error, null, 2));
+    // 데이터가 없으면 빈 배열 반환
+    if (!data || data.length === 0) {
+      console.log('📌 personnel 테이블이 비어있음');
       return [];
     }
     
