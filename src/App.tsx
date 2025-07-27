@@ -414,34 +414,7 @@ const MaintenanceManagementSystem = () => {
     return () => {
       authSubscription.unsubscribe();
     };
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        // User logged out
-        setCurrentUser(null);
-        setIsAuthenticated(false);
-        // Local storage cleanup no longer needed
-        
-        // Body 클래스 추가
-        document.body.classList.add('unauthenticated');
-        document.body.classList.remove('authenticated');
-      }
-    });
     
-    // Remember Me 기능을 위한 beforeunload 이벤트 추가
-    const handleBeforeUnload = () => {
-      const rememberMe = localStorage.getItem('rememberMe') === 'true';
-      if (!rememberMe) {
-        // Remember Me가 체크되지 않았으면 로그아웃 처리
-        // Local storage cleanup no longer needed
-      }
-    };
-    
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    return () => {
-      subscription.unsubscribe();
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
   }, []);
 
 

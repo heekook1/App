@@ -4,36 +4,18 @@ import { supabase } from '../supabaseClient';
 export const loadPersonnelFromSupabase = async () => {
   try {
     console.log('🔍 personnel 테이블 접근 시도...');
-    console.log('🌐 Fetch로 직접 API 호출 시도...');
     
-    // fetch로 직접 호출
-    const response = await fetch('https://olwicbbmmokcvlqcrkqn.supabase.co/rest/v1/personnel?select=*&order=id', {
-      headers: {
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sd2ljYmJtbW9rY3ZscWNya3FuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MDU3NDUsImV4cCI6MjA2Nzk4MTc0NX0.0yg_n6aOfLnd3d3y_jYkZVPNIniYvaOVAewW9ERALNo',
-        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9sd2ljYmJtbW9rY3ZscWNya3FuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MDU3NDUsImV4cCI6MjA2Nzk4MTc0NX0.0yg_n6aOfLnd3d3y_jYkZVPNIniYvaOVAewW9ERALNo',
-        'Content-Type': 'application/json',
-        'Prefer': 'return=representation'
-      }
-    });
+    const { data, error } = await supabase
+      .from('personnel')
+      .select('*')
+      .order('id');
     
-    console.log('📡 Fetch 응답 상태:', response.status);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Fetch 오류:', errorText);
+    if (error) {
+      console.error('❌ personnel 데이터 로드 오류:', error);
       return [];
     }
     
-    const data = await response.json();
-    console.log('✅ Fetch 성공, 데이터:', data.length, '건');
-      
-    // 데이터가 없으면 빈 배열 반환
-    if (!data || data.length === 0) {
-      console.log('📌 personnel 테이블이 비어있음');
-      return [];
-    }
-    
-    console.log('✅ personnel 테이뺔 접근 성공, 데이터:', data?.length || 0, '건');
+    console.log('✅ personnel 테이블 접근 성공, 데이터:', data?.length || 0, '건');
     
     // 데이터가 없으면 빈 배열 반환
     if (!data || data.length === 0) {
@@ -110,24 +92,33 @@ export const loadSchedulesFromSupabase = async () => {
 };
 
 export const loadAnnouncementsFromSupabase = async () => {
-  const { data, error } = await supabase
-    .from('announcements')
-    .select('*')
-    .order('created_at', { ascending: false });
+  try {
+    console.log('🔍 announcements 테이블 접근 시도...');
     
-  if (error) {
-    console.error('공지사항 데이터 로드 오류:', error);
+    const { data, error } = await supabase
+      .from('announcements')
+      .select('*')
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error('❌ announcements 데이터 로드 오류:', error);
+      return [];
+    }
+    
+    console.log('✅ announcements 테이블 접근 성공, 데이터:', data?.length || 0, '건');
+    
+    return data.map((announcement: any) => ({
+      id: announcement.id,
+      title: announcement.title,
+      content: announcement.content,
+      date: announcement.date,
+      author: announcement.author,
+      priority: announcement.priority
+    }));
+  } catch (err) {
+    console.error('❌ loadAnnouncementsFromSupabase 예외:', err);
     return [];
   }
-  
-  return data.map(announcement => ({
-    id: announcement.id,
-    title: announcement.title,
-    content: announcement.content,
-    date: announcement.date,
-    author: announcement.author,
-    priority: announcement.priority
-  }));
 };
 
 export const loadEquipmentFromSupabase = async () => {
