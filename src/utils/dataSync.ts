@@ -2,26 +2,35 @@ import { supabase } from '../supabaseClient';
 
 // Supabase에서 데이터를 가져와서 상태를 초기화하는 함수들
 export const loadPersonnelFromSupabase = async () => {
-  const { data, error } = await supabase
-    .from('personnel')
-    .select('*')
-    .order('id');
+  try {
+    console.log('🔍 personnel 테이블 접근 시도...');
+    const { data, error } = await supabase
+      .from('personnel')
+      .select('*')
+      .order('id');
+      
+    if (error) {
+      console.error('❌ 인력 데이터 로드 오류:', error);
+      console.error('❌ 에러 상세:', JSON.stringify(error, null, 2));
+      return [];
+    }
     
-  if (error) {
-    console.error('인력 데이터 로드 오류:', error);
+    console.log('✅ personnel 테이블 접근 성공, 데이터:', data?.length || 0, '건');
+    
+    return data.map(person => ({
+      id: person.id,
+      name: person.name,
+      position: person.position,
+      field: person.field,
+      phone: person.phone,
+      hireDate: person.hire_date,
+      certifications: person.certifications || [],
+      accessHistory: person.access_history || []
+    }));
+  } catch (err) {
+    console.error('❌ loadPersonnelFromSupabase 예외:', err);
     return [];
   }
-  
-  return data.map(person => ({
-    id: person.id,
-    name: person.name,
-    position: person.position,
-    field: person.field,
-    phone: person.phone,
-    hireDate: person.hire_date,
-    certifications: person.certifications || [],
-    accessHistory: person.access_history || []
-  }));
 };
 
 export const loadWorkOrdersFromSupabase = async () => {
