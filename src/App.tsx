@@ -398,10 +398,8 @@ const MaintenanceManagementSystem = () => {
         document.body.classList.add('authenticated');
         document.body.classList.remove('unauthenticated');
         
-        // 로그인 시 데이터 로드
-        if (event === 'SIGNED_IN') {
-          await loadAllDataFromSupabase();
-        }
+        // 세션이 있으면 항상 데이터 로드 (새로고침 대응)
+        await loadAllDataFromSupabase();
       } else {
         setCurrentUser(null);
         setIsAuthenticated(false);
