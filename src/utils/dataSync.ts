@@ -5,10 +5,17 @@ export const loadPersonnelFromSupabase = async () => {
   try {
     console.log('🔍 personnel 테이블 접근 시도...');
     
-    const { data, error } = await supabase
+    // 10초 타임아웃 추가
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('personnel 로드 타임아웃')), 10000);
+    });
+    
+    const dataPromise = supabase
       .from('personnel')
       .select('*')
       .order('id');
+    
+    const { data, error } = await Promise.race([dataPromise, timeoutPromise]) as any;
     
     if (error) {
       console.error('❌ personnel 데이터 로드 오류:', error);
@@ -95,10 +102,17 @@ export const loadAnnouncementsFromSupabase = async () => {
   try {
     console.log('🔍 announcements 테이블 접근 시도...');
     
-    const { data, error } = await supabase
+    // 10초 타임아웃 추가
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('announcements 로드 타임아웃')), 10000);
+    });
+    
+    const dataPromise = supabase
       .from('announcements')
       .select('*')
       .order('created_at', { ascending: false });
+    
+    const { data, error } = await Promise.race([dataPromise, timeoutPromise]) as any;
       
     if (error) {
       console.error('❌ announcements 데이터 로드 오류:', error);
