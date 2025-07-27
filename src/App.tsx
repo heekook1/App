@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as React from 'react';
-import { Calendar, Users, Settings, FileText, MessageSquare, Wrench, Home, Plus, Edit, Trash2, X, Download, Upload, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Users, Settings, FileText, MessageSquare, Wrench, Home, Plus, Edit, Trash2, X, Download, Upload, Eye, ChevronLeft, ChevronRight, Database } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { supabase } from './supabaseClient';
@@ -9,6 +9,16 @@ import SignupPage from './SignupPage';
 import ForgotPasswordPage from './ForgotPasswordPage';
 import AuthCallback from './AuthCallback';
 import ResetPasswordPage from './ResetPasswordPage';
+import { 
+  migrateDataToSupabase, 
+  loadPersonnelFromSupabase, 
+  loadWorkOrdersFromSupabase, 
+  loadSchedulesFromSupabase, 
+  loadAnnouncementsFromSupabase, 
+  loadEquipmentFromSupabase, 
+  loadAttendancesFromSupabase, 
+  loadDailyReportsFromSupabase 
+} from './utils/dataSync';
 
 // Type definitions
 interface Personnel {
@@ -515,6 +525,16 @@ const MaintenanceManagementSystem = () => {
     
     checkAuth();
     
+    // 인증 후 Supabase 데이터 로드
+    const loadDataIfAuthenticated = async () => {
+      const storedAuth = localStorage.getItem('isAuthenticated');
+      if (storedAuth === 'true') {
+        await loadAllDataFromSupabase();
+      }
+    };
+    
+    loadDataIfAuthenticated();
+    
     // Subscribe to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
@@ -1000,9 +1020,79 @@ const MaintenanceManagementSystem = () => {
     </nav>
   );
 
+  // 데이터 마이그레이션 핸들러
+  const handleMigrateData = async () => {
+    if (window.confirm('localStorage의 모든 데이터를 Supabase로 마이그레이션하시겠습니까?\n\n이 작업은 중복 데이터를 생성할 수 있습니다.')) {
+      const success = await migrateDataToSupabase();
+      if (success) {
+        alert('✅ 데이터 마이그레이션이 완료되었습니다!\n이제 다른 기기/브라우저에서도 동일한 데이터를 확인할 수 있습니다.');
+        // 마이그레이션 후 데이터 새로고침
+        await loadAllDataFromSupabase();
+      } else {
+        alert('❌ 마이그레이션 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+      }
+    }
+  };
+
+  // Supabase에서 모든 데이터 로드
+  const loadAllDataFromSupabase = async () => {
+    try {
+      console.log('🔄 Supabase에서 데이터 로드 중...');
+      
+      const [
+        personnelData,
+        workOrdersData,
+        schedulesData,
+        announcementsData,
+        equipmentData,
+        attendancesData,
+        dailyReportsData
+      ] = await Promise.all([
+        loadPersonnelFromSupabase(),
+        loadWorkOrdersFromSupabase(),
+        loadSchedulesFromSupabase(),
+        loadAnnouncementsFromSupabase(),
+        loadEquipmentFromSupabase(),
+        loadAttendancesFromSupabase(),
+        loadDailyReportsFromSupabase()
+      ]);
+
+      setPersonnel(personnelData);
+      setWorkOrders(workOrdersData);
+      setSchedules(schedulesData);
+      setAnnouncements(announcementsData);
+      setEquipment(equipmentData);
+      setAttendances(attendancesData);
+      setDailyReports(dailyReportsData);
+      
+      console.log('✅ Supabase 데이터 로드 완료');
+    } catch (error) {
+      console.error('❌ Supabase 데이터 로드 오류:', error);
+    }
+  };
+
   // Dashboard
   const renderDashboard = () => (
     <div className="space-y-4">
+      {/* 데이터 마이그레이션 알림 */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Database className="h-5 w-5 text-blue-600 mr-3" />
+            <div>
+              <h4 className="text-sm font-medium text-blue-900">Supabase 데이터베이스 연동</h4>
+              <p className="text-xs text-blue-700">localStorage 데이터를 Supabase로 마이그레이션하면 모든 기기에서 동일한 데이터를 사용할 수 있습니다.</p>
+            </div>
+          </div>
+          <button
+            onClick={handleMigrateData}
+            className="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
+          >
+            데이터 마이그레이션
+          </button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { title: '전체 작업', value: workOrders.length, color: 'bg-blue-500' },
