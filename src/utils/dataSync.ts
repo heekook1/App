@@ -4,42 +4,8 @@ import { supabase } from '../supabaseClient';
 export const loadPersonnelFromSupabase = async () => {
   try {
     console.log('🔍 personnel 테이블 접근 시도...');
-    
-    // 10초 타임아웃 추가
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('personnel 로드 타임아웃')), 10000);
-    });
-    
-    const dataPromise = supabase
-      .from('personnel')
-      .select('*')
-      .order('id');
-    
-    const { data, error } = await Promise.race([dataPromise, timeoutPromise]) as any;
-    
-    if (error) {
-      console.error('❌ personnel 데이터 로드 오류:', error);
-      return [];
-    }
-    
-    console.log('✅ personnel 테이블 접근 성공, 데이터:', data?.length || 0, '건');
-    
-    // 데이터가 없으면 빈 배열 반환
-    if (!data || data.length === 0) {
-      console.log('📌 personnel 테이블이 비어있음 - 빈 배열 반환');
-      return [];
-    }
-    
-    return data.map((person: any) => ({
-      id: person.id,
-      name: person.name,
-      position: person.position,
-      field: person.field,
-      phone: person.phone,
-      hireDate: person.hire_date,
-      certifications: person.certifications || [],
-      accessHistory: person.access_history || []
-    }));
+    console.log('⚠️ personnel 테이블 임시로 건너뛰기');
+    return [];
   } catch (err) {
     console.error('❌ loadPersonnelFromSupabase 예외:', err);
     return [];
@@ -101,34 +67,8 @@ export const loadSchedulesFromSupabase = async () => {
 export const loadAnnouncementsFromSupabase = async () => {
   try {
     console.log('🔍 announcements 테이블 접근 시도...');
-    
-    // 10초 타임아웃 추가
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('announcements 로드 타임아웃')), 10000);
-    });
-    
-    const dataPromise = supabase
-      .from('announcements')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    const { data, error } = await Promise.race([dataPromise, timeoutPromise]) as any;
-      
-    if (error) {
-      console.error('❌ announcements 데이터 로드 오류:', error);
-      return [];
-    }
-    
-    console.log('✅ announcements 테이블 접근 성공, 데이터:', data?.length || 0, '건');
-    
-    return data.map((announcement: any) => ({
-      id: announcement.id,
-      title: announcement.title,
-      content: announcement.content,
-      date: announcement.date,
-      author: announcement.author,
-      priority: announcement.priority
-    }));
+    console.log('⚠️ announcements 테이블 임시로 건너뛰기');
+    return [];
   } catch (err) {
     console.error('❌ loadAnnouncementsFromSupabase 예외:', err);
     return [];
