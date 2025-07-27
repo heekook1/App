@@ -74,7 +74,7 @@ interface Attendance {
   personnelId: number;
   personnelName: string;
   date: string;
-  type: '연차' | '반차' | '공가' | '병가' | '교육';
+  type: '연차' | '반차(오전)' | '반차(오후)' | '공가' | '병가' | '교육';
   note?: string;
 }
 
@@ -256,7 +256,7 @@ const MaintenanceManagementSystem = () => {
   const [attendanceForm, setAttendanceForm] = useState({
     personnelId: 0,
     personnelName: '',
-    type: '연차' as '연차' | '반차' | '공가' | '병가' | '교육'
+    type: '연차' as '연차' | '반차(오전)' | '반차(오후)' | '공가' | '병가' | '교육'
   });
 
   // 한국 시간 헬퍼 함수
@@ -2561,7 +2561,8 @@ const MaintenanceManagementSystem = () => {
                   {dayAttendances.map(att => (
                     <div key={att.id} className={`text-xs p-1 rounded group relative ${
                       att.type === '연차' ? 'bg-red-100 text-red-800' :
-                      att.type === '반차' ? 'bg-yellow-100 text-yellow-800' :
+                      att.type === '반차(오전)' ? 'bg-yellow-100 text-yellow-800' :
+                      att.type === '반차(오후)' ? 'bg-orange-100 text-orange-800' :
                       att.type === '공가' ? 'bg-blue-100 text-blue-800' :
                       att.type === '병가' ? 'bg-purple-100 text-purple-800' :
                       att.type === '교육' ? 'bg-green-100 text-green-800' :
@@ -2641,12 +2642,13 @@ const MaintenanceManagementSystem = () => {
                   value={attendanceForm.type}
                   onChange={(e) => setAttendanceForm(prev => ({ 
                     ...prev, 
-                    type: e.target.value as '연차' | '반차' | '공가' | '병가' | '교육'
+                    type: e.target.value as '연차' | '반차(오전)' | '반차(오후)' | '공가' | '병가' | '교육'
                   }))}
                   className="w-full px-3 py-2 border rounded-lg"
                 >
                   <option value="연차">연차</option>
-                  <option value="반차">반차</option>
+                  <option value="반차(오전)">반차(오전)</option>
+                  <option value="반차(오후)">반차(오후)</option>
                   <option value="공가">공가</option>
                   <option value="병가">병가</option>
                   <option value="교육">교육</option>
