@@ -867,23 +867,33 @@ const MaintenanceManagementSystem = () => {
     try {
       console.log('🔄 Supabase에서 데이터 로드 중...');
       
-      const [
-        personnelData,
-        workOrdersData,
-        schedulesData,
-        announcementsData,
-        equipmentData,
-        attendancesData,
-        dailyReportsData
-      ] = await Promise.all([
-        loadPersonnelFromSupabase(),
-        loadWorkOrdersFromSupabase(),
-        loadSchedulesFromSupabase(),
-        loadAnnouncementsFromSupabase(),
-        loadEquipmentFromSupabase(),
-        loadAttendancesFromSupabase(),
-        loadDailyReportsFromSupabase()
-      ]);
+      console.log('📋 인력 데이터 로드 시작...');
+      const personnelData = await loadPersonnelFromSupabase();
+      console.log('📋 인력 데이터 로드 완료:', personnelData.length, '건');
+      
+      console.log('🔧 작업지시서 데이터 로드 시작...');
+      const workOrdersData = await loadWorkOrdersFromSupabase();
+      console.log('🔧 작업지시서 데이터 로드 완료:', workOrdersData.length, '건');
+      
+      console.log('📅 일정 데이터 로드 시작...');
+      const schedulesData = await loadSchedulesFromSupabase();
+      console.log('📅 일정 데이터 로드 완료:', schedulesData.length, '건');
+      
+      console.log('📢 공지사항 데이터 로드 시작...');
+      const announcementsData = await loadAnnouncementsFromSupabase();
+      console.log('📢 공지사항 데이터 로드 완룮:', announcementsData.length, '건');
+      
+      console.log('⚙️ 설비 데이터 로드 시작...');
+      const equipmentData = await loadEquipmentFromSupabase();
+      console.log('⚙️ 설비 데이터 로드 완료:', equipmentData.length, '건');
+      
+      console.log('📊 근태 데이터 로드 시작...');
+      const attendancesData = await loadAttendancesFromSupabase();
+      console.log('📊 근태 데이터 로드 완료:', attendancesData.length, '건');
+      
+      console.log('📝 업무일지 데이터 로드 시작...');
+      const dailyReportsData = await loadDailyReportsFromSupabase();
+      console.log('📝 업무일지 데이터 로드 완료:', dailyReportsData.length, '건');
 
       setPersonnel(personnelData);
       setWorkOrders(workOrdersData);
