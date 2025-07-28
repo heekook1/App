@@ -363,6 +363,8 @@ const MaintenanceManagementSystem = () => {
         
         if (session) {
           console.log('✅ 유효한 세션 발견:', session.user.email);
+          console.log('🔑 사용자 UUID:', session.user.id);
+          console.log('📋 사용자 메타데이터:', session.user.user_metadata);
           // User is authenticated with Supabase Auth
           const user = {
             id: session.user.id,
