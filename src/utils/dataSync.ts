@@ -6,9 +6,17 @@ export const loadPersonnelFromSupabase = async () => {
     console.log('🔍 personnel 테이블 접근 시도...');
     
     // 현재 세션 확인
+    console.log('🔄 세션 확인 중...');
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
-      console.error('❌ 세션 없음 또는 세션 오류:', sessionError);
+    console.log('📋 세션 상태:', { session: !!session, error: sessionError });
+    
+    if (sessionError) {
+      console.error('❌ 세션 오류:', sessionError);
+      return [];
+    }
+    
+    if (!session) {
+      console.error('❌ 세션 없음');
       return [];
     }
     
