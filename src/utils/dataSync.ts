@@ -26,7 +26,7 @@ export const loadPersonnelFromSupabase = async () => {
     
     console.log('✅ personnel 데이터 로드 성공:', data?.length || 0, '명');
     
-    return data.map(person => ({
+    return data.map((person: any) => ({
       id: person.id,
       name: person.name,
       position: person.position,
@@ -59,7 +59,7 @@ export const loadWorkOrdersFromSupabase = async () => {
     
     console.log('✅ work_orders 데이터 로드 성공:', data?.length || 0, '건');
     
-    return data.map(order => ({
+    return data.map((order: any) => ({
       id: order.id,
       title: order.title,
       equipment: order.equipment,
@@ -91,7 +91,7 @@ export const loadSchedulesFromSupabase = async () => {
     return [];
   }
   
-  return data.map(schedule => ({
+  return data.map((schedule: any) => ({
     id: schedule.id,
     scheduleNumber: schedule.schedule_number,
     title: schedule.title,
@@ -121,7 +121,7 @@ export const loadAnnouncementsFromSupabase = async () => {
     
     console.log('✅ announcements 데이터 로드 성공:', data?.length || 0, '개');
     
-    return data.map(announcement => ({
+    return data.map((announcement: any) => ({
       id: announcement.id,
       title: announcement.title,
       content: announcement.content,
@@ -146,7 +146,7 @@ export const loadEquipmentFromSupabase = async () => {
     return [];
   }
   
-  return data.map(equip => ({
+  return data.map((equip: any) => ({
     id: equip.id,
     name: equip.name,
     model: equip.model,
@@ -168,7 +168,7 @@ export const loadAttendancesFromSupabase = async () => {
     return [];
   }
   
-  return data.map(attendance => ({
+  return data.map((attendance: any) => ({
     id: attendance.id,
     personnelId: attendance.personnel_id,
     personnelName: attendance.personnel_name,
@@ -189,7 +189,7 @@ export const loadDailyReportsFromSupabase = async () => {
     return [];
   }
   
-  return data.map(report => ({
+  return data.map((report: any) => ({
     id: report.id,
     date: report.date,
     mechanical: {
