@@ -346,34 +346,55 @@ const MaintenanceManagementSystem = () => {
 
   // Check authentication on mount
   React.useEffect(() => {
+    let isMounted = true; // 컴포넌트 마운트 상태 추적
 
     const checkAuth = async () => {
-      // First check Supabase Auth session
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        // User is authenticated with Supabase Auth
-        const user = {
-          id: session.user.id,
-          username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
-          fullName: session.user.user_metadata?.full_name || '사용자',
-          role: session.user.user_metadata?.role || 'user'
-        };
+      try {
+        console.log('🔄 인증 상태 확인 중...');
+        // First check Supabase Auth session
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        setCurrentUser(user);
-        setIsAuthenticated(true);
+        if (error) {
+          console.error('❌ 세션 확인 오류:', error);
+          return;
+        }
         
-        // Body 클래스 추가
-        document.body.classList.add('authenticated');
-        document.body.classList.remove('unauthenticated');
+        if (!isMounted) return; // 컴포넌트 언마운트된 경우 중단
         
-        // 인증 성공 시 데이터 로드
-        await loadAllDataFromSupabase();
-      } else {
-        // No auth session found
+        if (session) {
+          console.log('✅ 유효한 세션 발견:', session.user.email);
+          // User is authenticated with Supabase Auth
+          const user = {
+            id: session.user.id,
+            username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
+            fullName: session.user.user_metadata?.full_name || '사용자',
+            role: session.user.user_metadata?.role || 'user'
+          };
+          
+          setCurrentUser(user);
+          setIsAuthenticated(true);
+          
+          // Body 클래스 추가
+          document.body.classList.add('authenticated');
+          document.body.classList.remove('unauthenticated');
+          
+          // 인증 성공 시 데이터 로드 (중복 방지)
+          console.log('📥 초기 데이터 로드 시작...');
+          await loadAllDataFromSupabase();
+        } else {
+          console.log('❌ 세션 없음 - 로그인 필요');
+          // No auth session found
+          setIsAuthenticated(false);
+          setCurrentUser(null);
+          
+          // Body 클래스 추가
+          document.body.classList.add('unauthenticated');
+          document.body.classList.remove('authenticated');
+        }
+      } catch (error) {
+        console.error('❌ 인증 확인 중 오류:', error);
         setIsAuthenticated(false);
-        
-        // Body 클래스 추가
+        setCurrentUser(null);
         document.body.classList.add('unauthenticated');
         document.body.classList.remove('authenticated');
       }
@@ -381,13 +402,14 @@ const MaintenanceManagementSystem = () => {
     
     checkAuth();
     
-    // 인증 후 Supabase 데이터 로드는 checkAuth에서 처리
-    
-    // Supabase Auth 상태 변화 감지
+    // Supabase Auth 상태 변화 감지 (로그인/로그아웃 감지)
     const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔐 Auth 상태 변화:', event, session);
+      console.log('🔐 Auth 상태 변화:', event, session?.user?.email || 'no session');
       
-      if (session) {
+      if (!isMounted) return; // 컴포넌트 언마운트된 경우 중단
+      
+      if (session && event !== 'TOKEN_REFRESHED') {
+        // TOKEN_REFRESHED 이벤트는 무시 (데이터 중복 로드 방지)
         const user = {
           id: session.user.id,
           username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
@@ -400,18 +422,32 @@ const MaintenanceManagementSystem = () => {
         document.body.classList.add('authenticated');
         document.body.classList.remove('unauthenticated');
         
-        // 세션이 있으면 항상 데이터 로드 (새로고침 대응)
-        await loadAllDataFromSupabase();
-      } else {
+        // 로그인 이벤트일 때만 데이터 로드
+        if (event === 'SIGNED_IN') {
+          console.log('📥 로그인 후 데이터 로드...');
+          await loadAllDataFromSupabase();
+        }
+      } else if (!session) {
+        console.log('🚪 로그아웃 처리...');
         setCurrentUser(null);
         setIsAuthenticated(false);
         document.body.classList.add('unauthenticated');
         document.body.classList.remove('authenticated');
+        
+        // 상태 초기화
+        setPersonnel([]);
+        setWorkOrders([]);
+        setSchedules([]);
+        setAnnouncements([]);
+        setEquipment([]);
+        setAttendances([]);
+        setDailyReports([]);
       }
     });
     
-    // 컴포넌트 언마운트 시 인증 리스너 정리
+    // 컴포넌트 언마운트 시 정리
     return () => {
+      isMounted = false;
       authSubscription.unsubscribe();
     };
     
