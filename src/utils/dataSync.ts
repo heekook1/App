@@ -5,23 +5,6 @@ export const loadPersonnelFromSupabase = async () => {
   try {
     console.log('🔍 personnel 테이블 접근 시도...');
     
-    // 현재 세션 확인
-    console.log('🔄 세션 확인 중...');
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    console.log('📋 세션 상태:', { session: !!session, error: sessionError });
-    
-    if (sessionError) {
-      console.error('❌ 세션 오류:', sessionError);
-      return [];
-    }
-    
-    if (!session) {
-      console.error('❌ 세션 없음');
-      return [];
-    }
-    
-    console.log('✅ 세션 확인됨:', session.user.email);
-    
     const { data, error } = await supabase
       .from('personnel')
       .select('*')
@@ -54,13 +37,6 @@ export const loadPersonnelFromSupabase = async () => {
 export const loadWorkOrdersFromSupabase = async () => {
   try {
     console.log('🔍 work_orders 테이블 접근 시도...');
-    
-    // 현재 세션 확인
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
-      console.error('❌ work_orders 세션 없음:', sessionError);
-      return [];
-    }
     
     const { data, error } = await supabase
       .from('work_orders')
@@ -123,13 +99,6 @@ export const loadSchedulesFromSupabase = async () => {
 export const loadAnnouncementsFromSupabase = async () => {
   try {
     console.log('🔍 announcements 테이블 접근 시도...');
-    
-    // 현재 세션 확인
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !session) {
-      console.error('❌ announcements 세션 없음:', sessionError);
-      return [];
-    }
     
     const { data, error } = await supabase
       .from('announcements')
