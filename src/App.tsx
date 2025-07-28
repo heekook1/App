@@ -213,6 +213,8 @@ const MaintenanceManagementSystem = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [authView, setAuthView] = useState<'login' | 'signup' | 'forgot-password'>('login');
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [dataLoadError, setDataLoadError] = useState<string | null>(null);
   
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -835,8 +837,20 @@ const MaintenanceManagementSystem = () => {
 
   // Supabase에서 모든 데이터 로드
   const loadAllDataFromSupabase = async () => {
+    // 이미 로딩 중이면 중복 로드 방지
+    if (isLoadingData) {
+      console.log('⚠️ 이미 데이터를 로드하는 중입니다.');
+      return;
+    }
+
     try {
+      // 로딩 시작 및 이전 에러 초기화
+      setIsLoadingData(true);
+      setDataLoadError(null);
       console.log('🔄 Supabase에서 데이터 로드 중...');
+      
+      // 실패한 데이터 소스 추적
+      const failedSources: string[] = [];
       
       // 모든 데이터를 병렬로 로드 (빈 데이터도 정상 처리)
       const [
@@ -848,13 +862,41 @@ const MaintenanceManagementSystem = () => {
         attendancesData,
         dailyReportsData
       ] = await Promise.all([
-        loadPersonnelFromSupabase().catch(err => { console.error('인력 데이터 로드 실패:', err); return []; }),
-        loadWorkOrdersFromSupabase().catch(err => { console.error('작업지시서 로드 실패:', err); return []; }),
-        loadSchedulesFromSupabase().catch(err => { console.error('일정 로드 실패:', err); return []; }),
-        loadAnnouncementsFromSupabase().catch(err => { console.error('공지사항 로드 실패:', err); return []; }),
-        loadEquipmentFromSupabase().catch(err => { console.error('설비 로드 실패:', err); return []; }),
-        loadAttendancesFromSupabase().catch(err => { console.error('근태 로드 실패:', err); return []; }),
-        loadDailyReportsFromSupabase().catch(err => { console.error('업무일지 로드 실패:', err); return []; })
+        loadPersonnelFromSupabase().catch(err => { 
+          console.error('인력 데이터 로드 실패:', err); 
+          failedSources.push('인력 데이터');
+          return []; 
+        }),
+        loadWorkOrdersFromSupabase().catch(err => { 
+          console.error('작업지시서 로드 실패:', err); 
+          failedSources.push('작업지시서');
+          return []; 
+        }),
+        loadSchedulesFromSupabase().catch(err => { 
+          console.error('일정 로드 실패:', err); 
+          failedSources.push('일정');
+          return []; 
+        }),
+        loadAnnouncementsFromSupabase().catch(err => { 
+          console.error('공지사항 로드 실패:', err); 
+          failedSources.push('공지사항');
+          return []; 
+        }),
+        loadEquipmentFromSupabase().catch(err => { 
+          console.error('설비 로드 실패:', err); 
+          failedSources.push('설비');
+          return []; 
+        }),
+        loadAttendancesFromSupabase().catch(err => { 
+          console.error('근태 로드 실패:', err); 
+          failedSources.push('근태');
+          return []; 
+        }),
+        loadDailyReportsFromSupabase().catch(err => { 
+          console.error('업무일지 로드 실패:', err); 
+          failedSources.push('업무일지');
+          return []; 
+        })
       ]);
       
       console.log('📊 데이터 로드 결과:');
@@ -874,12 +916,23 @@ const MaintenanceManagementSystem = () => {
       setAttendances(attendancesData);
       setDailyReports(dailyReportsData);
       
+      // 실패한 데이터 소스가 있는 경우 에러 메시지 설정
+      if (failedSources.length > 0) {
+        const errorMessage = `다음 데이터 로드에 실패했습니다: ${failedSources.join(', ')}`;
+        setDataLoadError(errorMessage);
+        console.warn('⚠️', errorMessage);
+      }
+      
       console.log('✅ Supabase 데이터 로드 완료');
       
       // Realtime 구독 설정
       setupRealtimeSubscriptions();
     } catch (error) {
       console.error('❌ Supabase 데이터 로드 오류:', error);
+      setDataLoadError('데이터를 로드하는 중 오류가 발생했습니다.');
+    } finally {
+      // 로딩 완료
+      setIsLoadingData(false);
     }
   };
 
@@ -4078,6 +4131,37 @@ const MaintenanceManagementSystem = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {renderNavigation()}
+      
+      {/* Loading Indicator */}
+      {isLoadingData && (
+        <div className="w-full bg-blue-50 border-b border-blue-200 px-4 py-3">
+          <div className="flex items-center">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-3"></div>
+            <p className="text-sm text-blue-700">데이터를 불러오는 중입니다...</p>
+          </div>
+        </div>
+      )}
+      
+      {/* Error Display */}
+      {dataLoadError && !isLoadingData && (
+        <div className="w-full bg-red-50 border-b border-red-200 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <svg className="h-5 w-5 text-red-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-sm text-red-700">{dataLoadError}</p>
+            </div>
+            <button
+              onClick={() => loadAllDataFromSupabase()}
+              className="text-sm text-red-600 hover:text-red-800 underline"
+            >
+              다시 시도
+            </button>
+          </div>
+        </div>
+      )}
+      
       <main className="w-full py-4 px-2 sm:px-4 lg:px-6">
         {renderContent()}
       </main>

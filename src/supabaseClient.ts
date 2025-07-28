@@ -6,7 +6,15 @@ const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'eyJhbGciOiJI
 console.log('Supabase URL:', supabaseUrl)
 console.log('Supabase Key exists:', !!supabaseAnonKey)
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    storageKey: 'maintenance-app-auth',
+    storage: window.localStorage,
+    detectSessionInUrl: true
+  }
+})
 
 // Database types
 export interface Document {

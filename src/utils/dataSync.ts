@@ -4,8 +4,29 @@ import { supabase } from '../supabaseClient';
 export const loadPersonnelFromSupabase = async () => {
   try {
     console.log('🔍 personnel 테이블 접근 시도...');
-    console.log('⚠️ personnel 테이블 임시로 건너뛰기');
-    return [];
+    const { data, error } = await supabase
+      .from('personnel')
+      .select('*')
+      .order('id');
+      
+    if (error) {
+      console.error('인력 데이터 로드 오류:', error);
+      console.error('오류 상세:', error.message, error.details, error.hint);
+      return [];
+    }
+    
+    console.log('✅ personnel 데이터 로드 성공:', data?.length || 0, '명');
+    
+    return data.map(person => ({
+      id: person.id,
+      name: person.name,
+      position: person.position,
+      field: person.field,
+      phone: person.phone,
+      hireDate: person.hire_date,
+      certifications: person.certifications || [],
+      accessHistory: person.access_history || []
+    }));
   } catch (err) {
     console.error('❌ loadPersonnelFromSupabase 예외:', err);
     return [];
@@ -67,8 +88,27 @@ export const loadSchedulesFromSupabase = async () => {
 export const loadAnnouncementsFromSupabase = async () => {
   try {
     console.log('🔍 announcements 테이블 접근 시도...');
-    console.log('⚠️ announcements 테이블 임시로 건너뛰기');
-    return [];
+    const { data, error } = await supabase
+      .from('announcements')
+      .select('*')
+      .order('date', { ascending: false });
+      
+    if (error) {
+      console.error('공지사항 데이터 로드 오류:', error);
+      console.error('오류 상세:', error.message, error.details, error.hint);
+      return [];
+    }
+    
+    console.log('✅ announcements 데이터 로드 성공:', data?.length || 0, '개');
+    
+    return data.map(announcement => ({
+      id: announcement.id,
+      title: announcement.title,
+      content: announcement.content,
+      date: announcement.date,
+      author: announcement.author,
+      priority: announcement.priority
+    }));
   } catch (err) {
     console.error('❌ loadAnnouncementsFromSupabase 예외:', err);
     return [];
