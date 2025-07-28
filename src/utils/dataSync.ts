@@ -6,14 +6,21 @@ export const loadPersonnelFromSupabase = async () => {
     console.log('🔍 personnel 테이블 접근 시도...');
     console.time('personnel-query');
     
-    // 임시: 직접 fetch로 테스트
+    // 임시: anon key로만 테스트 (getSession 무한대기 방지)
+    const userToken = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
+    console.log('🔑 사용 중인 토큰: Anon Key');
+    console.log('🔑 토큰 길이:', userToken.length);
+    
     const directFetch = fetch(`${process.env.REACT_APP_SUPABASE_URL}/rest/v1/personnel?select=*&order=id`, {
       headers: {
         'apikey': process.env.REACT_APP_SUPABASE_ANON_KEY || '',
-        'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY || ''}`,
+        'Authorization': `Bearer ${userToken}`,
         'Content-Type': 'application/json'
       }
-    }).then(res => res.json()).then(data => ({ data, error: null }));
+    }).then(res => {
+      console.log('📡 응답 상태:', res.status);
+      return res.json();
+    }).then(data => ({ data, error: null }));
     
     const queryPromise = directFetch;
     
@@ -31,8 +38,9 @@ export const loadPersonnelFromSupabase = async () => {
     }
     
     console.log('✅ personnel 데이터 로드 성공:', data?.length || 0, '명');
+    console.log('🔍 원본 데이터:', data);
     
-    return data.map((person: any) => ({
+    const mappedData = data.map((person: any) => ({
       id: person.id,
       name: person.name,
       position: person.position,
@@ -42,6 +50,9 @@ export const loadPersonnelFromSupabase = async () => {
       certifications: person.certifications || [],
       accessHistory: person.access_history || []
     }));
+    
+    console.log('🔄 매핑된 데이터:', mappedData);
+    return mappedData;
   } catch (err) {
     console.error('❌ loadPersonnelFromSupabase 예외:', err);
     return [];
