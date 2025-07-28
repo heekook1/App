@@ -378,7 +378,7 @@ const MaintenanceManagementSystem = () => {
           document.body.classList.add('authenticated');
           document.body.classList.remove('unauthenticated');
           
-          // 인증 성공 시 데이터 로드 (중복 방지)
+          // 인증 성공 시 데이터 로드
           console.log('📥 초기 데이터 로드 시작...');
           await loadAllDataFromSupabase();
         } else {
@@ -408,8 +408,7 @@ const MaintenanceManagementSystem = () => {
       
       if (!isMounted) return; // 컴포넌트 언마운트된 경우 중단
       
-      if (session && event !== 'TOKEN_REFRESHED') {
-        // TOKEN_REFRESHED 이벤트는 무시 (데이터 중복 로드 방지)
+      if (session) {
         const user = {
           id: session.user.id,
           username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'user',
@@ -422,9 +421,9 @@ const MaintenanceManagementSystem = () => {
         document.body.classList.add('authenticated');
         document.body.classList.remove('unauthenticated');
         
-        // 로그인 이벤트일 때만 데이터 로드
-        if (event === 'SIGNED_IN') {
-          console.log('📥 로그인 후 데이터 로드...');
+        // 로그인 이벤트 또는 초기 세션일 때 데이터 로드
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+          console.log('📥 데이터 로드 중... (이벤트:', event, ')');
           await loadAllDataFromSupabase();
         }
       } else if (!session) {
@@ -874,9 +873,9 @@ const MaintenanceManagementSystem = () => {
 
   // Supabase에서 모든 데이터 로드
   const loadAllDataFromSupabase = async () => {
-    // 이미 로딩 중이면 중복 로드 방지
+    // 로딩 중이면 중복 로드 방지 (hasInitialDataLoaded는 제거)
     if (isLoadingData) {
-      console.log('⚠️ 이미 데이터를 로드하는 중입니다.');
+      console.log('⚠️ 데이터 로드 중 - 중복 로드 방지');
       return;
     }
 
@@ -964,8 +963,21 @@ const MaintenanceManagementSystem = () => {
       
       // Realtime 구독 설정
       setupRealtimeSubscriptions();
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Supabase 데이터 로드 오류:', error);
+      
+      // 세션 만료 또는 인증 오류 처리
+      if (error?.message?.includes('JWT') || error?.message?.includes('expired') || error?.message?.includes('401')) {
+        console.log('🔄 세션 만료 감지, 재인증 시도...');
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setDataLoadError('세션이 만료되었습니다. 다시 로그인해주세요.');
+          setIsAuthenticated(false);
+          setCurrentUser(null);
+          return;
+        }
+      }
+      
       setDataLoadError('데이터를 로드하는 중 오류가 발생했습니다.');
     } finally {
       // 로딩 완료
