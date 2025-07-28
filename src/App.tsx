@@ -454,6 +454,7 @@ const MaintenanceManagementSystem = () => {
   }, []);
 
 
+
   // Handle click events
   const handleWorkOrderClick = (workOrder: WorkOrder) => {
     setSelectedWorkOrder(workOrder);
