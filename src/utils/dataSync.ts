@@ -34,31 +34,40 @@ export const loadPersonnelFromSupabase = async () => {
 };
 
 export const loadWorkOrdersFromSupabase = async () => {
-  const { data, error } = await supabase
-    .from('work_orders')
-    .select('*')
-    .order('created_at', { ascending: false });
+  try {
+    console.log('🔍 work_orders 테이블 접근 시도...');
+    const { data, error } = await supabase
+      .from('work_orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+      
+    if (error) {
+      console.error('작업 지시서 데이터 로드 오류:', error);
+      console.error('오류 상세:', error.message, error.details, error.hint);
+      return [];
+    }
     
-  if (error) {
-    console.error('작업 지시서 데이터 로드 오류:', error);
+    console.log('✅ work_orders 데이터 로드 성공:', data?.length || 0, '건');
+    
+    return data.map(order => ({
+      id: order.id,
+      title: order.title,
+      equipment: order.equipment,
+      equipmentName: order.equipment_name,
+      description: order.description,
+      requestDate: order.request_date,
+      dueDate: order.due_date,
+      workResult: order.work_result,
+      status: order.status,
+      assignee: order.assignee,
+      completionNote: order.completion_note,
+      attachments: order.attachments || [],
+      type: order.type
+    }));
+  } catch (err) {
+    console.error('❌ loadWorkOrdersFromSupabase 예외:', err);
     return [];
   }
-  
-  return data.map(order => ({
-    id: order.id,
-    title: order.title,
-    equipment: order.equipment,
-    equipmentName: order.equipment_name,
-    description: order.description,
-    requestDate: order.request_date,
-    dueDate: order.due_date,
-    workResult: order.work_result,
-    status: order.status,
-    assignee: order.assignee,
-    completionNote: order.completion_note,
-    attachments: order.attachments || [],
-    type: order.type
-  }));
 };
 
 export const loadSchedulesFromSupabase = async () => {
