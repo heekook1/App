@@ -8,7 +8,9 @@ export const loadPersonnelFromSupabase = async () => {
     
     // 토큰 정보는 App.tsx에서 확인 (getSession 무한대기 방지)
     
-    // RLS 정책 추가 후 정상 SDK 사용
+    // SDK 응답 형태 디버깅
+    console.log('🔧 Supabase SDK 버전 테스트 중...');
+    
     const queryPromise = supabase
       .from('personnel')
       .select('*')
@@ -18,12 +20,19 @@ export const loadPersonnelFromSupabase = async () => {
       setTimeout(() => reject(new Error('personnel 쿼리 타임아웃 (15초)')), 15000)
     );
     
-    const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+    const result = await Promise.race([queryPromise, timeoutPromise]) as any;
     console.timeEnd('personnel-query');
+    
+    console.log('🔍 SDK 응답 타입:', typeof result);
+    console.log('🔍 SDK 응답 구조:', Object.keys(result));
+    console.log('🔍 SDK 전체 응답:', result);
+    
+    const { data, error } = result;
       
     if (error) {
       console.error('인력 데이터 로드 오류:', error);
       console.error('오류 상세:', error.message, error.details, error.hint);
+      console.error('🚨 에러 타입:', typeof error);
       return [];
     }
     
