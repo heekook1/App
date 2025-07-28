@@ -6,23 +6,11 @@ export const loadPersonnelFromSupabase = async () => {
     console.log('🔍 personnel 테이블 접근 시도...');
     console.time('personnel-query');
     
-    // 임시: anon key로만 테스트 (getSession 무한대기 방지)
-    const userToken = process.env.REACT_APP_SUPABASE_ANON_KEY || '';
-    console.log('🔑 사용 중인 토큰: Anon Key');
-    console.log('🔑 토큰 길이:', userToken.length);
-    
-    const directFetch = fetch(`${process.env.REACT_APP_SUPABASE_URL}/rest/v1/personnel?select=*&order=id`, {
-      headers: {
-        'apikey': process.env.REACT_APP_SUPABASE_ANON_KEY || '',
-        'Authorization': `Bearer ${userToken}`,
-        'Content-Type': 'application/json'
-      }
-    }).then(res => {
-      console.log('📡 응답 상태:', res.status);
-      return res.json();
-    }).then(data => ({ data, error: null }));
-    
-    const queryPromise = directFetch;
+    // RLS 정책 추가 후 정상 SDK 사용
+    const queryPromise = supabase
+      .from('personnel')
+      .select('*')
+      .order('id');
     
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('personnel 쿼리 타임아웃 (15초)')), 15000)
