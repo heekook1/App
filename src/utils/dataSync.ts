@@ -4,11 +4,19 @@ import { supabase } from '../supabaseClient';
 export const loadPersonnelFromSupabase = async () => {
   try {
     console.log('🔍 personnel 테이블 접근 시도...');
+    console.time('personnel-query');
     
-    const { data, error } = await supabase
+    const queryPromise = supabase
       .from('personnel')
       .select('*')
       .order('id');
+    
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('personnel 쿼리 타임아웃 (5초)')), 5000)
+    );
+    
+    const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+    console.timeEnd('personnel-query');
       
     if (error) {
       console.error('인력 데이터 로드 오류:', error);
