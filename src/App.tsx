@@ -365,6 +365,9 @@ const MaintenanceManagementSystem = () => {
           console.log('✅ 유효한 세션 발견:', session.user.email);
           console.log('🔑 사용자 UUID:', session.user.id);
           console.log('📋 사용자 메타데이터:', session.user.user_metadata);
+          console.log('🎫 Access Token 길이:', session.access_token?.length);
+          console.log('🎫 Access Token 미리보기:', session.access_token?.substring(0, 100) + '...');
+          console.log('⏰ Token 만료시간:', new Date(session.expires_at! * 1000));
           // User is authenticated with Supabase Auth
           const user = {
             id: session.user.id,

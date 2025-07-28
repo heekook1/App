@@ -6,6 +6,8 @@ export const loadPersonnelFromSupabase = async () => {
     console.log('🔍 personnel 테이블 접근 시도...');
     console.time('personnel-query');
     
+    // 토큰 정보는 App.tsx에서 확인 (getSession 무한대기 방지)
+    
     // RLS 정책 추가 후 정상 SDK 사용
     const queryPromise = supabase
       .from('personnel')
