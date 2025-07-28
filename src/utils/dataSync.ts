@@ -6,10 +6,16 @@ export const loadPersonnelFromSupabase = async () => {
     console.log('🔍 personnel 테이블 접근 시도...');
     console.time('personnel-query');
     
-    const queryPromise = supabase
-      .from('personnel')
-      .select('*')
-      .order('id');
+    // 임시: 직접 fetch로 테스트
+    const directFetch = fetch(`${process.env.REACT_APP_SUPABASE_URL}/rest/v1/personnel?select=*&order=id`, {
+      headers: {
+        'apikey': process.env.REACT_APP_SUPABASE_ANON_KEY || '',
+        'Authorization': `Bearer ${process.env.REACT_APP_SUPABASE_ANON_KEY || ''}`,
+        'Content-Type': 'application/json'
+      }
+    }).then(res => res.json()).then(data => ({ data, error: null }));
+    
+    const queryPromise = directFetch;
     
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('personnel 쿼리 타임아웃 (15초)')), 15000)
