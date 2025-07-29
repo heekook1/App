@@ -1581,37 +1581,112 @@ const MaintenanceManagementSystem = () => {
     type: [] as string[]
   });
 
-  const handleWorkOrderSubmit = (e: React.FormEvent) => {
+  const handleWorkOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingWorkOrder) {
-      setWorkOrders(prev => prev.map(order => 
-        order.id === editingWorkOrder.id 
-          ? { ...order, ...workOrderForm, requestDate: new Date().toISOString().split('T')[0] }
-          : order
-      ));
-      setEditingWorkOrder(null);
-    } else {
-      const newOrder: WorkOrder = {
-        id: generateWorkOrderId(),
-        ...workOrderForm,
-        requestDate: new Date().toISOString().split('T')[0],
-        status: '대기',
-        completionNote: '',
-        attachments: []
-      };
-      setWorkOrders(prev => [...prev, newOrder]);
+    try {
+      if (editingWorkOrder) {
+        // 수정
+        const updatedOrder = { 
+          ...editingWorkOrder, 
+          ...workOrderForm,
+          requestDate: editingWorkOrder.requestDate // 기존 요청일 유지
+        };
+        
+        // Supabase 업데이트
+        const { error } = await supabase
+          .from('work_orders')
+          .update({
+            title: updatedOrder.title,
+            equipment: updatedOrder.equipment,
+            equipment_name: updatedOrder.equipmentName,
+            description: updatedOrder.description,
+            request_date: updatedOrder.requestDate,
+            due_date: updatedOrder.dueDate,
+            work_result: updatedOrder.workResult,
+            status: updatedOrder.status,
+            assignee: updatedOrder.assignee,
+            completion_note: updatedOrder.completionNote,
+            attachments: updatedOrder.attachments,
+            type: updatedOrder.type
+          })
+          .eq('id', editingWorkOrder.id);
+          
+        if (error) {
+          console.error('작업 지시서 수정 오류:', error);
+          alert('작업 지시서 수정 중 오류가 발생했습니다.');
+          return;
+        }
+        
+        // 로컬 상태 업데이트
+        setWorkOrders(prev => prev.map(order => 
+          order.id === editingWorkOrder.id ? updatedOrder : order
+        ));
+        setEditingWorkOrder(null);
+      } else {
+        // 추가
+        const newOrderData = {
+          id: generateWorkOrderId(),
+          title: workOrderForm.title,
+          equipment: workOrderForm.equipment,
+          equipment_name: workOrderForm.equipmentName,
+          description: workOrderForm.description,
+          request_date: new Date().toISOString().split('T')[0],
+          due_date: workOrderForm.dueDate,
+          work_result: workOrderForm.workResult,
+          status: '대기',
+          assignee: workOrderForm.assignee,
+          completion_note: '',
+          attachments: [],
+          type: workOrderForm.type
+        };
+        
+        // Supabase 추가
+        const { data, error } = await supabase
+          .from('work_orders')
+          .insert(newOrderData)
+          .select()
+          .single();
+          
+        if (error) {
+          console.error('작업 지시서 추가 오류:', error);
+          alert('작업 지시서 추가 중 오류가 발생했습니다.');
+          return;
+        }
+        
+        // 로컬 상태 업데이트
+        const newOrder: WorkOrder = {
+          id: data.id,
+          title: data.title,
+          equipment: data.equipment,
+          equipmentName: data.equipment_name,
+          description: data.description,
+          requestDate: data.request_date,
+          dueDate: data.due_date,
+          workResult: data.work_result,
+          status: data.status,
+          assignee: data.assignee,
+          completionNote: data.completion_note,
+          attachments: data.attachments || [],
+          type: data.type
+        };
+        setWorkOrders(prev => [...prev, newOrder]);
+      }
+      
+      setShowWorkOrderForm(false);
+      setWorkOrderForm({
+        title: '',
+        equipment: '',
+        equipmentName: '',
+        description: '',
+        dueDate: '',
+        workResult: '',
+        assignee: [],
+        type: []
+      });
+    } catch (error) {
+      console.error('작업 지시서 관리 오류:', error);
+      alert('작업 지시서 관리 중 오류가 발생했습니다.');
     }
-    setShowWorkOrderForm(false);
-    setWorkOrderForm({
-      title: '',
-      equipment: '',
-      equipmentName: '',
-      description: '',
-      dueDate: '',
-      workResult: '',
-      assignee: [],
-      type: []
-    });
   };
 
   const handleEditWorkOrder = (order: WorkOrder) => {
@@ -1673,8 +1748,26 @@ const MaintenanceManagementSystem = () => {
     }
   };
 
-  const handleDeleteWorkOrder = (id: string) => {
-    setWorkOrders(prev => prev.filter(order => order.id !== id));
+  const handleDeleteWorkOrder = async (id: string) => {
+    try {
+      // Supabase에서 삭제
+      const { error } = await supabase
+        .from('work_orders')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        console.error('작업 지시서 삭제 오류:', error);
+        alert('작업 지시서 삭제 중 오류가 발생했습니다.');
+        return;
+      }
+      
+      // 로컬 상태 업데이트
+      setWorkOrders(prev => prev.filter(order => order.id !== id));
+    } catch (error) {
+      console.error('작업 지시서 삭제 오류:', error);
+      alert('작업 지시서 삭제 중 오류가 발생했습니다.');
+    }
   };
 
   const handleAddAssignee = () => {
@@ -1800,59 +1893,156 @@ const MaintenanceManagementSystem = () => {
   };
 
   // 업무일지 관리 함수들
-  const handleDailyReportSubmit = (e: React.FormEvent) => {
+  const handleDailyReportSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // 중복 체크: 같은 날짜에 이미 등록된 업무일지가 있는지 확인
-    if (!selectedDailyReport) {
-      const existingReport = dailyReports.find(report => report.date === dailyReportForm.date);
-      if (existingReport) {
-        alert('해당 날짜에 이미 업무일지가 등록되어 있습니다.\n수정하시려면 해당 업무일지를 선택하여 수정해주세요.');
-        return;
+    try {
+      // 중복 체크: 같은 날짜에 이미 등록된 업무일지가 있는지 확인
+      if (!selectedDailyReport) {
+        const existingReport = dailyReports.find(report => report.date === dailyReportForm.date);
+        if (existingReport) {
+          alert('해당 날짜에 이미 업무일지가 등록되어 있습니다.\n수정하시려면 해당 업무일지를 선택하여 수정해주세요.');
+          return;
+        }
       }
+      
+      const now = getKoreanDateTime();
+      
+      if (selectedDailyReport) {
+        // 수정
+        const updatedReport = {
+          ...dailyReportForm,
+          updatedAt: now
+        };
+        
+        // Supabase 업데이트
+        const { error } = await supabase
+          .from('daily_reports')
+          .update({
+            date: updatedReport.date,
+            mechanical_today: updatedReport.mechanical.today,
+            mechanical_tomorrow: updatedReport.mechanical.tomorrow,
+            youngjin_mechanical_today: updatedReport.youngjinMechanical.today,
+            youngjin_mechanical_tomorrow: updatedReport.youngjinMechanical.tomorrow,
+            electrical_today: updatedReport.electrical.today,
+            electrical_tomorrow: updatedReport.electrical.tomorrow,
+            youngjin_electrical_today: updatedReport.youngjinElectrical.today,
+            youngjin_electrical_tomorrow: updatedReport.youngjinElectrical.tomorrow,
+            control_today: updatedReport.control.today,
+            control_tomorrow: updatedReport.control.tomorrow,
+            youngjin_control_today: updatedReport.youngjinControl.today,
+            youngjin_control_tomorrow: updatedReport.youngjinControl.tomorrow,
+            attendance_status: updatedReport.attendanceStatus,
+            safety_slogan: updatedReport.safetySlogan,
+            updated_at: now
+          })
+          .eq('id', selectedDailyReport.id);
+          
+        if (error) {
+          console.error('업무일지 수정 오류:', error);
+          alert('업무일지 수정 중 오류가 발생했습니다.');
+          return;
+        }
+        
+        // 로컬 상태 업데이트
+        setDailyReports(prev => prev.map(report =>
+          report.id === selectedDailyReport.id ? updatedReport : report
+        ));
+      } else {
+        // 새로 추가
+        const newReportData = {
+          date: dailyReportForm.date,
+          mechanical_today: dailyReportForm.mechanical.today,
+          mechanical_tomorrow: dailyReportForm.mechanical.tomorrow,
+          youngjin_mechanical_today: dailyReportForm.youngjinMechanical.today,
+          youngjin_mechanical_tomorrow: dailyReportForm.youngjinMechanical.tomorrow,
+          electrical_today: dailyReportForm.electrical.today,
+          electrical_tomorrow: dailyReportForm.electrical.tomorrow,
+          youngjin_electrical_today: dailyReportForm.youngjinElectrical.today,
+          youngjin_electrical_tomorrow: dailyReportForm.youngjinElectrical.tomorrow,
+          control_today: dailyReportForm.control.today,
+          control_tomorrow: dailyReportForm.control.tomorrow,
+          youngjin_control_today: dailyReportForm.youngjinControl.today,
+          youngjin_control_tomorrow: dailyReportForm.youngjinControl.tomorrow,
+          attendance_status: dailyReportForm.attendanceStatus,
+          safety_slogan: dailyReportForm.safetySlogan,
+          created_by: currentUser?.fullName || '사용자',
+          created_at: now,
+          updated_at: now
+        };
+        
+        // Supabase 추가
+        const { data, error } = await supabase
+          .from('daily_reports')
+          .insert(newReportData)
+          .select()
+          .single();
+          
+        if (error) {
+          console.error('업무일지 추가 오류:', error);
+          alert('업무일지 추가 중 오류가 발생했습니다.');
+          return;
+        }
+        
+        // 로컬 상태 업데이트
+        const newReport: DailyReport = {
+          id: data.id,
+          date: data.date,
+          mechanical: {
+            today: data.mechanical_today || '',
+            tomorrow: data.mechanical_tomorrow || ''
+          },
+          youngjinMechanical: {
+            today: data.youngjin_mechanical_today || '',
+            tomorrow: data.youngjin_mechanical_tomorrow || ''
+          },
+          electrical: {
+            today: data.electrical_today || '',
+            tomorrow: data.electrical_tomorrow || ''
+          },
+          youngjinElectrical: {
+            today: data.youngjin_electrical_today || '',
+            tomorrow: data.youngjin_electrical_tomorrow || ''
+          },
+          control: {
+            today: data.control_today || '',
+            tomorrow: data.control_tomorrow || ''
+          },
+          youngjinControl: {
+            today: data.youngjin_control_today || '',
+            tomorrow: data.youngjin_control_tomorrow || ''
+          },
+          attendanceStatus: data.attendance_status || '',
+          safetySlogan: data.safety_slogan || '',
+          createdBy: data.created_by || '',
+          createdAt: data.created_at,
+          updatedAt: data.updated_at
+        };
+        setDailyReports(prev => [...prev, newReport]);
+      }
+      
+      // 폼 초기화
+      setShowDailyReportModal(false);
+      setSelectedDailyReport(null);
+      setDailyReportForm({
+        id: '',
+        date: getKoreanDate(),
+        mechanical: { today: '', tomorrow: '' },
+        youngjinMechanical: { today: '', tomorrow: '' },
+        electrical: { today: '', tomorrow: '' },
+        youngjinElectrical: { today: '', tomorrow: '' },
+        control: { today: '', tomorrow: '' },
+        youngjinControl: { today: '', tomorrow: '' },
+        attendanceStatus: '',
+        safetySlogan: '',
+        createdBy: '',
+        createdAt: '',
+        updatedAt: ''
+      });
+    } catch (error) {
+      console.error('업무일지 관리 오류:', error);
+      alert('업무일지 관리 중 오류가 발생했습니다.');
     }
-    
-    const now = getKoreanDateTime();
-    const reportToSave = {
-      ...dailyReportForm,
-      id: selectedDailyReport ? selectedDailyReport.id : Date.now().toString(),
-      createdBy: currentUser?.fullName || '사용자',
-      createdAt: selectedDailyReport ? selectedDailyReport.createdAt : now,
-      updatedAt: now
-    };
-
-    let updatedReports;
-    if (selectedDailyReport) {
-      // 수정
-      updatedReports = dailyReports.map(report =>
-        report.id === selectedDailyReport.id ? reportToSave : report
-      );
-    } else {
-      // 새로 추가
-      updatedReports = [...dailyReports, reportToSave];
-    }
-
-    setDailyReports(updatedReports);
-    // Daily reports now stored in Supabase only
-    
-    // 폼 초기화
-    setShowDailyReportModal(false);
-    setSelectedDailyReport(null);
-    setDailyReportForm({
-      id: '',
-      date: getKoreanDate(),
-      mechanical: { today: '', tomorrow: '' },
-      youngjinMechanical: { today: '', tomorrow: '' },
-      electrical: { today: '', tomorrow: '' },
-      youngjinElectrical: { today: '', tomorrow: '' },
-      control: { today: '', tomorrow: '' },
-      youngjinControl: { today: '', tomorrow: '' },
-      attendanceStatus: '',
-      safetySlogan: '',
-      createdBy: '',
-      createdAt: '',
-      updatedAt: ''
-    });
   };
 
   const handleDailyReportEdit = (report: DailyReport) => {
@@ -1861,11 +2051,28 @@ const MaintenanceManagementSystem = () => {
     setShowDailyReportModal(true);
   };
 
-  const handleDailyReportDelete = (reportId: string) => {
+  const handleDailyReportDelete = async (reportId: string) => {
     if (window.confirm('정말 삭제하시겠습니까?')) {
-      const updatedReports = dailyReports.filter(report => report.id !== reportId);
-      setDailyReports(updatedReports);
-      // Daily reports now stored in Supabase only
+      try {
+        // Supabase에서 삭제
+        const { error } = await supabase
+          .from('daily_reports')
+          .delete()
+          .eq('id', reportId);
+          
+        if (error) {
+          console.error('업무일지 삭제 오류:', error);
+          alert('업무일지 삭제 중 오류가 발생했습니다.');
+          return;
+        }
+        
+        // 로컬 상태 업데이트
+        const updatedReports = dailyReports.filter(report => report.id !== reportId);
+        setDailyReports(updatedReports);
+      } catch (error) {
+        console.error('업무일지 삭제 오류:', error);
+        alert('업무일지 삭제 중 오류가 발생했습니다.');
+      }
     }
   };
 
