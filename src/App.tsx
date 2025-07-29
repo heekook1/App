@@ -1545,7 +1545,7 @@ const MaintenanceManagementSystem = () => {
                       <h3 className="font-medium">{order.title}</h3>
                     </div>
                     <p className="text-sm text-gray-600 mb-1">{order.description}</p>
-                    <p className="text-sm text-gray-500">{order.equipment} ({order.equipmentName}) - {order.assignee}</p>
+                    <p className="text-sm text-gray-500">{order.equipment} ({order.equipmentName}) - {Array.isArray(order.assignee) ? order.assignee.join(', ') : order.assignee}</p>
                     <p className="text-sm text-gray-500">작업일: {order.dueDate}</p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
@@ -3357,7 +3357,7 @@ const MaintenanceManagementSystem = () => {
                           <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-32">{order.equipmentName}</td>
                           <td className="px-4 py-2 border-b text-sm whitespace-pre-line" style={{ width: '400px' }}>{order.description}</td>
                           <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-28">{order.dueDate}</td>
-                          <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-24">{order.assignee}</td>
+                          <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-24">{Array.isArray(order.assignee) ? order.assignee.join(', ') : order.assignee}</td>
                           <td className="px-4 py-2 border-b text-sm whitespace-pre-line" style={{ width: '400px' }}>{order.workResult || '-'}</td>
                           <td className="px-4 py-2 border-b text-sm w-24">
                             <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(order.status)}`}>
