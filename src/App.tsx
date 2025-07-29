@@ -2927,29 +2927,90 @@ const MaintenanceManagementSystem = () => {
   const [newSpecKey, setNewSpecKey] = useState('');
   const [newSpecValue, setNewSpecValue] = useState('');
 
-  const handleEquipmentSubmit = (e: React.FormEvent) => {
+  const handleEquipmentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingEquipment) {
-      setEquipment(prev => prev.map(eq => 
-        eq.id === editingEquipment.id ? { ...eq, ...equipmentForm } : eq
-      ));
-      setEditingEquipment(null);
-    } else {
-      const newEquipment: Equipment = {
-        id: Math.max(...equipment.map(e => e.id), 0) + 1,
-        ...equipmentForm
-      };
-      setEquipment(prev => [...prev, newEquipment]);
+    try {
+      if (editingEquipment) {
+        // 수정
+        const updatedEquipment = { 
+          ...editingEquipment, 
+          ...equipmentForm 
+        };
+        
+        // Supabase 업데이트
+        const { error } = await supabase
+          .from('equipment')
+          .update({
+            name: updatedEquipment.name,
+            model: updatedEquipment.model,
+            manufacturer: updatedEquipment.manufacturer,
+            status: updatedEquipment.status,
+            location: updatedEquipment.location,
+            specifications: updatedEquipment.specifications
+          })
+          .eq('id', editingEquipment.id);
+          
+        if (error) {
+          console.error('설비 수정 오류:', error);
+          alert('설비 정보 수정 중 오류가 발생했습니다.');
+          return;
+        }
+        
+        // 로컬 상태 업데이트
+        setEquipment(prev => prev.map(eq => 
+          eq.id === editingEquipment.id ? updatedEquipment : eq
+        ));
+        setEditingEquipment(null);
+      } else {
+        // 추가
+        const newEquipmentData = {
+          name: equipmentForm.name,
+          model: equipmentForm.model,
+          manufacturer: equipmentForm.manufacturer,
+          status: equipmentForm.status,
+          location: equipmentForm.location,
+          specifications: equipmentForm.specifications
+        };
+        
+        // Supabase 추가
+        const { data, error } = await supabase
+          .from('equipment')
+          .insert(newEquipmentData)
+          .select()
+          .single();
+          
+        if (error) {
+          console.error('설비 추가 오류:', error);
+          alert('설비 추가 중 오류가 발생했습니다.');
+          return;
+        }
+        
+        // 로컬 상태 업데이트
+        const newEquipment: Equipment = {
+          id: data.id,
+          name: data.name,
+          model: data.model,
+          manufacturer: data.manufacturer,
+          status: data.status,
+          location: data.location,
+          specifications: data.specifications || {}
+        };
+        setEquipment(prev => [...prev, newEquipment]);
+      }
+      
+      setShowEquipmentForm(false);
+      setEquipmentForm({
+        name: '',
+        model: '',
+        manufacturer: '',
+        status: '정상',
+        location: '',
+        specifications: {}
+      });
+    } catch (error) {
+      console.error('설비 관리 오류:', error);
+      alert('설비 관리 중 오류가 발생했습니다.');
     }
-    setShowEquipmentForm(false);
-    setEquipmentForm({
-      name: '',
-      model: '',
-      manufacturer: '',
-      status: '정상',
-      location: '',
-      specifications: {}
-    });
   };
 
   const handleEditEquipment = (eq: Equipment) => {
@@ -2965,8 +3026,26 @@ const MaintenanceManagementSystem = () => {
     setShowEquipmentForm(true);
   };
 
-  const handleDeleteEquipment = (id: number) => {
-    setEquipment(prev => prev.filter(eq => eq.id !== id));
+  const handleDeleteEquipment = async (id: number) => {
+    try {
+      // Supabase에서 삭제
+      const { error } = await supabase
+        .from('equipment')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        console.error('설비 삭제 오류:', error);
+        alert('설비 삭제 중 오류가 발생했습니다.');
+        return;
+      }
+      
+      // 로컬 상태 업데이트
+      setEquipment(prev => prev.filter(eq => eq.id !== id));
+    } catch (error) {
+      console.error('설비 삭제 오류:', error);
+      alert('설비 삭제 중 오류가 발생했습니다.');
+    }
   };
 
   const addSpecification = () => {
@@ -3016,7 +3095,7 @@ const MaintenanceManagementSystem = () => {
                 <div className="space-y-2">
                   <p><span className="font-medium">설비명:</span> {selectedEquipment.name}</p>
                   <p><span className="font-medium">기기번호:</span> {selectedEquipment.model}</p>
-                  <p><span className="font-medium">제조사:</span> {selectedEquipment.manufacturer}</p>
+                  <p><span className="font-medium">P&ID:</span> {selectedEquipment.manufacturer}</p>
                   <p><span className="font-medium">위치:</span> {selectedEquipment.location}</p>
                   <p><span className="font-medium">상태:</span> 
                     <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${getEquipmentStatusColor(selectedEquipment.status)}`}>
@@ -3121,7 +3200,7 @@ const MaintenanceManagementSystem = () => {
                   />
                   <input
                     type="text"
-                    placeholder="제조사"
+                    placeholder="P&ID"
                     value={equipmentForm.manufacturer}
                     onChange={(e) => setEquipmentForm(prev => ({ ...prev, manufacturer: e.target.value }))}
                     className="w-full px-3 py-2 border rounded-lg"
@@ -3183,7 +3262,7 @@ const MaintenanceManagementSystem = () => {
                 <tr>
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">설비명</th>
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">기기번호</th>
-                  <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">제조사</th>
+                  <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">P&ID</th>
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">상태</th>
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">마지막 정비일</th>
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">다음 정비일</th>
