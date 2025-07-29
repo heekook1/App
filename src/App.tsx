@@ -216,7 +216,16 @@ const MaintenanceManagementSystem = () => {
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [dataLoadError, setDataLoadError] = useState<string | null>(null);
   
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [currentPage, setCurrentPage] = useState(() => {
+    // 새로고침 시 현재 페이지 기억하기
+    return localStorage.getItem('currentPage') || 'dashboard';
+  });
+
+  // 페이지 변경 함수 (localStorage에도 저장)
+  const handlePageChange = (pageId: string) => {
+    setCurrentPage(pageId);
+    localStorage.setItem('currentPage', pageId);
+  };
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
@@ -855,7 +864,7 @@ const MaintenanceManagementSystem = () => {
               ].map(item => (
                 <button
                   key={item.id}
-                  onClick={() => setCurrentPage(item.id)}
+                  onClick={() => handlePageChange(item.id)}
                   className={`flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                     currentPage === item.id 
                       ? 'bg-blue-600 text-white shadow-lg transform scale-105' 
@@ -1737,7 +1746,7 @@ const MaintenanceManagementSystem = () => {
       setCurrentUser(null);
       setIsAuthenticated(false);
       // Local storage cleanup no longer needed
-      setCurrentPage('dashboard');
+      handlePageChange('dashboard');
       
       // Body 클래스 추가
       document.body.classList.add('unauthenticated');
@@ -4587,7 +4596,11 @@ const MaintenanceManagementSystem = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">담당자</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.assignee}</p>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {Array.isArray(selectedWorkOrder?.assignee) 
+                      ? selectedWorkOrder.assignee.join(', ') 
+                      : selectedWorkOrder?.assignee}
+                  </p>
                 </div>
                 
                 {selectedWorkOrder?.completionNote && (
@@ -4705,7 +4718,11 @@ const MaintenanceManagementSystem = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">담당자</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.assignee}</p>
+                  <p className="mt-1 text-sm text-gray-900">
+                    {Array.isArray(selectedWorkOrder?.assignee) 
+                      ? selectedWorkOrder.assignee.join(', ') 
+                      : selectedWorkOrder?.assignee}
+                  </p>
                 </div>
                 
                 {selectedWorkOrder?.completionNote && (
