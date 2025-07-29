@@ -383,9 +383,13 @@ const MaintenanceManagementSystem = () => {
           document.body.classList.add('authenticated');
           document.body.classList.remove('unauthenticated');
           
-          // 인증 성공 시 데이터 로드
+          // 인증 성공 시 데이터 로드 - setTimeout으로 약간의 지연 추가
           console.log('📥 초기 데이터 로드 시작...');
-          await loadAllDataFromSupabase();
+          setTimeout(async () => {
+            if (isMounted) {
+              await loadAllDataFromSupabase();
+            }
+          }, 100);
         } else {
           console.log('❌ 세션 없음 - 로그인 필요');
           // No auth session found
@@ -426,10 +430,14 @@ const MaintenanceManagementSystem = () => {
         document.body.classList.add('authenticated');
         document.body.classList.remove('unauthenticated');
         
-        // 로그인 이벤트 또는 초기 세션일 때 데이터 로드
-        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        // 로그인 이벤트 또는 토큰 갱신 시 데이터 로드
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           console.log('📥 데이터 로드 중... (이벤트:', event, ')');
-          await loadAllDataFromSupabase();
+          setTimeout(async () => {
+            if (isMounted) {
+              await loadAllDataFromSupabase();
+            }
+          }, 100);
         }
       } else if (!session) {
         console.log('🚪 로그아웃 처리...');
@@ -889,6 +897,16 @@ const MaintenanceManagementSystem = () => {
       setIsLoadingData(true);
       setDataLoadError(null);
       console.log('🔄 Supabase에서 데이터 로드 중...');
+      
+      // 세션 확인
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('❌ 세션이 없어 데이터를 로드할 수 없습니다.');
+        setIsLoadingData(false);
+        return;
+      }
+      
+      console.log('🔑 데이터 로드용 세션 확인됨:', session.user.email);
       
       // 실패한 데이터 소스 추적
       const failedSources: string[] = [];
