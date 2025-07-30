@@ -213,6 +213,6 @@ npm start -- --reset-cache
 개발 관련 문의나 문제 발생시 언제든 연락 주세요!
 
 ---
-**Last Updated**: 2025년 7월 21일  
-**Version**: 1.0.0  
+**Last Updated**: 2025년 7월 30일  
+**Version**: 1.0.1  
 **Developer**: Claude + User Collaboration
