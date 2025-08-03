@@ -4497,15 +4497,8 @@ const MaintenanceManagementSystem = () => {
 
     return (
       <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
+        <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-900">TM 현황</h2>
-          <button 
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
-            onClick={() => {/* TODO: 새 TM 추가 모달 */}}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            새 TM 추가
-          </button>
         </div>
         
         <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -4651,12 +4644,7 @@ const MaintenanceManagementSystem = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">P&ID</label>
                     <div className="text-sm text-gray-900">
-                      {selectedTMStatus.pidLink ? (
-                        <a href={selectedTMStatus.pidLink} target="_blank" rel="noopener noreferrer" 
-                           className="text-blue-600 hover:text-blue-800">링크</a>
-                      ) : (
-                        '없음'
-                      )}
+                      {selectedTMStatus.pidLink || '미입력'}
                     </div>
                   </div>
                   <div>
