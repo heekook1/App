@@ -239,3 +239,45 @@ export const loadDailyReportsFromSupabase = async () => {
     updatedAt: report.updated_at
   }));
 };
+
+// TM 현황 데이터를 Supabase에서 로드
+export const loadTMStatusFromSupabase = async () => {
+  try {
+    console.log('🔍 tm_status 테이블 접근 시도...');
+    
+    const { data, error } = await supabase
+      .from('tm_status')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('TM 현황 데이터 로드 오류:', error);
+      return [];
+    }
+    
+    console.log('✅ TM 현황 데이터 로드 성공:', data?.length, '개');
+    
+    return data.map((tm: any) => ({
+      id: tm.id,
+      tmNo: tm.tm_no,
+      createdDate: tm.created_date,
+      equipmentName: tm.equipment_name,
+      description: tm.description,
+      status: tm.status,
+      createdBy: tm.created_by,
+      assignee: tm.assignee,
+      images: tm.images || [],
+      pidLink: tm.pid_link,
+      drawingLink: tm.drawing_link,
+      faultCode: tm.fault_code,
+      priority: tm.priority || '보통',
+      changeManagementTask: tm.change_management_task,
+      workRequest: tm.work_request,
+      workDescription: tm.work_description,
+      workSchedule: tm.work_schedule
+    }));
+  } catch (error) {
+    console.error('TM 현황 데이터 로드 중 예외 발생:', error);
+    return [];
+  }
+};

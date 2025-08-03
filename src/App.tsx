@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as React from 'react';
-import { Calendar, Users, Settings, FileText, MessageSquare, Wrench, Home, Plus, Edit, Trash2, X, Download, Upload, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Users, Settings, FileText, MessageSquare, Wrench, Home, Plus, Edit, Trash2, X, Download, Upload, Eye, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { supabase } from './supabaseClient';
@@ -16,7 +16,8 @@ import {
   loadAnnouncementsFromSupabase, 
   loadEquipmentFromSupabase, 
   loadAttendancesFromSupabase, 
-  loadDailyReportsFromSupabase 
+  loadDailyReportsFromSupabase,
+  loadTMStatusFromSupabase
 } from './utils/dataSync';
 
 // Type definitions
@@ -132,6 +133,30 @@ interface DailyReport {
   updatedAt: string;
 }
 
+// TM 현황 메인 데이터 (리스트: 9개 필드, 상세: 모든 필드)
+interface TMStatus {
+  // 리스트 표시 필드들
+  id: string;              // 내부 ID  
+  tmNo: string;            // TM NO.
+  createdDate: string;     // 작성일
+  equipmentName: string;   // 기기명
+  description: string;     // 상세설명
+  status: string;          // 진행상태
+  createdBy: string;       // 만든 사람
+  assignee: string;        // 담당자
+  images: string[];        // 이미지
+  pidLink?: string;        // P&ID
+  drawingLink?: string;    // 도면링크
+  // 상세 모달 추가 필드들
+  faultCode?: string;      // 고장코드
+  priority: string;        // 우선순위
+  changeManagementTask?: string; // 변경관리대상여부
+  workRequest?: string;    // 작업시작
+  workDescription?: string; // 작업사항
+  workSchedule?: string;   // 작업완료
+}
+
+
 
 
 // Convert description to bullet points
@@ -239,6 +264,11 @@ const MaintenanceManagementSystem = () => {
 
   // Personnel data
   const [personnel, setPersonnel] = useState<Personnel[]>([]);
+
+  // TM 현황 데이터
+  const [tmStatusList, setTmStatusList] = useState<TMStatus[]>([]);
+  const [selectedTMStatus, setSelectedTMStatus] = useState<TMStatus | null>(null);
+  const [showTMDetailModal, setShowTMDetailModal] = useState(false);
 
   // Attendance Management State
   const [attendances, setAttendances] = useState<Attendance[]>([]);
@@ -853,6 +883,7 @@ const MaintenanceManagementSystem = () => {
             <div className="flex space-x-2">
               {[
                 { id: 'dashboard', label: '대시보드', icon: Home },
+                { id: 'tm-status', label: 'TM 현황', icon: ClipboardList },
                 { id: 'announcements', label: '공지사항', icon: MessageSquare },
                 { id: 'workorder', label: '작업 관리', icon: Wrench },
                 { id: 'schedule', label: '작업 일정', icon: Calendar },
@@ -928,7 +959,8 @@ const MaintenanceManagementSystem = () => {
         announcementsData,
         equipmentData,
         attendancesData,
-        dailyReportsData
+        dailyReportsData,
+        tmStatusData
       ] = await Promise.all([
         loadPersonnelFromSupabase().catch(err => { 
           console.error('인력 데이터 로드 실패:', err); 
@@ -964,6 +996,11 @@ const MaintenanceManagementSystem = () => {
           console.error('업무일지 로드 실패:', err); 
           failedSources.push('업무일지');
           return []; 
+        }),
+        loadTMStatusFromSupabase().catch(err => { 
+          console.error('TM 현황 로드 실패:', err); 
+          failedSources.push('TM 현황');
+          return []; 
         })
       ]);
       
@@ -975,6 +1012,7 @@ const MaintenanceManagementSystem = () => {
       console.log('- 설비:', equipmentData.length, '건');
       console.log('- 근태:', attendancesData.length, '건');
       console.log('- 업무일지:', dailyReportsData.length, '건');
+      console.log('- TM 현황:', tmStatusData.length, '건');
 
       setPersonnel(personnelData);
       setWorkOrders(workOrdersData);
@@ -983,6 +1021,7 @@ const MaintenanceManagementSystem = () => {
       setEquipment(equipmentData);
       setAttendances(attendancesData);
       setDailyReports(dailyReportsData);
+      setTmStatusList(tmStatusData);
       
       // 실패한 데이터 소스가 있는 경우 에러 메시지 설정
       if (failedSources.length > 0) {
@@ -4451,10 +4490,223 @@ const MaintenanceManagementSystem = () => {
     </div>
   );
 
+  // TM 현황 렌더링 함수
+  const renderTMStatus = () => {
+    // Supabase 실제 데이터 사용
+    const displayTMData = tmStatusList;
+
+    return (
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">TM 현황</h2>
+          <button 
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+            onClick={() => {/* TODO: 새 TM 추가 모달 */}}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            새 TM 추가
+          </button>
+        </div>
+        
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <table className="min-w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">TM NO.</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작성일</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">기기명</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상세설명</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">진행상태</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">만든사람</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">담당자</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이미지</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">도면링크</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {displayTMData.map((tm) => (
+                <tr 
+                  key={tm.id}
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => {
+                    setSelectedTMStatus(tm);
+                    setShowTMDetailModal(true);
+                  }}
+                >
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                    {tm.tmNo}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {tm.createdDate}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {tm.equipmentName}
+                  </td>
+                  <td className="px-4 py-4 text-sm text-gray-900 max-w-xs truncate">
+                    {tm.description}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${ 
+                      tm.status.includes('진행중') ? 'bg-orange-100 text-orange-800' : 
+                      tm.status.includes('완료') ? 'bg-green-100 text-green-800' : 
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {tm.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {tm.createdBy}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {tm.assignee}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {tm.images.length > 0 ? (
+                      <img src={tm.images[0]} alt="TM 이미지" className="h-8 w-8 object-cover rounded" />
+                    ) : (
+                      <span className="text-gray-400">없음</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {tm.drawingLink ? (
+                      <a href={tm.drawingLink} target="_blank" rel="noopener noreferrer" 
+                         className="text-blue-600 hover:text-blue-800">링크</a>
+                    ) : (
+                      <span className="text-gray-400">없음</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* TM 상세 모달 */}
+        {showTMDetailModal && selectedTMStatus && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-900">
+                  TM 상세정보 - {selectedTMStatus.tmNo}
+                </h3>
+                <button
+                  onClick={() => setShowTMDetailModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-6">
+                {/* 1. TM NO. */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">TM NO.</label>
+                  <div className="text-sm text-gray-900">{selectedTMStatus.tmNo}</div>
+                </div>
+                
+                {/* 2-3. 작성일, 작성자 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">작성일</label>
+                    <div className="text-sm text-gray-900">{selectedTMStatus.createdDate}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">작성자</label>
+                    <div className="text-sm text-gray-900">{selectedTMStatus.createdBy}</div>
+                  </div>
+                </div>
+                
+                {/* 4. 기기명 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">기기명</label>
+                  <div className="text-sm text-gray-900">{selectedTMStatus.equipmentName}</div>
+                </div>
+                
+                {/* 5. 상세설명 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">상세설명</label>
+                  <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">{selectedTMStatus.description}</div>
+                </div>
+                
+                {/* 6-7. 고장코드, 우선순위 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">고장코드</label>
+                    <div className="text-sm text-gray-900">{selectedTMStatus.faultCode || '미입력'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">우선순위</label>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                      selectedTMStatus.priority === '높음' ? 'bg-red-100 text-red-800' :
+                      selectedTMStatus.priority === '낮음' ? 'bg-gray-100 text-gray-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {selectedTMStatus.priority}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* 8-9. P&ID, 담당자 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">P&ID</label>
+                    <div className="text-sm text-gray-900">
+                      {selectedTMStatus.pidLink ? (
+                        <a href={selectedTMStatus.pidLink} target="_blank" rel="noopener noreferrer" 
+                           className="text-blue-600 hover:text-blue-800">링크</a>
+                      ) : (
+                        '없음'
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">담당자</label>
+                    <div className="text-sm text-gray-900">{selectedTMStatus.assignee}</div>
+                  </div>
+                </div>
+                
+                {/* 10. 작업시작 */}
+                {selectedTMStatus.workRequest && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">작업시작</label>
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+                      {selectedTMStatus.workRequest}
+                    </div>
+                  </div>
+                )}
+                
+                {/* 11. 작업사항 */}
+                {selectedTMStatus.workDescription && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">작업사항</label>
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+                      {selectedTMStatus.workDescription}
+                    </div>
+                  </div>
+                )}
+                
+                {/* 12. 작업완료 */}
+                {selectedTMStatus.workSchedule && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">작업완료</label>
+                    <div className="text-sm text-gray-900 p-3 bg-gray-50 rounded-md">
+                      {selectedTMStatus.workSchedule}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Main render function
   const renderContent = () => {
     switch (currentPage) {
       case 'dashboard': return renderDashboard();
+      case 'tm-status': return renderTMStatus();
       case 'schedule': return renderSchedule();
       case 'workorder': return renderWorkOrder();
       case 'personnel': return renderPersonnel();
