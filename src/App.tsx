@@ -283,11 +283,27 @@ const MaintenanceManagementSystem = () => {
 
   // 한국 시간 헬퍼 함수
   const getKoreanDate = () => {
-    return new Date(new Date().getTime() + (9 * 60 * 60 * 1000)).toISOString().split('T')[0];
+    const now = new Date();
+    return now.toLocaleDateString('ko-KR', { 
+      timeZone: 'Asia/Seoul',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).replace(/\. /g, '-').replace('.', '');
   };
 
   const getKoreanDateTime = () => {
-    return new Date(new Date().getTime() + (9 * 60 * 60 * 1000)).toISOString();
+    const now = new Date();
+    return now.toLocaleString('ko-KR', {
+      timeZone: 'Asia/Seoul',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).replace(/\. /g, '-').replace('.', '').replace(' ', 'T') + '+09:00';
   };
 
   // 업무일지 상태
