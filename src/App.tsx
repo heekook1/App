@@ -550,6 +550,14 @@ const MaintenanceManagementSystem = () => {
     }
   };
 
+  // Excel 시트명 안전하게 변환하는 함수
+  const sanitizeSheetName = (name: string): string => {
+    // Excel에서 금지된 문자들을 안전한 문자로 변환
+    return name
+      .replace(/[:\\\/\?\*\[\]]/g, '_')  // 금지된 문자를 '_'로 변환
+      .substring(0, 31);  // Excel 시트명 최대 길이 31자로 제한
+  };
+
   // Excel download functions
   const downloadWorkOrdersExcel = () => {
     try {
@@ -646,7 +654,8 @@ const MaintenanceManagementSystem = () => {
         };
       }
       
-      XLSX.utils.book_append_sheet(workbook, worksheet, equipmentName);
+      const safeSheetName = sanitizeSheetName(equipmentName);
+      XLSX.utils.book_append_sheet(workbook, worksheet, safeSheetName);
     });
     
     console.log('✅ Excel 파일 생성 중...');
