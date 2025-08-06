@@ -1736,7 +1736,8 @@ const MaintenanceManagementSystem = () => {
         dueDate: '',
         workResult: '',
         assignee: [],
-        type: []
+        type: [],
+        tmNo: ''
       });
     } catch (error) {
       console.error('작업 지시서 관리 오류:', error);
@@ -1754,7 +1755,8 @@ const MaintenanceManagementSystem = () => {
       dueDate: order.dueDate,
       workResult: order.workResult || '',
       assignee: order.assignee,
-      type: order.type
+      type: order.type,
+      tmNo: order.tmNo || ''
     });
     setShowWorkOrderForm(true);
   };
@@ -2494,7 +2496,8 @@ const MaintenanceManagementSystem = () => {
                       dueDate: '',
                       workResult: '',
                       assignee: [],
-                      type: []
+                      type: [],
+                      tmNo: ''
                     });
                   }}
                   className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
