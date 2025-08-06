@@ -46,6 +46,7 @@ interface WorkOrder {
   completionNote: string;
   attachments: any[];
   type: string[];
+  tmNo?: string;
 }
 
 interface Schedule {
@@ -1628,7 +1629,8 @@ const MaintenanceManagementSystem = () => {
     dueDate: '',
     workResult: '',
     assignee: [] as string[],
-    type: [] as string[]
+    type: [] as string[],
+    tmNo: ''
   });
 
   const handleWorkOrderSubmit = async (e: React.FormEvent) => {
@@ -1657,7 +1659,8 @@ const MaintenanceManagementSystem = () => {
             assignee: updatedOrder.assignee,
             completion_note: updatedOrder.completionNote,
             attachments: updatedOrder.attachments,
-            type: updatedOrder.type
+            type: updatedOrder.type,
+            tm_no: updatedOrder.tmNo
           })
           .eq('id', editingWorkOrder.id);
           
@@ -1687,7 +1690,8 @@ const MaintenanceManagementSystem = () => {
           assignee: workOrderForm.assignee,
           completion_note: '',
           attachments: [],
-          type: workOrderForm.type
+          type: workOrderForm.type,
+          tm_no: workOrderForm.tmNo
         };
         
         // Supabase 추가
@@ -1717,7 +1721,8 @@ const MaintenanceManagementSystem = () => {
           assignee: data.assignee,
           completionNote: data.completion_note,
           attachments: data.attachments || [],
-          type: data.type
+          type: data.type,
+          tmNo: data.tm_no
         };
         setWorkOrders(prev => [...prev, newOrder]);
       }
@@ -2383,6 +2388,19 @@ const MaintenanceManagementSystem = () => {
                     required
                     placeholder="작업일"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">TM NO.</label>
+                  <select
+                    value={workOrderForm.tmNo}
+                    onChange={(e) => setWorkOrderForm(prev => ({ ...prev, tmNo: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="">해당 없음</option>
+                    {tmStatusList.map(tm => (
+                      <option key={tm.id} value={tm.tmNo}>{tm.tmNo}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -4807,9 +4825,15 @@ const MaintenanceManagementSystem = () => {
                   </div>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">작업 제목</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.title}</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">작업 제목</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.title}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">TM NO.</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.tmNo || '해당 없음'}</p>
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
@@ -4929,9 +4953,15 @@ const MaintenanceManagementSystem = () => {
                   </div>
                 </div>
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">작업 제목</label>
-                  <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.title}</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">작업 제목</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.title}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">TM NO.</label>
+                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder?.tmNo || '해당 없음'}</p>
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
