@@ -2375,14 +2375,17 @@ const MaintenanceManagementSystem = () => {
                   className="w-full px-3 py-2 border rounded-lg"
                   required
                 />
-                <input
-                  type="date"
-                  value={workOrderForm.dueDate}
-                  onChange={(e) => setWorkOrderForm(prev => ({ ...prev, dueDate: e.target.value }))}
-                  className="w-full px-2 py-1 border rounded-lg text-sm h-9"
-                  required
-                  placeholder="작업일"
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">작업 날짜</label>
+                  <input
+                    type="date"
+                    value={workOrderForm.dueDate}
+                    onChange={(e) => setWorkOrderForm(prev => ({ ...prev, dueDate: e.target.value }))}
+                    className="w-full px-2 py-1 border rounded-lg text-sm h-9"
+                    required
+                    placeholder="작업일"
+                  />
+                </div>
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-sm font-medium text-gray-700">담당자 선택 (중복 가능)</label>
