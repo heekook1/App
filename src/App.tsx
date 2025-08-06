@@ -46,7 +46,6 @@ interface WorkOrder {
   completionNote: string;
   attachments: any[];
   type: string[];
-  workType?: string;
 }
 
 interface Schedule {
@@ -1631,21 +1630,8 @@ const MaintenanceManagementSystem = () => {
     dueDate: '',
     workResult: '',
     assignee: [] as string[],
-    type: [] as string[],
-    workType: ''
+    type: [] as string[]
   });
-
-  // 작업유형 옵션
-  const workTypes = [
-    '일반위험작업',
-    '화기작업',
-    '정전작업',
-    '굴착작업',
-    '중장비사용',
-    '고소작업',
-    '방사선사용',
-    '밀폐공간출입'
-  ];
 
   const handleWorkOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1673,8 +1659,7 @@ const MaintenanceManagementSystem = () => {
             assignee: updatedOrder.assignee,
             completion_note: updatedOrder.completionNote,
             attachments: updatedOrder.attachments,
-            type: updatedOrder.type,
-            work_type: updatedOrder.workType
+            type: updatedOrder.type
           })
           .eq('id', editingWorkOrder.id);
           
@@ -1704,8 +1689,7 @@ const MaintenanceManagementSystem = () => {
           assignee: workOrderForm.assignee,
           completion_note: '',
           attachments: [],
-          type: workOrderForm.type,
-          work_type: workOrderForm.workType
+          type: workOrderForm.type
         };
         
         // Supabase 추가
@@ -1735,8 +1719,7 @@ const MaintenanceManagementSystem = () => {
           assignee: data.assignee,
           completionNote: data.completion_note,
           attachments: data.attachments || [],
-          type: data.type,
-          workType: data.work_type
+          type: data.type
         };
         setWorkOrders(prev => [...prev, newOrder]);
       }
@@ -1750,8 +1733,7 @@ const MaintenanceManagementSystem = () => {
         dueDate: '',
         workResult: '',
         assignee: [],
-        type: [],
-        workType: ''
+        type: []
       });
     } catch (error) {
       console.error('작업 지시서 관리 오류:', error);
@@ -1769,8 +1751,7 @@ const MaintenanceManagementSystem = () => {
       dueDate: order.dueDate,
       workResult: order.workResult || '',
       assignee: order.assignee,
-      type: order.type,
-      workType: order.workType || ''
+      type: order.type
     });
     setShowWorkOrderForm(true);
   };
@@ -2402,17 +2383,6 @@ const MaintenanceManagementSystem = () => {
                   required
                   placeholder="작업일"
                 />
-                <select
-                  value={workOrderForm.workType}
-                  onChange={(e) => setWorkOrderForm(prev => ({ ...prev, workType: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  required
-                >
-                  <option value="">작업유형 선택 (중복 가능)</option>
-                  {workTypes.map(type => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-sm font-medium text-gray-700">담당자 선택 (중복 가능)</label>
@@ -2505,8 +2475,7 @@ const MaintenanceManagementSystem = () => {
                       dueDate: '',
                       workResult: '',
                       assignee: [],
-                      type: [],
-                      workType: ''
+                      type: []
                     });
                   }}
                   className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
@@ -4878,13 +4847,6 @@ const MaintenanceManagementSystem = () => {
                   </p>
                 </div>
                 
-                {selectedWorkOrder?.workType && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">작업유형</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder.workType}</p>
-                  </div>
-                )}
-                
                 {selectedWorkOrder?.completionNote && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700">완료 메모</label>
@@ -5006,13 +4968,6 @@ const MaintenanceManagementSystem = () => {
                       : selectedWorkOrder?.assignee}
                   </p>
                 </div>
-                
-                {selectedWorkOrder?.workType && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">작업유형</label>
-                    <p className="mt-1 text-sm text-gray-900">{selectedWorkOrder.workType}</p>
-                  </div>
-                )}
                 
                 {selectedWorkOrder?.completionNote && (
                   <div>
