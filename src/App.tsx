@@ -2347,16 +2347,15 @@ const MaintenanceManagementSystem = () => {
           <div className="mb-6 p-4 border rounded-lg bg-gray-50">
             <h3 className="font-medium mb-4">{editingWorkOrder ? '작업 수정' : '새 작업 등록'}</h3>
             <form onSubmit={handleWorkOrderSubmit} className="space-y-4">
-              <input
-                type="text"
-                placeholder="작업 제목"
-                value={workOrderForm.title}
-                onChange={(e) => setWorkOrderForm(prev => ({ ...prev, title: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg"
-                required
-              />
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input
+                  type="text"
+                  placeholder="작업 제목"
+                  value={workOrderForm.title}
+                  onChange={(e) => setWorkOrderForm(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  required
+                />
                 <select
                   value={workOrderForm.equipment}
                   onChange={(e) => {
@@ -2383,7 +2382,7 @@ const MaintenanceManagementSystem = () => {
                 />
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">작업 날짜</label>
                   <input
@@ -2400,7 +2399,7 @@ const MaintenanceManagementSystem = () => {
                   <select
                     value={workOrderForm.tmNo}
                     onChange={(e) => setWorkOrderForm(prev => ({ ...prev, tmNo: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full px-2 py-1 border rounded-lg text-sm h-9"
                   >
                     <option value="">해당 없음</option>
                     {tmStatusList.map(tm => (
@@ -2408,9 +2407,6 @@ const MaintenanceManagementSystem = () => {
                     ))}
                   </select>
                 </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-sm font-medium text-gray-700">담당자 선택 (중복 가능)</label>
