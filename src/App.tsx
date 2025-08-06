@@ -2379,7 +2379,7 @@ const MaintenanceManagementSystem = () => {
                   type="date"
                   value={workOrderForm.dueDate}
                   onChange={(e) => setWorkOrderForm(prev => ({ ...prev, dueDate: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                  className="w-full px-2 py-1 border rounded-lg text-sm h-9"
                   required
                   placeholder="작업일"
                 />
