@@ -583,7 +583,7 @@ const MaintenanceManagementSystem = () => {
         'TM NO.': order.tmNo || '해당 없음',
         '작업내용': convertToExcelBulletText(order.description),
         '작업일': order.dueDate, // 완료예정일을 작업일로 사용
-        '담당자': order.assignee,
+        '담당자': Array.isArray(order.assignee) ? order.assignee.join(', ') : order.assignee || '-',
         '작업결과': order.workResult || '-'  // 작업결과 추가
       });
       return groups;
