@@ -1617,9 +1617,7 @@ const MaintenanceManagementSystem = () => {
   // Work Order Management
   const [showWorkOrderForm, setShowWorkOrderForm] = useState(false);
   const [editingWorkOrder, setEditingWorkOrder] = useState<WorkOrder | null>(null);
-  const [fixedAssignees, setFixedAssignees] = useState<string[]>(() =>
-    ['강희국', '박정훈', '이윤직', '김동욱', '박정일']
-  );
+  const [fixedAssignees, setFixedAssignees] = useState<string[]>([]);
   const [showAssigneeModal, setShowAssigneeModal] = useState(false);
   const [newAssigneeName, setNewAssigneeName] = useState('');
   const [workOrderForm, setWorkOrderForm] = useState({
