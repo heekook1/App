@@ -2528,7 +2528,7 @@ const MaintenanceManagementSystem = () => {
               
               <div className="space-y-4 max-h-60 overflow-y-auto">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">고정 담당자 목록</h4>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">위드 담당자</h4>
                   <div className="space-y-1">
                     {fixedAssignees.map((name) => (
                       <div key={name} className="flex items-center justify-between p-2 border rounded hover:bg-gray-50">
@@ -2545,7 +2545,7 @@ const MaintenanceManagementSystem = () => {
                 </div>
                 
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">인력관리 담당자</h4>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">영진 담당자</h4>
                   <div className="space-y-1">
                     {personnel.map((person) => (
                       <div key={person.id} className="flex items-center justify-between p-2 border rounded hover:bg-gray-50">
