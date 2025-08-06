@@ -2383,16 +2383,31 @@ const MaintenanceManagementSystem = () => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">작업 날짜</label>
-                  <input
-                    type="date"
-                    value={workOrderForm.dueDate}
-                    onChange={(e) => setWorkOrderForm(prev => ({ ...prev, dueDate: e.target.value }))}
-                    className="w-full px-2 py-1 border rounded-lg text-sm h-9"
-                    required
-                    placeholder="작업일"
-                  />
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">작업 날짜</label>
+                    <input
+                      type="date"
+                      value={workOrderForm.dueDate}
+                      onChange={(e) => setWorkOrderForm(prev => ({ ...prev, dueDate: e.target.value }))}
+                      className="w-full px-2 py-1 border rounded-lg text-sm h-9"
+                      required
+                      placeholder="작업일"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">TM NO.</label>
+                    <select
+                      value={workOrderForm.tmNo}
+                      onChange={(e) => setWorkOrderForm(prev => ({ ...prev, tmNo: e.target.value }))}
+                      className="w-full px-2 py-1 border rounded-lg text-sm h-9"
+                    >
+                      <option value="">해당 없음</option>
+                      {tmStatusList.map(tm => (
+                        <option key={tm.id} value={tm.tmNo}>{tm.tmNo}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -2449,22 +2464,6 @@ const MaintenanceManagementSystem = () => {
                       </label>
                     ))}
                   </div>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">TM NO.</label>
-                  <select
-                    value={workOrderForm.tmNo}
-                    onChange={(e) => setWorkOrderForm(prev => ({ ...prev, tmNo: e.target.value }))}
-                    className="w-full px-2 py-1 border rounded-lg text-sm h-9"
-                  >
-                    <option value="">해당 없음</option>
-                    {tmStatusList.map(tm => (
-                      <option key={tm.id} value={tm.tmNo}>{tm.tmNo}</option>
-                    ))}
-                  </select>
                 </div>
               </div>
               
