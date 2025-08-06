@@ -563,6 +563,7 @@ const MaintenanceManagementSystem = () => {
         '작업명': order.title,
         '설비명': order.equipment,
         '기기명': order.equipmentName,
+        'TM NO.': order.tmNo || '해당 없음',
         '작업내용': convertToExcelBulletText(order.description),
         '작업일': order.dueDate, // 완료예정일을 작업일로 사용
         '담당자': order.assignee,
@@ -583,6 +584,7 @@ const MaintenanceManagementSystem = () => {
         { wch: 30 }, // 작업명
         { wch: 15 }, // 설비명
         { wch: 15 }, // 기기명
+        { wch: 12 }, // TM NO.
         { wch: 50 }, // 작업내용
         { wch: 12 }, // 작업일
         { wch: 10 }, // 담당자
@@ -597,10 +599,10 @@ const MaintenanceManagementSystem = () => {
       if (!worksheet['!rows']) worksheet['!rows'] = [];
       
       for (let row = range.s.r + 1; row <= range.e.r; row++) {
-        // 작업내용 열 (E열, 인덱스 4)
-        const contentCell = XLSX.utils.encode_cell({ r: row, c: 4 });
-        // 작업결과 열 (H열, 인덱스 7)
-        const resultCell = XLSX.utils.encode_cell({ r: row, c: 7 });
+        // 작업내용 열 (F열, 인덱스 5)
+        const contentCell = XLSX.utils.encode_cell({ r: row, c: 5 });
+        // 작업결과 열 (I열, 인덱스 8)
+        const resultCell = XLSX.utils.encode_cell({ r: row, c: 8 });
         
         let maxLineCount = 1;
         
