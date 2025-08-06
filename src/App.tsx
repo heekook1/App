@@ -552,8 +552,17 @@ const MaintenanceManagementSystem = () => {
 
   // Excel download functions
   const downloadWorkOrdersExcel = () => {
-    // 설비별로 작업 이력 그룹화
-    const equipmentGroups = workOrders.reduce((groups, order) => {
+    try {
+      console.log('📊 Excel 다운로드 시작...');
+      console.log('작업 지시서 개수:', workOrders.length);
+      
+      if (workOrders.length === 0) {
+        alert('다운로드할 작업 데이터가 없습니다.');
+        return;
+      }
+      
+      // 설비별로 작업 이력 그룹화
+      const equipmentGroups = workOrders.reduce((groups, order) => {
       const equipmentName = order.equipment;
       if (!groups[equipmentName]) {
         groups[equipmentName] = [];
@@ -640,7 +649,13 @@ const MaintenanceManagementSystem = () => {
       XLSX.utils.book_append_sheet(workbook, worksheet, equipmentName);
     });
     
+    console.log('✅ Excel 파일 생성 중...');
     XLSX.writeFile(workbook, '설비별_작업이력.xlsx');
+    console.log('✅ Excel 다운로드 완료!');
+    } catch (error) {
+      console.error('❌ Excel 다운로드 오류:', error);
+      alert('Excel 파일 생성 중 오류가 발생했습니다.');
+    }
   };
 
   // Storage 버킷 확인 함수
@@ -2307,19 +2322,37 @@ const MaintenanceManagementSystem = () => {
     });
   };
 
-  const handleUpdateWorkOrderStatus = (id: string, status: string) => {
-    // 완료 상태로 변경하려는 경우 작업 결과가 있는지 확인
-    if (status === '완료') {
-      const order = workOrders.find(o => o.id === id);
-      if (order && !order.workResult) {
-        alert('작업 결과를 기입해주세요');
+  const handleUpdateWorkOrderStatus = async (id: string, status: string) => {
+    try {
+      // 완료 상태로 변경하려는 경우 작업 결과가 있는지 확인
+      if (status === '완료') {
+        const order = workOrders.find(o => o.id === id);
+        if (order && !order.workResult) {
+          alert('작업 결과를 기입해주세요');
+          return;
+        }
+      }
+      
+      // Supabase 업데이트
+      const { error } = await supabase
+        .from('work_orders')
+        .update({ status })
+        .eq('id', id);
+      
+      if (error) {
+        console.error('상태 업데이트 오류:', error);
+        alert('상태 업데이트 중 오류가 발생했습니다.');
         return;
       }
+      
+      // 로컬 상태 업데이트
+      setWorkOrders(prev => prev.map(order => 
+        order.id === id ? { ...order, status } : order
+      ));
+    } catch (error) {
+      console.error('상태 업데이트 오류:', error);
+      alert('상태 업데이트 중 오류가 발생했습니다.');
     }
-    
-    setWorkOrders(prev => prev.map(order => 
-      order.id === id ? { ...order, status } : order
-    ));
   };
 
   const renderWorkOrder = () => (
