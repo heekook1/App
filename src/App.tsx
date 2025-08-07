@@ -1658,6 +1658,23 @@ const MaintenanceManagementSystem = () => {
     type: [] as string[],
     tmNo: ''
   });
+  const [equipmentSearchTerm, setEquipmentSearchTerm] = useState('');
+  const [showEquipmentDropdown, setShowEquipmentDropdown] = useState(false);
+
+  // 클릭 외부 감지하여 드롭다운 닫기
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.equipment-search-container')) {
+        setShowEquipmentDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const handleWorkOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1765,6 +1782,7 @@ const MaintenanceManagementSystem = () => {
         type: [],
         tmNo: ''
       });
+      setEquipmentSearchTerm(''); // 검색어 초기화
     } catch (error) {
       console.error('작업 지시서 관리 오류:', error);
       alert('작업 지시서 관리 중 오류가 발생했습니다.');
@@ -1784,6 +1802,7 @@ const MaintenanceManagementSystem = () => {
       type: order.type,
       tmNo: order.tmNo || ''
     });
+    setEquipmentSearchTerm(order.equipment); // 설비명을 검색창에 표시
     setShowWorkOrderForm(true);
   };
 
@@ -2400,22 +2419,69 @@ const MaintenanceManagementSystem = () => {
                   className="w-full px-3 py-2 border rounded-lg"
                   required
                 />
-                <select
-                  value={workOrderForm.equipment}
-                  onChange={(e) => {
-                    setWorkOrderForm(prev => ({ 
-                      ...prev, 
-                      equipment: e.target.value
-                    }));
-                  }}
-                  className="w-full px-3 py-2 border rounded-lg"
-                  required
-                >
-                  <option value="">설비 선택</option>
-                  {equipment.map(eq => (
-                    <option key={eq.id} value={eq.name}>{eq.name}</option>
-                  ))}
-                </select>
+                <div className="relative equipment-search-container">
+                  <input
+                    type="text"
+                    placeholder="설비명을 입력하세요"
+                    value={equipmentSearchTerm}
+                    onChange={(e) => {
+                      setEquipmentSearchTerm(e.target.value);
+                      setShowEquipmentDropdown(true);
+                      // 검색어가 정확히 일치하는 설비가 있으면 자동 선택
+                      const exactMatch = equipment.find(eq => eq.name === e.target.value);
+                      if (exactMatch) {
+                        setWorkOrderForm(prev => ({ ...prev, equipment: exactMatch.name }));
+                      } else {
+                        setWorkOrderForm(prev => ({ ...prev, equipment: '' }));
+                      }
+                    }}
+                    onFocus={() => setShowEquipmentDropdown(true)}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    required
+                  />
+                  {showEquipmentDropdown && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {equipment
+                        .filter(eq => 
+                          eq.name.toLowerCase().includes(equipmentSearchTerm.toLowerCase())
+                        )
+                        .slice(0, 20) // 최대 20개만 표시
+                        .map(eq => (
+                          <button
+                            key={eq.id}
+                            type="button"
+                            onClick={() => {
+                              setWorkOrderForm(prev => ({ ...prev, equipment: eq.name }));
+                              setEquipmentSearchTerm(eq.name);
+                              setShowEquipmentDropdown(false);
+                            }}
+                            className="w-full px-3 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                          >
+                            <div className="font-medium">{eq.name}</div>
+                            <div className="text-sm text-gray-500">
+                              {eq.model} - {eq.location}
+                            </div>
+                          </button>
+                        ))}
+                      {equipment.filter(eq => 
+                        eq.name.toLowerCase().includes(equipmentSearchTerm.toLowerCase())
+                      ).length === 0 && (
+                        <div className="px-3 py-2 text-gray-500 text-sm">
+                          검색 결과가 없습니다
+                        </div>
+                      )}
+                      {equipment.filter(eq => 
+                        eq.name.toLowerCase().includes(equipmentSearchTerm.toLowerCase())
+                      ).length > 20 && (
+                        <div className="px-3 py-2 text-gray-500 text-sm border-t">
+                          {equipment.filter(eq => 
+                            eq.name.toLowerCase().includes(equipmentSearchTerm.toLowerCase())
+                          ).length - 20}개 더 있습니다. 검색어를 더 구체적으로 입력하세요.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <input
                   type="text"
                   placeholder="기기명"
