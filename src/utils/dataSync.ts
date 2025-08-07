@@ -1,6 +1,40 @@
 import { supabase } from '../supabaseClient';
 
 // Supabase에서 데이터를 가져와서 상태를 초기화하는 함수들
+
+// 담당자 목록 로드
+export const loadAssigneesFromSupabase = async () => {
+  try {
+    console.log('🔍 assignees 테이블 접근 시도...');
+    console.time('assignees-query');
+    
+    const queryPromise = supabase
+      .from('assignees')
+      .select('*')
+      .order('name');
+    
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('assignees 쿼리 타임아웃 (15초)')), 15000)
+    );
+    
+    const result = await Promise.race([queryPromise, timeoutPromise]) as any;
+    console.timeEnd('assignees-query');
+    
+    const { data, error } = result;
+      
+    if (error) {
+      console.error('담당자 데이터 로드 오류:', error);
+      return [];
+    }
+    
+    console.log('✅ assignees 데이터 로드 성공:', data?.length || 0, '명');
+    
+    return data.filter((assignee: any) => assignee.is_active).map((assignee: any) => assignee.name);
+  } catch (error) {
+    console.error('담당자 데이터 로드 실패:', error);
+    return [];
+  }
+};
 export const loadPersonnelFromSupabase = async () => {
   try {
     console.log('🔍 personnel 테이블 접근 시도...');
@@ -88,7 +122,8 @@ export const loadWorkOrdersFromSupabase = async () => {
       assignee: order.assignee,
       completionNote: order.completion_note,
       attachments: order.attachments || [],
-      type: order.type
+      type: order.type,
+      tmNo: order.tm_no
     }));
   } catch (err) {
     console.error('❌ loadWorkOrdersFromSupabase 예외:', err);

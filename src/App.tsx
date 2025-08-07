@@ -17,7 +17,8 @@ import {
   loadEquipmentFromSupabase, 
   loadAttendancesFromSupabase, 
   loadDailyReportsFromSupabase,
-  loadTMStatusFromSupabase
+  loadTMStatusFromSupabase,
+  loadAssigneesFromSupabase
 } from './utils/dataSync';
 
 // Type definitions
@@ -991,7 +992,8 @@ const MaintenanceManagementSystem = () => {
         equipmentData,
         attendancesData,
         dailyReportsData,
-        tmStatusData
+        tmStatusData,
+        assigneesData
       ] = await Promise.all([
         loadPersonnelFromSupabase().catch(err => { 
           console.error('인력 데이터 로드 실패:', err); 
@@ -1032,6 +1034,11 @@ const MaintenanceManagementSystem = () => {
           console.error('TM 현황 로드 실패:', err); 
           failedSources.push('TM 현황');
           return []; 
+        }),
+        loadAssigneesFromSupabase().catch(err => { 
+          console.error('담당자 목록 로드 실패:', err); 
+          failedSources.push('담당자 목록');
+          return []; 
         })
       ]);
       
@@ -1044,6 +1051,7 @@ const MaintenanceManagementSystem = () => {
       console.log('- 근태:', attendancesData.length, '건');
       console.log('- 업무일지:', dailyReportsData.length, '건');
       console.log('- TM 현황:', tmStatusData.length, '건');
+      console.log('- 담당자:', assigneesData.length, '명');
 
       setPersonnel(personnelData);
       setWorkOrders(workOrdersData);
@@ -1053,6 +1061,7 @@ const MaintenanceManagementSystem = () => {
       setAttendances(attendancesData);
       setDailyReports(dailyReportsData);
       setTmStatusList(tmStatusData);
+      setFixedAssignees(assigneesData);
       
       // 실패한 데이터 소스가 있는 경우 에러 메시지 설정
       if (failedSources.length > 0) {
@@ -1186,6 +1195,20 @@ const MaintenanceManagementSystem = () => {
         console.log('📝 업무일지 변경 감지:', payload);
         const newData = await loadDailyReportsFromSupabase();
         setDailyReports(newData);
+      })
+      .subscribe();
+
+    // 담당자 목록 실시간 구독
+    const assigneesSubscription = supabase
+      .channel('assignees_changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'assignees'
+      }, async (payload) => {
+        console.log('👤 담당자 변경 감지:', payload);
+        const newData = await loadAssigneesFromSupabase();
+        setFixedAssignees(newData);
       })
       .subscribe();
 
@@ -1872,24 +1895,60 @@ const MaintenanceManagementSystem = () => {
     }
   };
 
-  const handleAddAssignee = () => {
+  const handleAddAssignee = async () => {
     if (newAssigneeName.trim() && !fixedAssignees.includes(newAssigneeName.trim())) {
-      const updatedAssignees = [...fixedAssignees, newAssigneeName.trim()];
-      setFixedAssignees(updatedAssignees);
-      // Fixed assignees are now hardcoded
-      setNewAssigneeName('');
+      try {
+        // Supabase에 추가
+        const { data, error } = await supabase
+          .from('assignees')
+          .insert({ name: newAssigneeName.trim() })
+          .select()
+          .single();
+          
+        if (error) {
+          console.error('담당자 추가 오류:', error);
+          alert('담당자 추가 중 오류가 발생했습니다.');
+          return;
+        }
+        
+        // 로컬 상태 업데이트
+        const updatedAssignees = [...fixedAssignees, newAssigneeName.trim()];
+        setFixedAssignees(updatedAssignees);
+        setNewAssigneeName('');
+      } catch (error) {
+        console.error('담당자 추가 오류:', error);
+        alert('담당자 추가 중 오류가 발생했습니다.');
+      }
     }
   };
 
-  const handleDeleteAssignee = (name: string) => {
-    const updatedAssignees = fixedAssignees.filter(a => a !== name);
-    setFixedAssignees(updatedAssignees);
-    // Fixed assignees are now hardcoded
-    // 현재 선택된 담당자에서도 제거
-    setWorkOrderForm(prev => ({
-      ...prev,
-      assignee: prev.assignee.filter(a => a !== name)
-    }));
+  const handleDeleteAssignee = async (name: string) => {
+    try {
+      // Supabase에서 삭제 (실제로는 비활성화)
+      const { error } = await supabase
+        .from('assignees')
+        .update({ is_active: false })
+        .eq('name', name);
+        
+      if (error) {
+        console.error('담당자 삭제 오류:', error);
+        alert('담당자 삭제 중 오류가 발생했습니다.');
+        return;
+      }
+      
+      // 로컬 상태 업데이트
+      const updatedAssignees = fixedAssignees.filter(a => a !== name);
+      setFixedAssignees(updatedAssignees);
+      
+      // 현재 선택된 담당자에서도 제거
+      setWorkOrderForm(prev => ({
+        ...prev,
+        assignee: prev.assignee.filter(a => a !== name)
+      }));
+    } catch (error) {
+      console.error('담당자 삭제 오류:', error);
+      alert('담당자 삭제 중 오류가 발생했습니다.');
+    }
   };
 
   // Attendance Management Functions
@@ -2731,6 +2790,7 @@ const MaintenanceManagementSystem = () => {
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-20">분류</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-24">설비명</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-32">기기명</th>
+                <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-24">TM NO.</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900" style={{ width: '400px' }}>작업내용</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-28">등록일</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-28">작업일</th>
@@ -2760,6 +2820,7 @@ const MaintenanceManagementSystem = () => {
                   </td>
                   <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-24">{order.equipment}</td>
                   <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-32">{order.equipmentName}</td>
+                  <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-24">{order.tmNo || '해당 없음'}</td>
                   <td className="px-4 py-2 border-b text-sm whitespace-pre-line" style={{ width: '400px' }}>{order.description}</td>
                   <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-28">{order.requestDate}</td>
                   <td className="px-4 py-2 border-b text-sm whitespace-nowrap w-28">{order.dueDate}</td>
