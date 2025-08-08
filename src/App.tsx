@@ -2787,9 +2787,9 @@ const MaintenanceManagementSystem = () => {
               <tr>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900" style={{ width: '80px' }}>번호</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900" style={{ width: '200px', minWidth: '200px' }}>작업명</th>
-                <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900" style={{ width: '80px' }}>분류</th>
+                <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900" style={{ width: '80px', minWidth: '80px' }}>분류</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900" style={{ width: '120px' }}>설비명</th>
-                <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900" style={{ width: '150px' }}>기기명</th>
+                <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900" style={{ width: '150px', minWidth: '150px' }}>기기명</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900" style={{ width: '100px' }}>TM NO.</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900" style={{ width: '250px', minWidth: '250px' }}>작업내용</th>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900" style={{ width: '100px' }}>등록일</th>
@@ -2805,7 +2805,7 @@ const MaintenanceManagementSystem = () => {
                 <tr key={order.id} className="hover:bg-gray-50">
                   <td className="px-4 py-2 border-b text-sm font-mono whitespace-nowrap" style={{ width: '80px' }}>{order.id}</td>
                   <td className="px-4 py-2 border-b text-sm font-medium" style={{ width: '200px', minWidth: '200px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{order.title}</td>
-                  <td className="px-4 py-2 border-b text-sm" style={{ width: '80px' }}>
+                  <td className="px-4 py-2 border-b text-sm" style={{ width: '80px', minWidth: '80px' }}>
                     <div className="flex flex-wrap gap-1">
                       {Array.isArray(order.type) ? order.type.map((t, idx) => (
                         <span key={idx} className={`px-2 py-1 rounded text-xs font-medium ${getTypeColor(t)}`}>
@@ -2819,7 +2819,7 @@ const MaintenanceManagementSystem = () => {
                     </div>
                   </td>
                   <td className="px-4 py-2 border-b text-sm" style={{ width: '120px', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{order.equipment}</td>
-                  <td className="px-4 py-2 border-b text-sm" style={{ width: '150px', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{order.equipmentName}</td>
+                  <td className="px-4 py-2 border-b text-sm" style={{ width: '150px', minWidth: '150px', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{order.equipmentName}</td>
                   <td className="px-4 py-2 border-b text-sm whitespace-nowrap" style={{ width: '100px' }}>{order.tmNo || '해당 없음'}</td>
                   <td className="px-4 py-2 border-b text-sm" style={{ width: '250px', minWidth: '250px', maxWidth: '250px', wordWrap: 'break-word', whiteSpace: 'pre-wrap' }}>{order.description}</td>
                   <td className="px-4 py-2 border-b text-sm whitespace-nowrap" style={{ width: '100px' }}>{order.requestDate}</td>
