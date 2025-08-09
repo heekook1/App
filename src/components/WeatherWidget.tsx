@@ -42,33 +42,33 @@ const WeatherWidget: React.FC = () => {
   }, []);
 
   // 날씨 아이콘 결정
-  const getWeatherIcon = (skyStatus: string, precipitationType: string) => {
+  const getWeatherIcon = (skyStatus: string, precipitationType: string, size: string = "w-16 h-16") => {
     // 강수형태 우선 체크
     switch (precipitationType) {
       case '1': // 비
-        return <CloudRain className="w-16 h-16 text-blue-500" />;
+        return <CloudRain className={`${size} text-blue-500`} />;
       case '2': // 비/눈
-        return <CloudDrizzle className="w-16 h-16 text-blue-400" />;
+        return <CloudDrizzle className={`${size} text-blue-400`} />;
       case '3': // 눈
-        return <CloudSnow className="w-16 h-16 text-blue-300" />;
+        return <CloudSnow className={`${size} text-blue-300`} />;
       case '4': // 소나기
-        return <CloudDrizzle className="w-16 h-16 text-blue-600" />;
+        return <CloudDrizzle className={`${size} text-blue-600`} />;
       case '5': // 빗방울
-        return <CloudRain className="w-16 h-16 text-blue-400" />;
+        return <CloudRain className={`${size} text-blue-400`} />;
       case '6': // 빗방울/눈날림
-        return <CloudDrizzle className="w-16 h-16 text-blue-300" />;
+        return <CloudDrizzle className={`${size} text-blue-300`} />;
       case '7': // 눈날림
-        return <CloudSnow className="w-16 h-16 text-gray-400" />;
+        return <CloudSnow className={`${size} text-gray-400`} />;
       default: // 강수 없음
         switch (skyStatus) {
           case '1': // 맑음
-            return <Sun className="w-16 h-16 text-yellow-500" />;
+            return <Sun className={`${size} text-yellow-500`} />;
           case '3': // 구름많음
-            return <Cloud className="w-16 h-16 text-gray-400" />;
+            return <Cloud className={`${size} text-gray-400`} />;
           case '4': // 흐림
-            return <Cloud className="w-16 h-16 text-gray-600" />;
+            return <Cloud className={`${size} text-gray-600`} />;
           default:
-            return <Sun className="w-16 h-16 text-yellow-500" />;
+            return <Sun className={`${size} text-yellow-500`} />;
         }
     }
   };
@@ -546,9 +546,7 @@ const WeatherWidget: React.FC = () => {
                   <div key={index} className="flex-shrink-0 text-center bg-white bg-opacity-60 rounded-lg p-2 min-w-[60px]">
                     <p className="text-xs text-gray-600">{item.time}</p>
                     <div className="my-1">
-                      {getWeatherIcon(item.skyStatus, item.precipitationType).type({
-                        className: "w-8 h-8 mx-auto " + getWeatherIcon(item.skyStatus, item.precipitationType).props.className.replace(/w-16 h-16/, '')
-                      })}
+                      {getWeatherIcon(item.skyStatus, item.precipitationType, "w-8 h-8")}
                     </div>
                     <p className="text-sm font-semibold">{item.temperature}°</p>
                     {item.precipitationProbability && (
