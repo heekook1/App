@@ -130,13 +130,14 @@ const WeatherWidget: React.FC = () => {
       let adjusted = temp;
       
       // 습도 보정 (높은 습도일 때 더 덥게 느껴짐)
+      // 0.08로 조정하여 네이버와 유사하게 맞춤
       if (humidity > 60) {
-        adjusted += (humidity - 60) * 0.1;
+        adjusted += (humidity - 60) * 0.08;
       }
       
       // 바람 보정 (바람이 있으면 시원하게 느껴짐)
       if (windSpeed > 1) {
-        adjusted -= windSpeed * 0.5;
+        adjusted -= windSpeed * 0.7;
       }
       
       return adjusted;
