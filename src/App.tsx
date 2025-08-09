@@ -1241,88 +1241,89 @@ const MaintenanceManagementSystem = () => {
         ))}
       </div>
       
-      {/* 날씨 위젯과 하단 3개 위젯을 같은 행에 배치 */}
-      <div className="grid grid-cols-4 gap-4">
-        {/* 하단 3개 위젯 */}
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <h3 className="text-lg font-semibold mb-4">최근 작업</h3>
-          <div className="space-y-3">
-            {workOrders.slice(0, 5).map(order => (
-              <div key={order.id} className="flex items-center justify-between p-3 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => handleWorkOrderClick(order)}>
-                <div className="flex-1">
-                  <p className="font-medium text-sm">{order.title}</p>
-                  <p className="text-xs text-gray-500">담당자 : {Array.isArray(order.assignee) ? order.assignee.join(', ') : order.assignee}</p>
-                </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                  {order.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <h3 className="text-lg font-semibold mb-4">근태 현황</h3>
-          <div className="space-y-3">
-            {personnel.map(person => {
-              const today = new Date(new Date().getTime() + (9 * 60 * 60 * 1000)).toISOString().split('T')[0]; // 한국 시간(UTC+9)
-              const todayAttendance = attendances.find(
-                att => att.date === today && att.personnelId === person.id
-              );
-              const attendanceStatus = todayAttendance?.type || '출근';
-              
-              // 디버깅용 로그 (임시)
-              if (person.id === 1) { // 한희명만 로그 출력하여 중복 방지
-                console.log(`Debug - Person: ${person.name}, ID: ${person.id}, Today: ${today}`);
-                console.log('All attendances array:', attendances);
-                console.log('Found Attendance:', todayAttendance);
-                console.log(`Status: ${attendanceStatus}`);
-              }
-              
-              return (
-                <div key={`${person.id}-${attendances.length}`} className="flex items-center justify-between p-3 border rounded">
+      <div className="flex gap-4">
+        {/* 왼쪽: 하단 3개 위젯 - 날씨 위젯과 같은 고정 높이 */}
+        <div className="grid grid-cols-3 gap-4 flex-1">
+          <div className="bg-white p-4 rounded-lg shadow-sm border h-[500px] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">최근 작업</h3>
+            <div className="space-y-3">
+              {workOrders.slice(0, 5).map(order => (
+                <div key={order.id} className="flex items-center justify-between p-3 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => handleWorkOrderClick(order)}>
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{person.name}</p>
-                    <p className="text-xs text-gray-500">{person.position} - {person.field}</p>
-                    <p className="text-xs text-gray-500">{person.phone}</p>
+                    <p className="font-medium text-sm">{order.title}</p>
+                    <p className="text-xs text-gray-500">담당자 : {Array.isArray(order.assignee) ? order.assignee.join(', ') : order.assignee}</p>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    attendanceStatus === '연차' ? 'bg-red-100 text-red-800' :
-                    attendanceStatus === '반차(오전)' ? 'bg-yellow-100 text-yellow-800' :
-                    attendanceStatus === '반차(오후)' ? 'bg-orange-100 text-orange-800' :
-                    attendanceStatus === '공가' ? 'bg-blue-100 text-blue-800' :
-                    attendanceStatus === '병가' ? 'bg-purple-100 text-purple-800' :
-                    attendanceStatus === '교육' ? 'bg-green-100 text-green-800' :
-                    'bg-green-100 text-green-800'
-                  }`}>
-                    {attendanceStatus}
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                    {order.status}
                   </span>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+          </div>
+          
+          <div className="bg-white p-4 rounded-lg shadow-sm border h-[500px] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">근태 현황</h3>
+            <div className="space-y-3">
+              {personnel.map(person => {
+                const today = new Date(new Date().getTime() + (9 * 60 * 60 * 1000)).toISOString().split('T')[0]; // 한국 시간(UTC+9)
+                const todayAttendance = attendances.find(
+                  att => att.date === today && att.personnelId === person.id
+                );
+                const attendanceStatus = todayAttendance?.type || '출근';
+                
+                // 디버깅용 로그 (임시)
+                if (person.id === 1) { // 한희명만 로그 출력하여 중복 방지
+                  console.log(`Debug - Person: ${person.name}, ID: ${person.id}, Today: ${today}`);
+                  console.log('All attendances array:', attendances);
+                  console.log('Found Attendance:', todayAttendance);
+                  console.log(`Status: ${attendanceStatus}`);
+                }
+                
+                return (
+                  <div key={`${person.id}-${attendances.length}`} className="flex items-center justify-between p-3 border rounded">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{person.name}</p>
+                      <p className="text-xs text-gray-500">{person.position} - {person.field}</p>
+                      <p className="text-xs text-gray-500">{person.phone}</p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      attendanceStatus === '연차' ? 'bg-red-100 text-red-800' :
+                      attendanceStatus === '반차(오전)' ? 'bg-yellow-100 text-yellow-800' :
+                      attendanceStatus === '반차(오후)' ? 'bg-orange-100 text-orange-800' :
+                      attendanceStatus === '공가' ? 'bg-blue-100 text-blue-800' :
+                      attendanceStatus === '병가' ? 'bg-purple-100 text-purple-800' :
+                      attendanceStatus === '교육' ? 'bg-green-100 text-green-800' :
+                      'bg-green-100 text-green-800'
+                    }`}>
+                      {attendanceStatus}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          
+          <div className="bg-white p-4 rounded-lg shadow-sm border h-[500px] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">최근 공지사항</h3>
+            <div className="space-y-3">
+              {announcements.slice(0, 5).map(announcement => (
+                <div key={announcement.id} className="p-3 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => handleAnnouncementClick(announcement)}>
+                  <div className="flex items-start justify-between mb-2">
+                    <p className="font-medium text-sm">{announcement.title}</p>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(announcement.priority)}`}>
+                      {announcement.priority === 'urgent' ? '긴급' :
+                       announcement.priority === 'important' ? '중요' : '일반'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500">{announcement.date} - {announcement.author}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
         
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
-          <h3 className="text-lg font-semibold mb-4">최근 공지사항</h3>
-          <div className="space-y-3">
-            {announcements.slice(0, 5).map(announcement => (
-              <div key={announcement.id} className="p-3 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => handleAnnouncementClick(announcement)}>
-                <div className="flex items-start justify-between mb-2">
-                  <p className="font-medium text-sm">{announcement.title}</p>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(announcement.priority)}`}>
-                    {announcement.priority === 'urgent' ? '긴급' :
-                     announcement.priority === 'important' ? '중요' : '일반'}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500">{announcement.date} - {announcement.author}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        {/* 날씨 위젯 */}
-        <div>
+        {/* 오른쪽: 날씨 위젯 - 독립적인 높이 */}
+        <div className="w-80">
           <WeatherWidget />
         </div>
       </div>
