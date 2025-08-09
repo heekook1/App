@@ -112,12 +112,12 @@ const WeatherWidget: React.FC = () => {
       const now = new Date();
       const baseDate = now.toISOString().slice(0, 10).replace(/-/g, '');
       
-      // 초단기실황은 매시 30분 이후 발표
+      // 초단기실황은 매시 10분 이후 발표 (기상청 허브 규칙)
       const currentMinutes = now.getMinutes();
       let ncstBaseTime: string;
       
-      if (currentMinutes < 30) {
-        // 30분 이전이면 이전 시간 데이터 사용
+      if (currentMinutes < 10) {
+        // 10분 이전이면 이전 시간 데이터 사용
         const prevHour = new Date(now);
         prevHour.setHours(prevHour.getHours() - 1);
         ncstBaseTime = prevHour.getHours().toString().padStart(2, '0') + '00';

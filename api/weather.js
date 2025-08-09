@@ -67,8 +67,8 @@ export default async function handler(req, res) {
       });
     }
     
-    // 기상청 API URL 구성 - 승인된 엔드포인트 사용
-    const baseUrl = 'https://apis.data.go.kr/1360000';
+    // 기상청 API 허브 URL 구성
+    const baseUrl = 'https://apihub.kma.go.kr/api/typ02';
     
     // 승인된 엔드포인트로 매핑
     let apiPath;
@@ -89,11 +89,11 @@ export default async function handler(req, res) {
         apiPath = `/${endpoint}`;
     }
     
-    // serviceKey를 인코딩하지 않고 직접 사용
+    // 기상청 허브는 authKey 사용 (serviceKey 아님)
     const queryParams = new URLSearchParams(params);
     queryParams.set('dataType', 'JSON');
     
-    const url = `${baseUrl}${apiPath}?serviceKey=${API_KEY}&${queryParams}`;
+    const url = `${baseUrl}${apiPath}?authKey=${API_KEY}&${queryParams}`;
     
     console.log('Weather API Request URL:', url.replace(API_KEY, 'API_KEY_HIDDEN'));
     
