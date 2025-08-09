@@ -244,6 +244,7 @@ const WeatherWidget: React.FC = () => {
         };
 
         // 초단기실황 데이터 파싱 (실시간 현재 날씨)
+        console.log('초단기실황 카테고리 목록:', ncstItems.map(item => item.category));
         ncstItems.forEach((item: any) => {
           switch (item.category) {
             case 'T1H': // 기온
@@ -266,12 +267,14 @@ const WeatherWidget: React.FC = () => {
               break;
             case 'WCI': // 체감온도 (Wind Chill Index)
               weatherData.feelLikeTemp = item.obsrValue;
+              console.log('기상청 체감온도(WCI) 수신:', item.obsrValue);
               break;
           }
         });
 
         // 단기예보에서 하늘상태와 최고/최저 기온 가져오기
         const todayItems = vilageItems.filter((item: any) => item.fcstDate === baseDate || item.fcstDate === vilageBaseDate);
+        console.log('단기예보 카테고리 목록:', [...new Set(todayItems.map(item => item.category))]);
         
         // 현재 시간과 가장 가까운 하늘상태 가져오기
         const currentHour = koreaTime.getUTCHours();
@@ -294,6 +297,18 @@ const WeatherWidget: React.FC = () => {
         }
         if (popItem) {
           weatherData.precipitationProbability = popItem.fcstValue;
+        }
+        
+        // 단기예보에서 체감온도(WCI) 찾기 (초단기실황에 없을 경우)
+        if (!weatherData.feelLikeTemp) {
+          let wciItem = todayItems.find((item: any) => item.category === 'WCI' && item.fcstTime === currentTimeStr);
+          if (!wciItem) {
+            wciItem = todayItems.find((item: any) => item.category === 'WCI');
+          }
+          if (wciItem) {
+            weatherData.feelLikeTemp = wciItem.fcstValue;
+            console.log('단기예보에서 체감온도(WCI) 발견:', wciItem.fcstValue);
+          }
         }
         
         // 최고/최저 기온 가져오기
@@ -581,8 +596,17 @@ const WeatherWidget: React.FC = () => {
                 <div>
                   <p className="text-xs text-gray-600">체감온도</p>
                   <p className="text-sm font-semibold text-gray-800">
-                    {weather.feelLikeTemp ? `${weather.feelLikeTemp}°C` : 
-                     `${(parseFloat(weather.temperature) - parseFloat(weather.windSpeed) * 0.7).toFixed(1)}°C`}
+                    {weather.feelLikeTemp ? (
+                      <>
+                        {weather.feelLikeTemp}°C
+                        {console.log('체감온도 표시: 기상청 WCI 사용', weather.feelLikeTemp)}
+                      </>
+                    ) : (
+                      <>
+                        {(parseFloat(weather.temperature) - parseFloat(weather.windSpeed) * 0.7).toFixed(1)}°C
+                        {console.log('체감온도 표시: 계산식 사용', (parseFloat(weather.temperature) - parseFloat(weather.windSpeed) * 0.7).toFixed(1))}
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
