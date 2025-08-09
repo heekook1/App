@@ -29,9 +29,8 @@ const WeatherWidget: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // 격자 좌표 (초기값, 정확한 좌표는 API로 조회)
-  const [gridCoords, setGridCoords] = useState({ nx: 55, ny: 124 });
-  const [coordsLoaded, setCoordsLoaded] = useState(false);
+  // 격자 좌표 (인천 남동구 논현동 고정)
+  const [gridCoords] = useState({ nx: 55, ny: 124 });
 
   // 시간 업데이트
   useEffect(() => {
@@ -98,43 +97,6 @@ const WeatherWidget: React.FC = () => {
     return typeMap[code] || '없음';
   };
 
-  // 격자 좌표 조회
-  const fetchGridCoordinates = async () => {
-    try {
-      console.log('격자 좌표 조회 시작...');
-      
-      // 인천 남동구 논현동 좌표 조회
-      const xyUrl = `/api/weather?endpoint=getXy&umdName=논현동&numOfRows=10&pageNo=1`;
-      
-      const response = await fetch(xyUrl);
-      const data = await response.json();
-      
-      console.log('격자 좌표 조회 결과:', JSON.stringify(data, null, 2));
-      
-      if (data.response?.header?.resultCode === '00' && data.response?.body?.items?.item) {
-        const items = data.response.body.items.item;
-        // 배열인 경우 첫 번째 항목, 단일 객체인 경우 그대로 사용
-        const coordItem = Array.isArray(items) ? items[0] : items;
-        
-        if (coordItem && coordItem.nx && coordItem.ny) {
-          const newCoords = {
-            nx: parseInt(coordItem.nx),
-            ny: parseInt(coordItem.ny)
-          };
-          
-          console.log('새로운 격자 좌표:', newCoords);
-          setGridCoords(newCoords);
-        }
-      } else {
-        console.warn('격자 좌표 조회 실패, 기본값 사용:', data.response?.header);
-      }
-    } catch (err) {
-      console.error('격자 좌표 조회 오류:', err);
-      console.log('기본 격자 좌표 사용: nx=55, ny=124');
-    } finally {
-      setCoordsLoaded(true);
-    }
-  };
 
   // 체감온도 계산 (Heat Index + Wind Chill 조합)
   const calculateFeelLikeTemperature = (temp: number, windSpeed: number, humidity: number): number => {
@@ -491,20 +453,13 @@ const WeatherWidget: React.FC = () => {
     };
   };
 
-  // 격자 좌표 초기화
+  // 날씨 정보 조회 시작
   useEffect(() => {
-    fetchGridCoordinates();
+    fetchWeather();
+    // 10분마다 날씨 정보 업데이트 (초단기실황 갱신 주기에 맞춤)
+    const interval = setInterval(fetchWeather, 10 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
-
-  // 격자 좌표가 로드된 후 날씨 정보 조회
-  useEffect(() => {
-    if (coordsLoaded) {
-      fetchWeather();
-      // 10분마다 날씨 정보 업데이트 (초단기실황 갱신 주기에 맞춤)
-      const interval = setInterval(fetchWeather, 10 * 60 * 1000);
-      return () => clearInterval(interval);
-    }
-  }, [coordsLoaded]);
 
   const formatDate = (date: Date) => {
     const year = date.getFullYear();

@@ -1219,37 +1219,30 @@ const MaintenanceManagementSystem = () => {
   // Dashboard
   const renderDashboard = () => (
     <div className="space-y-4">
-      {/* 상단 카운터 위젯과 날씨 위젯을 분리된 레이아웃으로 구성 */}
-      <div className="flex gap-4 mb-4">
-        {/* 왼쪽: 4개 카운터 위젯 - 2x2 그리드 */}
-        <div className="grid grid-cols-2 gap-4 flex-1">
-          {[
-            { title: '전체 작업', value: workOrders.length, color: 'bg-blue-500' },
-            { title: '진행중 작업', value: workOrders.filter(w => w.status === '진행중').length, color: 'bg-yellow-500' },
-            { title: '완료된 작업', value: workOrders.filter(w => w.status === '완료').length, color: 'bg-green-500' },
-            { title: '전체 인력', value: personnel.length, color: 'bg-purple-500' }
-          ].map((stat, index) => (
-            <div key={index} className="bg-white p-6 rounded-lg shadow-sm border h-24">
-              <div className="flex items-center">
-                <div className={`p-2 rounded-md ${stat.color}`}>
-                  <div className="h-6 w-6 text-white" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">{stat.title}</p>
-                  <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
-                </div>
+      {/* 상단 카운터 위젯 4개 - 한 줄로 배치 */}
+      <div className="grid grid-cols-4 gap-4 mb-4">
+        {[
+          { title: '전체 작업', value: workOrders.length, color: 'bg-blue-500' },
+          { title: '진행중 작업', value: workOrders.filter(w => w.status === '진행중').length, color: 'bg-yellow-500' },
+          { title: '완료된 작업', value: workOrders.filter(w => w.status === '완료').length, color: 'bg-green-500' },
+          { title: '전체 인력', value: personnel.length, color: 'bg-purple-500' }
+        ].map((stat, index) => (
+          <div key={index} className="bg-white p-6 rounded-lg shadow-sm border h-24">
+            <div className="flex items-center">
+              <div className={`p-2 rounded-md ${stat.color}`}>
+                <div className="h-6 w-6 text-white" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-500">{stat.title}</p>
+                <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
               </div>
             </div>
-          ))}
-        </div>
-        
-        {/* 오른쪽: 날씨 위젯 - 독립적인 높이 */}
-        <div className="w-80">
-          <WeatherWidget />
-        </div>
+          </div>
+        ))}
       </div>
       
-      <div className="grid grid-cols-3 gap-4">
+      {/* 날씨 위젯과 하단 3개 위젯을 같은 행에 배치 */}
+      <div className="grid grid-cols-4 gap-4">
         {/* 하단 3개 위젯 */}
         <div className="bg-white p-4 rounded-lg shadow-sm border">
           <h3 className="text-lg font-semibold mb-4">최근 작업</h3>
@@ -1328,8 +1321,10 @@ const MaintenanceManagementSystem = () => {
           </div>
         </div>
         
-        {/* 빈 공간 */}
-        <div></div>
+        {/* 날씨 위젯 */}
+        <div>
+          <WeatherWidget />
+        </div>
       </div>
     </div>
   );
