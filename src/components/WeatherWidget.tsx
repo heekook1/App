@@ -244,7 +244,7 @@ const WeatherWidget: React.FC = () => {
         };
 
         // 초단기실황 데이터 파싱 (실시간 현재 날씨)
-        console.log('초단기실황 카테고리 목록:', ncstItems.map(item => item.category));
+        console.log('초단기실황 카테고리 목록:', ncstItems.map((item: any) => item.category));
         ncstItems.forEach((item: any) => {
           switch (item.category) {
             case 'T1H': // 기온
@@ -274,7 +274,7 @@ const WeatherWidget: React.FC = () => {
 
         // 단기예보에서 하늘상태와 최고/최저 기온 가져오기
         const todayItems = vilageItems.filter((item: any) => item.fcstDate === baseDate || item.fcstDate === vilageBaseDate);
-        console.log('단기예보 카테고리 목록:', [...new Set(todayItems.map(item => item.category))]);
+        console.log('단기예보 카테고리 목록:', Array.from(new Set(todayItems.map((item: any) => item.category))));
         
         // 현재 시간과 가장 가까운 하늘상태 가져오기
         const currentHour = koreaTime.getUTCHours();
