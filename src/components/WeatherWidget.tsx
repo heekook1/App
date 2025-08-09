@@ -11,7 +11,7 @@ interface WeatherData {
   windDirection: string;
   precipitation: string;
   precipitationType: string;
-  precipitationProbability?: string;
+  precipitationProbability: string;
   visibility?: string;
   updateTime?: string;
   forecast?: Array<{
@@ -200,7 +200,8 @@ const WeatherWidget: React.FC = () => {
           updateTime: ncstBaseTime.slice(0, 2) + ':' + ncstBaseTime.slice(2),
           precipitation: '0',
           precipitationType: '0',
-          skyStatus: '1'
+          skyStatus: '1',
+          precipitationProbability: '0'
         };
 
         // 초단기실황 데이터 파싱 (실시간 현재 날씨)
@@ -242,6 +243,15 @@ const WeatherWidget: React.FC = () => {
         
         if (skyItem) {
           weatherData.skyStatus = skyItem.fcstValue;
+        }
+        
+        // 현재 시간대 강수확률 가져오기
+        let popItem = todayItems.find((item: any) => item.category === 'POP' && item.fcstTime === currentTimeStr);
+        if (!popItem) {
+          popItem = todayItems.find((item: any) => item.category === 'POP');
+        }
+        if (popItem) {
+          weatherData.precipitationProbability = popItem.fcstValue;
         }
         
         // 최고/최저 기온 가져오기
@@ -501,6 +511,16 @@ const WeatherWidget: React.FC = () => {
                   <p className="text-sm font-semibold text-gray-800">
                     {weather.precipitation === '강수없음' ? '0' : weather.precipitation}mm
                   </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white bg-opacity-60 rounded-lg p-3">
+              <div className="flex items-center space-x-2">
+                <CloudRain className="w-5 h-5 text-blue-500" />
+                <div>
+                  <p className="text-xs text-gray-600">강수확률</p>
+                  <p className="text-sm font-semibold text-gray-800">{weather.precipitationProbability}%</p>
                 </div>
               </div>
             </div>
