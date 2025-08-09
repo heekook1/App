@@ -20,7 +20,7 @@ export default async function handler(req, res) {
   }
 
   // API 키는 Vercel 환경변수에서 가져옴
-  const API_KEY = process.env.KMA_API_KEY || 'J_CGQdC8TpywhkHQvP6cQg';
+  const API_KEY = process.env.KMA_API_KEY || '2yP9tO3qQ4yj_bTt6mOMpg';
   
   console.log('Environment check:', {
     hasEnvKey: !!process.env.KMA_API_KEY,
