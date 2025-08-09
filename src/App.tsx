@@ -1246,7 +1246,7 @@ const MaintenanceManagementSystem = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border h-[650px] overflow-y-auto">
           <h3 className="text-lg font-semibold mb-4">최근 작업</h3>
           <div className="space-y-3">
-            {workOrders.slice(0, 5).map(order => (
+            {workOrders.slice(0, 6).map(order => (
               <div key={order.id} className="flex items-center justify-between p-3 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => handleWorkOrderClick(order)}>
                 <div className="flex-1">
                   <p className="font-medium text-sm">{order.title}</p>
@@ -1305,7 +1305,7 @@ const MaintenanceManagementSystem = () => {
         <div className="bg-white p-4 rounded-lg shadow-sm border h-[650px] overflow-y-auto">
           <h3 className="text-lg font-semibold mb-4">최근 공지사항</h3>
           <div className="space-y-3">
-            {announcements.slice(0, 5).map(announcement => (
+            {announcements.slice(0, 6).map(announcement => (
               <div key={announcement.id} className="p-3 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => handleAnnouncementClick(announcement)}>
                 <div className="flex items-start justify-between mb-2">
                   <p className="font-medium text-sm">{announcement.title}</p>
