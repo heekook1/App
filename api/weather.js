@@ -22,7 +22,51 @@ export default async function handler(req, res) {
   // API 키는 Vercel 환경변수에서 가져옴
   const API_KEY = process.env.KMA_API_KEY || 'J_CGQdC8TpywhkHQvP6cQg';
   
+  console.log('Environment check:', {
+    hasEnvKey: !!process.env.KMA_API_KEY,
+    keyLength: API_KEY.length,
+    keyStart: API_KEY.substring(0, 3),
+    keyEnd: API_KEY.substring(API_KEY.length - 3)
+  });
+  
   try {
+    // 파라미터 검증
+    const { base_date, base_time, nx, ny } = params;
+    
+    console.log('Request parameters:', {
+      endpoint,
+      base_date,
+      base_time,
+      nx,
+      ny,
+      allParams: params
+    });
+    
+    // 파라미터 유효성 검사
+    if (!base_date || !base_time || !nx || !ny) {
+      return res.status(400).json({
+        error: 'Missing required parameters',
+        required: ['base_date', 'base_time', 'nx', 'ny'],
+        received: { base_date, base_time, nx, ny }
+      });
+    }
+    
+    // 날짜 형식 검증 (YYYYMMDD)
+    if (!/^\d{8}$/.test(base_date)) {
+      return res.status(400).json({
+        error: 'Invalid base_date format. Expected YYYYMMDD',
+        received: base_date
+      });
+    }
+    
+    // 시간 형식 검증 (HHMM)
+    if (!/^\d{4}$/.test(base_time)) {
+      return res.status(400).json({
+        error: 'Invalid base_time format. Expected HHMM',
+        received: base_time
+      });
+    }
+    
     // 기상청 API URL 구성 - 승인된 엔드포인트 사용
     const baseUrl = 'https://apis.data.go.kr/1360000';
     

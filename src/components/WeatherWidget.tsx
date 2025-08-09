@@ -128,74 +128,77 @@ const WeatherWidget: React.FC = () => {
       // 단기예보 base_time 계산
       const vilageBaseTime = getVilageBaseTime(now);
       
-      // 초단기실황 (현재 날씨)
-      const ncstUrl = `/api/weather?endpoint=getUltraSrtNcst&numOfRows=10&pageNo=1&base_date=${baseDate}&base_time=${ncstBaseTime}&nx=${nx}&ny=${ny}`;
-      
-      // 단기예보 (최고/최저 기온 및 시간별 예보)
+      // 단기예보만 사용 (테스트)
       const vilageUrl = `/api/weather?endpoint=getVilageFcst&numOfRows=200&pageNo=1&base_date=${baseDate}&base_time=${vilageBaseTime}&nx=${nx}&ny=${ny}`;
 
-      // 두 API 동시 호출
-      const [ncstResponse, vilageResponse] = await Promise.all([
-        fetch(ncstUrl),
-        fetch(vilageUrl)
-      ]);
+      console.log('API 요청 URL:', vilageUrl);
+      console.log('요청 파라미터:', { baseDate, vilageBaseTime, nx, ny });
 
-      const ncstData = await ncstResponse.json();
+      // API 호출
+      const vilageResponse = await fetch(vilageUrl);
       const vilageData = await vilageResponse.json();
 
-      console.log('초단기실황 응답:', ncstData);
       console.log('단기예보 응답:', vilageData);
 
       // 에러 응답 체크
-      if (ncstData.error || vilageData.error) {
-        throw new Error(ncstData.error || vilageData.error || 'API 오류');
+      if (vilageData.error) {
+        throw new Error(vilageData.error || 'API 오류');
       }
 
-      if (ncstData.response?.header?.resultCode === '00' && vilageData.response?.header?.resultCode === '00') {
-        const ncstItems = ncstData.response.body.items.item;
+      if (vilageData.response?.header?.resultCode === '00') {
         const vilageItems = vilageData.response.body.items.item;
         
         const weatherData: Partial<WeatherData> = {
-          updateTime: ncstBaseTime.slice(0, 2) + ':' + ncstBaseTime.slice(2),
+          updateTime: vilageBaseTime.slice(0, 2) + ':' + vilageBaseTime.slice(2),
           precipitation: '0',
           precipitationType: '0',
-          skyStatus: '1'
+          skyStatus: '1',
+          humidity: '50',
+          windSpeed: '0',
+          windDirection: '0'
         };
 
-        // 초단기실황 데이터 파싱 (실시간 현재 날씨)
-        ncstItems.forEach((item: any) => {
+        // 현재 시간 계산
+        const currentHour = now.getHours();
+        const currentTimeStr = currentHour.toString().padStart(2, '0') + '00';
+        
+        // 오늘 데이터 필터링
+        const todayItems = vilageItems.filter((item: any) => item.fcstDate === baseDate);
+        
+        console.log('오늘 데이터 수:', todayItems.length);
+        console.log('현재 시간:', currentTimeStr);
+        
+        // 현재 시간과 가장 가까운 예보 데이터 사용
+        const currentItems = todayItems.filter((item: any) => item.fcstTime === currentTimeStr);
+        
+        console.log('현재 시간 데이터:', currentItems.length);
+        
+        // 현재 날씨 데이터 파싱
+        currentItems.forEach((item: any) => {
           switch (item.category) {
-            case 'T1H': // 기온
-              weatherData.temperature = item.obsrValue;
+            case 'TMP': // 기온
+              weatherData.temperature = item.fcstValue;
               break;
-            case 'RN1': // 1시간 강수량
-              weatherData.precipitation = item.obsrValue === '강수없음' ? '0' : item.obsrValue;
-              break;
-            case 'REH': // 습도
-              weatherData.humidity = item.obsrValue;
+            case 'SKY': // 하늘상태
+              weatherData.skyStatus = item.fcstValue;
               break;
             case 'PTY': // 강수형태
-              weatherData.precipitationType = item.obsrValue;
+              weatherData.precipitationType = item.fcstValue;
+              break;
+            case 'REH': // 습도
+              weatherData.humidity = item.fcstValue;
               break;
             case 'VEC': // 풍향
-              weatherData.windDirection = item.obsrValue;
+              weatherData.windDirection = item.fcstValue;
               break;
             case 'WSD': // 풍속
-              weatherData.windSpeed = item.obsrValue;
+              weatherData.windSpeed = item.fcstValue;
+              break;
+            case 'PCP': // 1시간 강수량
+              weatherData.precipitation = item.fcstValue === '강수없음' ? '0' : item.fcstValue.replace('mm', '');
               break;
           }
         });
-
-        // 단기예보에서 하늘상태와 최고/최저 기온 가져오기
-        const todayItems = vilageItems.filter((item: any) => item.fcstDate === baseDate);
-        
-        // 현재 시간과 가장 가까운 하늘상태 가져오기
-        const currentHour = now.getHours();
-        const currentTimeStr = currentHour.toString().padStart(2, '0') + '00';
-        const skyItem = todayItems.find((item: any) => item.category === 'SKY' && item.fcstTime === currentTimeStr);
-        if (skyItem) {
-          weatherData.skyStatus = skyItem.fcstValue;
-        }
         
         // 최고/최저 기온 가져오기
         todayItems.forEach((item: any) => {
@@ -248,12 +251,10 @@ const WeatherWidget: React.FC = () => {
         setWeather(weatherData as WeatherData);
       } else {
         console.error('API 응답 오류:', {
-          ncstResult: ncstData.response?.header?.resultCode,
-          ncstMsg: ncstData.response?.header?.resultMsg,
           vilageResult: vilageData.response?.header?.resultCode,
           vilageMsg: vilageData.response?.header?.resultMsg
         });
-        setError('날씨 데이터를 가져올 수 없습니다');
+        setError(`날씨 데이터를 가져올 수 없습니다: ${vilageData.response?.header?.resultMsg || '알 수 없는 오류'}`);
       }
     } catch (err) {
       console.error('날씨 데이터 가져오기 실패:', err);
