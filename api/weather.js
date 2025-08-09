@@ -25,13 +25,13 @@ export default async function handler(req, res) {
   try {
     // 기상청 API URL 구성
     const baseUrl = 'https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0';
-    const queryParams = new URLSearchParams({
-      serviceKey: API_KEY,
-      ...params,
-      dataType: 'JSON'
-    });
     
-    const url = `${baseUrl}/${endpoint}?${queryParams}`;
+    // serviceKey를 별도로 처리 (인코딩 문제 방지)
+    const serviceKey = encodeURIComponent(API_KEY);
+    const queryParams = new URLSearchParams(params);
+    queryParams.set('dataType', 'JSON');
+    
+    const url = `${baseUrl}/${endpoint}?serviceKey=${serviceKey}&${queryParams}`;
     
     console.log('Weather API Request URL:', url);
     
