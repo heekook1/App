@@ -33,14 +33,35 @@ export default async function handler(req, res) {
     
     const url = `${baseUrl}/${endpoint}?${queryParams}`;
     
+    console.log('Weather API Request URL:', url);
+    
     // 기상청 API 호출
     const response = await fetch(url);
-    const data = await response.json();
+    const text = await response.text();
+    
+    console.log('Weather API Response Status:', response.status);
+    console.log('Weather API Response:', text.substring(0, 200) + '...');
+    
+    // JSON 파싱 시도
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseError) {
+      console.error('JSON Parse Error:', parseError);
+      console.error('Response Text:', text);
+      return res.status(500).json({ 
+        error: 'Invalid JSON response from weather API',
+        details: text.substring(0, 200)
+      });
+    }
     
     // 응답 반환
     res.status(200).json(data);
   } catch (error) {
     console.error('Weather API Error:', error);
-    res.status(500).json({ error: 'Failed to fetch weather data' });
+    res.status(500).json({ 
+      error: 'Failed to fetch weather data',
+      details: error.message 
+    });
   }
 }

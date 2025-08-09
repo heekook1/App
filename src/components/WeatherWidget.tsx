@@ -141,7 +141,15 @@ const WeatherWidget: React.FC = () => {
       const ncstData = await ncstResponse.json();
       const vilageData = await vilageResponse.json();
 
-      if (ncstData.response.header.resultCode === '00' && vilageData.response.header.resultCode === '00') {
+      console.log('초단기실황 응답:', ncstData);
+      console.log('단기예보 응답:', vilageData);
+
+      // 에러 응답 체크
+      if (ncstData.error || vilageData.error) {
+        throw new Error(ncstData.error || vilageData.error || 'API 오류');
+      }
+
+      if (ncstData.response?.header?.resultCode === '00' && vilageData.response?.header?.resultCode === '00') {
         const ncstItems = ncstData.response.body.items.item;
         const vilageItems = vilageData.response.body.items.item;
         
@@ -236,6 +244,12 @@ const WeatherWidget: React.FC = () => {
         weatherData.forecast = forecast;
         setWeather(weatherData as WeatherData);
       } else {
+        console.error('API 응답 오류:', {
+          ncstResult: ncstData.response?.header?.resultCode,
+          ncstMsg: ncstData.response?.header?.resultMsg,
+          vilageResult: vilageData.response?.header?.resultCode,
+          vilageMsg: vilageData.response?.header?.resultMsg
+        });
         setError('날씨 데이터를 가져올 수 없습니다');
       }
     } catch (err) {
