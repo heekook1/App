@@ -500,8 +500,8 @@ const WeatherWidget: React.FC = () => {
   useEffect(() => {
     if (coordsLoaded) {
       fetchWeather();
-      // 30분마다 날씨 정보 업데이트
-      const interval = setInterval(fetchWeather, 30 * 60 * 1000);
+      // 10분마다 날씨 정보 업데이트 (초단기실황 갱신 주기에 맞춤)
+      const interval = setInterval(fetchWeather, 10 * 60 * 1000);
       return () => clearInterval(interval);
     }
   }, [coordsLoaded]);
