@@ -89,7 +89,7 @@ export default async function handler(req, res) {
         apiPath = `/${endpoint}`;
     }
     
-    // 기상청 허브는 authKey 사용 (serviceKey 아님)
+    // 기상청 허브는 authKey 사용 (예시 URL 확인 결과)
     const queryParams = new URLSearchParams(params);
     queryParams.set('dataType', 'JSON');
     
