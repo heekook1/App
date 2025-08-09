@@ -117,18 +117,18 @@ const WeatherWidget: React.FC = () => {
       console.log('현재 한국 시간:', koreaTime);
       console.log('baseDate:', baseDate);
       
-      // 초단기실황은 매시 40분 이후 발표, 10분마다 업데이트 (한국 시간 기준)
+      // 초단기실황은 매시 10분 이후 발표, 10분마다 업데이트 (한국 시간 기준)
       const currentMinutes = koreaTime.getUTCMinutes();
       const currentHour = koreaTime.getUTCHours();
       let ncstBaseTime: string;
       let ncstBaseDate = baseDate;
       
-      // 초단기실황 base_time 계산: 매시 40분 이후에 해당 시간 데이터 제공
-      if (currentMinutes >= 40) {
-        // 40분 이후라면 현재 시간 사용
+      // 초단기실황 base_time 계산: 매시 10분 이후에 해당 시간 데이터 제공
+      if (currentMinutes >= 10) {
+        // 10분 이후라면 현재 시간 사용
         ncstBaseTime = currentHour.toString().padStart(2, '0') + '00';
       } else {
-        // 40분 이전이라면 1시간 전 데이터 사용
+        // 10분 이전이라면 1시간 전 데이터 사용
         let prevHour = currentHour - 1;
         if (prevHour < 0) {
           prevHour = 23;
@@ -142,42 +142,58 @@ const WeatherWidget: React.FC = () => {
       console.log('ncstBaseTime:', ncstBaseTime);
       console.log('ncstBaseDate:', ncstBaseDate);
       
+      // 초단기예보 base_time 계산 (매시 30분 발표, 45분 이후 제공)
+      const ultraResult = getUltraSrtFcstBaseTime(koreaTime);
+      const ultraBaseTime = ultraResult.baseTime;
+      const ultraBaseDate = ultraResult.baseDate;
+      
       // 단기예보 base_time 계산 (한국 시간 기준)
       const vilageResult = getVilageBaseTime(koreaTime);
       const vilageBaseTime = vilageResult.baseTime;
       const vilageBaseDate = vilageResult.baseDate;
       
+      console.log('ultraBaseTime:', ultraBaseTime);
+      console.log('ultraBaseDate:', ultraBaseDate);
       console.log('vilageBaseTime:', vilageBaseTime);
       console.log('vilageBaseDate:', vilageBaseDate);
       
       // 초단기실황 (현재 날씨) - 인천 남동구 논현동 좌표 사용
       const ncstUrl = `/api/weather?endpoint=getUltraSrtNcst&numOfRows=10&pageNo=1&base_date=${ncstBaseDate}&base_time=${ncstBaseTime}&nx=${nx}&ny=${ny}`;
       
-      // 단기예보 (최고/최저 기온 및 시간별 예보) - 인천 남동구 논현동 좌표 사용
+      // 초단기예보 (6시간 시간별 예보) - 인천 남동구 논현동 좌표 사용
+      const ultraUrl = `/api/weather?endpoint=getUltraSrtFcst&numOfRows=60&pageNo=1&base_date=${ultraBaseDate}&base_time=${ultraBaseTime}&nx=${nx}&ny=${ny}`;
+      
+      // 단기예보 (최고/최저 기온) - 인천 남동구 논현동 좌표 사용
       const vilageUrl = `/api/weather?endpoint=getVilageFcst&numOfRows=300&pageNo=1&base_date=${vilageBaseDate}&base_time=${vilageBaseTime}&nx=${nx}&ny=${ny}`;
 
-      console.log('API 요청 URL:', { ncstUrl, vilageUrl });
-      console.log('요청 파라미터:', { baseDate, ncstBaseTime, vilageBaseTime, nx, ny });
+      console.log('API 요청 URL:', { ncstUrl, ultraUrl, vilageUrl });
+      console.log('요청 파라미터:', { baseDate, ncstBaseTime, ultraBaseTime, vilageBaseTime, nx, ny });
 
-      // 두 API 동시 호출
-      const [ncstResponse, vilageResponse] = await Promise.all([
+      // 세 API 동시 호출
+      const [ncstResponse, ultraResponse, vilageResponse] = await Promise.all([
         fetch(ncstUrl),
+        fetch(ultraUrl),
         fetch(vilageUrl)
       ]);
 
       const ncstData = await ncstResponse.json();
+      const ultraData = await ultraResponse.json();
       const vilageData = await vilageResponse.json();
 
       console.log('초단기실황 응답:', JSON.stringify(ncstData, null, 2));
+      console.log('초단기예보 응답:', JSON.stringify(ultraData, null, 2));
       console.log('단기예보 응답:', JSON.stringify(vilageData, null, 2));
 
       // 에러 응답 체크
-      if (ncstData.error || vilageData.error) {
-        throw new Error(ncstData.error || vilageData.error || 'API 오류');
+      if (ncstData.error || ultraData.error || vilageData.error) {
+        throw new Error(ncstData.error || ultraData.error || vilageData.error || 'API 오류');
       }
 
-      if (ncstData.response?.header?.resultCode === '00' && vilageData.response?.header?.resultCode === '00') {
+      if (ncstData.response?.header?.resultCode === '00' && 
+          ultraData.response?.header?.resultCode === '00' && 
+          vilageData.response?.header?.resultCode === '00') {
         const ncstItems = ncstData.response.body.items.item;
+        const ultraItems = ultraData.response.body.items.item;
         const vilageItems = vilageData.response.body.items.item;
         
         const weatherData: Partial<WeatherData> = {
@@ -237,24 +253,35 @@ const WeatherWidget: React.FC = () => {
           }
         });
 
-        // 시간별 예보 (향후 6시간)
+        // 시간별 예보 (초단기예보 사용 - 향후 6시간)
         const forecast: any[] = [];
-        const forecastHours = [1, 2, 3, 4, 5, 6];
+        const baseHour = parseInt(ultraBaseTime.slice(0, 2));
         
-        forecastHours.forEach(hour => {
-          const fcstTime = new Date(now);
-          fcstTime.setHours(fcstTime.getHours() + hour);
-          const fcstTimeStr = fcstTime.getHours().toString().padStart(2, '0') + '00';
-          const fcstDateStr = fcstTime.toISOString().slice(0, 10).replace(/-/g, '');
+        // 초단기예보는 현재 기준 시간부터 +6시간까지 제공
+        for (let i = 1; i <= 6; i++) {
+          const fcstHour = (baseHour + i) % 24;
+          const fcstTimeStr = fcstHour.toString().padStart(2, '0') + '00';
+          let fcstDateStr = ultraBaseDate;
+          
+          // 날짜가 바뀌는 경우 처리
+          if (baseHour + i >= 24) {
+            const nextDay = new Date(koreaTime.getTime() + (24 * 60 * 60 * 1000));
+            fcstDateStr = nextDay.toISOString().slice(0, 10).replace(/-/g, '');
+          }
           
           const hourData: any = {
-            time: fcstTime.getHours().toString().padStart(2, '0') + ':00'
+            time: fcstHour.toString().padStart(2, '0') + ':00',
+            temperature: '',
+            skyStatus: '1',
+            precipitationType: '0',
+            precipitationProbability: '0'
           };
           
-          vilageItems.forEach((item: any) => {
+          // 초단기예보 데이터에서 해당 시간 찾기
+          ultraItems.forEach((item: any) => {
             if (item.fcstDate === fcstDateStr && item.fcstTime === fcstTimeStr) {
               switch (item.category) {
-                case 'TMP':
+                case 'T1H':
                   hourData.temperature = item.fcstValue;
                   break;
                 case 'SKY':
@@ -263,8 +290,11 @@ const WeatherWidget: React.FC = () => {
                 case 'PTY':
                   hourData.precipitationType = item.fcstValue;
                   break;
-                case 'POP':
-                  hourData.precipitationProbability = item.fcstValue;
+                case 'RN1':
+                  // 초단기예보에는 POP가 없으므로 강수량으로 확률 추정
+                  if (parseFloat(item.fcstValue) > 0) {
+                    hourData.precipitationProbability = '60'; // 강수 있으면 높은 확률
+                  }
                   break;
               }
             }
@@ -273,7 +303,7 @@ const WeatherWidget: React.FC = () => {
           if (hourData.temperature) {
             forecast.push(hourData);
           }
-        });
+        }
 
         weatherData.forecast = forecast;
         setWeather(weatherData as WeatherData);
@@ -281,10 +311,12 @@ const WeatherWidget: React.FC = () => {
         console.error('API 응답 오류:', {
           ncstResult: ncstData.response?.header?.resultCode,
           ncstMsg: ncstData.response?.header?.resultMsg,
+          ultraResult: ultraData.response?.header?.resultCode,
+          ultraMsg: ultraData.response?.header?.resultMsg,
           vilageResult: vilageData.response?.header?.resultCode,
           vilageMsg: vilageData.response?.header?.resultMsg
         });
-        setError(`날씨 데이터를 가져올 수 없습니다: ${ncstData.response?.header?.resultMsg || vilageData.response?.header?.resultMsg || '알 수 없는 오류'}`);
+        setError(`날씨 데이터를 가져올 수 없습니다: ${ncstData.response?.header?.resultMsg || ultraData.response?.header?.resultMsg || vilageData.response?.header?.resultMsg || '알 수 없는 오류'}`);
       }
     } catch (err) {
       console.error('날씨 데이터 가져오기 실패:', err);
@@ -292,6 +324,43 @@ const WeatherWidget: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 초단기예보 base_time 계산 (매시 30분 발표, 45분 이후 제공)
+  const getUltraSrtFcstBaseTime = (date: Date) => {
+    const hour = date.getUTCHours();
+    const minute = date.getUTCMinutes();
+    
+    let selectedBaseTime: string;
+    let baseDate = date.toISOString().slice(0, 10).replace(/-/g, '');
+    
+    // 45분 이후라면 현재 시간의 30분 데이터 사용
+    if (minute >= 45) {
+      selectedBaseTime = hour.toString().padStart(2, '0') + '30';
+    } else if (minute >= 30) {
+      // 30분 이후 45분 이전이면 이전 시간의 30분 데이터 사용
+      let prevHour = hour - 1;
+      if (prevHour < 0) {
+        prevHour = 23;
+        const prevDay = new Date(date.getTime() - (24 * 60 * 60 * 1000));
+        baseDate = prevDay.toISOString().slice(0, 10).replace(/-/g, '');
+      }
+      selectedBaseTime = prevHour.toString().padStart(2, '0') + '30';
+    } else {
+      // 30분 이전이면 이전 시간의 30분 데이터 사용
+      let prevHour = hour - 1;
+      if (prevHour < 0) {
+        prevHour = 23;
+        const prevDay = new Date(date.getTime() - (24 * 60 * 60 * 1000));
+        baseDate = prevDay.toISOString().slice(0, 10).replace(/-/g, '');
+      }
+      selectedBaseTime = prevHour.toString().padStart(2, '0') + '30';
+    }
+    
+    return {
+      baseTime: selectedBaseTime,
+      baseDate: baseDate
+    };
   };
 
   // 단기예보 base_time 계산
