@@ -23,15 +23,34 @@ export default async function handler(req, res) {
   const API_KEY = process.env.KMA_API_KEY || 'J_CGQdC8TpywhkHQvP6cQg';
   
   try {
-    // 기상청 API URL 구성
-    const baseUrl = 'https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0';
+    // 기상청 API URL 구성 - 승인된 엔드포인트 사용
+    const baseUrl = 'https://apis.data.go.kr/1360000';
+    
+    // 승인된 엔드포인트로 매핑
+    let apiPath;
+    switch(endpoint) {
+      case 'getUltraSrtNcst':
+        // 초단기실황
+        apiPath = '/openApi/VilageFcstInfoService_2.0/getUltraSrtNcst';
+        break;
+      case 'getUltraSrtFcst':
+        // 초단기예보
+        apiPath = '/openApi/VilageFcstInfoService_2.0/getUltraSrtFcst';
+        break;
+      case 'getVilageFcst':
+        // 단기예보
+        apiPath = '/openApi/VilageFcstInfoService_2.0/getVilageFcst';
+        break;
+      default:
+        apiPath = `/${endpoint}`;
+    }
     
     // serviceKey를 별도로 처리 (인코딩 문제 방지)
     const serviceKey = encodeURIComponent(API_KEY);
     const queryParams = new URLSearchParams(params);
     queryParams.set('dataType', 'JSON');
     
-    const url = `${baseUrl}/${endpoint}?serviceKey=${serviceKey}&${queryParams}`;
+    const url = `${baseUrl}${apiPath}?serviceKey=${serviceKey}&${queryParams}`;
     
     console.log('Weather API Request URL:', url);
     

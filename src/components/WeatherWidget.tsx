@@ -112,25 +112,27 @@ const WeatherWidget: React.FC = () => {
       const now = new Date();
       const baseDate = now.toISOString().slice(0, 10).replace(/-/g, '');
       
-      // 초단기실황은 매시 40분 이후 생성
+      // 초단기실황은 매시 30분 이후 발표
       const currentMinutes = now.getMinutes();
-      let baseTime: string;
+      let ncstBaseTime: string;
       
-      if (currentMinutes < 40) {
-        // 40분 이전이면 이전 시간 데이터 사용
+      if (currentMinutes < 30) {
+        // 30분 이전이면 이전 시간 데이터 사용
         const prevHour = new Date(now);
         prevHour.setHours(prevHour.getHours() - 1);
-        baseTime = prevHour.getHours().toString().padStart(2, '0') + '00';
+        ncstBaseTime = prevHour.getHours().toString().padStart(2, '0') + '00';
       } else {
-        baseTime = now.getHours().toString().padStart(2, '0') + '00';
+        ncstBaseTime = now.getHours().toString().padStart(2, '0') + '00';
       }
-
-      // API 프록시를 통한 초단기실황 조회
-      const ncstUrl = `/api/weather?endpoint=getUltraSrtNcst&numOfRows=10&pageNo=1&base_date=${baseDate}&base_time=${baseTime}&nx=${nx}&ny=${ny}`;
       
-      // API 프록시를 통한 단기예보 조회 (최고/최저 기온을 위해)
+      // 단기예보 base_time 계산
       const vilageBaseTime = getVilageBaseTime(now);
-      const vilageUrl = `/api/weather?endpoint=getVilageFcst&numOfRows=100&pageNo=1&base_date=${baseDate}&base_time=${vilageBaseTime}&nx=${nx}&ny=${ny}`;
+      
+      // 초단기실황 (현재 날씨)
+      const ncstUrl = `/api/weather?endpoint=getUltraSrtNcst&numOfRows=10&pageNo=1&base_date=${baseDate}&base_time=${ncstBaseTime}&nx=${nx}&ny=${ny}`;
+      
+      // 단기예보 (최고/최저 기온 및 시간별 예보)
+      const vilageUrl = `/api/weather?endpoint=getVilageFcst&numOfRows=200&pageNo=1&base_date=${baseDate}&base_time=${vilageBaseTime}&nx=${nx}&ny=${ny}`;
 
       // 두 API 동시 호출
       const [ncstResponse, vilageResponse] = await Promise.all([
@@ -154,20 +156,20 @@ const WeatherWidget: React.FC = () => {
         const vilageItems = vilageData.response.body.items.item;
         
         const weatherData: Partial<WeatherData> = {
-          updateTime: `${baseTime.slice(0, 2)}:${baseTime.slice(2)}`,
+          updateTime: ncstBaseTime.slice(0, 2) + ':' + ncstBaseTime.slice(2),
           precipitation: '0',
           precipitationType: '0',
           skyStatus: '1'
         };
 
-        // 초단기실황 데이터 파싱
+        // 초단기실황 데이터 파싱 (실시간 현재 날씨)
         ncstItems.forEach((item: any) => {
           switch (item.category) {
             case 'T1H': // 기온
               weatherData.temperature = item.obsrValue;
               break;
             case 'RN1': // 1시간 강수량
-              weatherData.precipitation = item.obsrValue;
+              weatherData.precipitation = item.obsrValue === '강수없음' ? '0' : item.obsrValue;
               break;
             case 'REH': // 습도
               weatherData.humidity = item.obsrValue;
@@ -187,19 +189,20 @@ const WeatherWidget: React.FC = () => {
         // 단기예보에서 하늘상태와 최고/최저 기온 가져오기
         const todayItems = vilageItems.filter((item: any) => item.fcstDate === baseDate);
         
+        // 현재 시간과 가장 가까운 하늘상태 가져오기
+        const currentHour = now.getHours();
+        const currentTimeStr = currentHour.toString().padStart(2, '0') + '00';
+        const skyItem = todayItems.find((item: any) => item.category === 'SKY' && item.fcstTime === currentTimeStr);
+        if (skyItem) {
+          weatherData.skyStatus = skyItem.fcstValue;
+        }
+        
+        // 최고/최저 기온 가져오기
         todayItems.forEach((item: any) => {
-          switch (item.category) {
-            case 'SKY': // 하늘상태
-              if (item.fcstTime === baseTime || !weatherData.skyStatus) {
-                weatherData.skyStatus = item.fcstValue;
-              }
-              break;
-            case 'TMX': // 최고기온
-              weatherData.maxTemp = item.fcstValue;
-              break;
-            case 'TMN': // 최저기온
-              weatherData.minTemp = item.fcstValue;
-              break;
+          if (item.category === 'TMX') {
+            weatherData.maxTemp = item.fcstValue;
+          } else if (item.category === 'TMN') {
+            weatherData.minTemp = item.fcstValue;
           }
         });
 
