@@ -12,6 +12,7 @@ interface WeatherData {
   precipitation: string;
   precipitationType: string;
   precipitationProbability: string;
+  feelLikeTemp?: string;
   visibility?: string;
   updateTime?: string;
   forecast?: Array<{
@@ -262,6 +263,9 @@ const WeatherWidget: React.FC = () => {
               break;
             case 'WSD': // 풍속
               weatherData.windSpeed = item.obsrValue;
+              break;
+            case 'WCI': // 체감온도 (Wind Chill Index)
+              weatherData.feelLikeTemp = item.obsrValue;
               break;
           }
         });
@@ -577,7 +581,8 @@ const WeatherWidget: React.FC = () => {
                 <div>
                   <p className="text-xs text-gray-600">체감온도</p>
                   <p className="text-sm font-semibold text-gray-800">
-                    {(parseFloat(weather.temperature) - parseFloat(weather.windSpeed) * 0.7).toFixed(1)}°C
+                    {weather.feelLikeTemp ? `${weather.feelLikeTemp}°C` : 
+                     `${(parseFloat(weather.temperature) - parseFloat(weather.windSpeed) * 0.7).toFixed(1)}°C`}
                   </p>
                 </div>
               </div>
