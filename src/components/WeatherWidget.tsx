@@ -29,9 +29,9 @@ const WeatherWidget: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // 서울시 격자 좌표 (공식 기상청 API에서 널리 사용되는 좌표)
+  // 인천광역시 남동구 논현동 격자 좌표
   const nx = 55;
-  const ny = 127;
+  const ny = 124;
 
   // 시간 업데이트
   useEffect(() => {
@@ -150,10 +150,10 @@ const WeatherWidget: React.FC = () => {
       console.log('vilageBaseTime:', vilageBaseTime);
       console.log('vilageBaseDate:', vilageBaseDate);
       
-      // 초단기실황 (현재 날씨) - 서울 좌표 사용
+      // 초단기실황 (현재 날씨) - 인천 남동구 논현동 좌표 사용
       const ncstUrl = `/api/weather?endpoint=getUltraSrtNcst&numOfRows=10&pageNo=1&base_date=${ncstBaseDate}&base_time=${ncstBaseTime}&nx=${nx}&ny=${ny}`;
       
-      // 단기예보 (최고/최저 기온 및 시간별 예보) - 서울 좌표 사용
+      // 단기예보 (최고/최저 기온 및 시간별 예보) - 인천 남동구 논현동 좌표 사용
       const vilageUrl = `/api/weather?endpoint=getVilageFcst&numOfRows=300&pageNo=1&base_date=${vilageBaseDate}&base_time=${vilageBaseTime}&nx=${nx}&ny=${ny}`;
 
       console.log('API 요청 URL:', { ncstUrl, vilageUrl });
@@ -376,7 +376,7 @@ const WeatherWidget: React.FC = () => {
   return (
     <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-lg p-6">
       <div className="mb-4">
-        <h3 className="text-xl font-bold text-gray-900">서울특별시</h3>
+        <h3 className="text-xl font-bold text-gray-900">인천 남동구 논현동</h3>
         <p className="text-sm text-gray-600">{formatDate(currentTime)}</p>
         <p className="text-lg font-semibold text-gray-800">{formatTime(currentTime)}</p>
       </div>
