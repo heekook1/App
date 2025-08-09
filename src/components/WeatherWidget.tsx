@@ -12,7 +12,6 @@ interface WeatherData {
   precipitation: string;
   precipitationType: string;
   precipitationProbability: string;
-  feelLikeTemp?: string;
   visibility?: string;
   updateTime?: string;
   forecast?: Array<{
@@ -134,6 +133,51 @@ const WeatherWidget: React.FC = () => {
       console.log('기본 격자 좌표 사용: nx=55, ny=124');
     } finally {
       setCoordsLoaded(true);
+    }
+  };
+
+  // 체감온도 계산 (Heat Index + Wind Chill 조합)
+  const calculateFeelLikeTemperature = (temp: number, windSpeed: number, humidity: number): number => {
+    // 온도가 26.7°C (80°F) 이상이고 습도가 40% 이상일 때: Heat Index 사용
+    if (temp >= 26.7 && humidity >= 40) {
+      // Heat Index 공식 (더위지수)
+      const t = temp;
+      const h = humidity;
+      
+      let hi = -8.78469475556 +
+               1.61139411 * t +
+               2.33854883889 * h +
+               -0.14611605 * t * h +
+               -0.012308094 * t * t +
+               -0.0164248277778 * h * h +
+               0.002211732 * t * t * h +
+               0.00072546 * t * h * h +
+               -0.000003582 * t * t * h * h;
+      
+      return Math.max(hi, temp);
+    }
+    // 온도가 10°C (50°F) 이하이고 풍속이 있을 때: Wind Chill 사용
+    else if (temp <= 10 && windSpeed > 0) {
+      // Wind Chill 공식 (체감온도)
+      const v = windSpeed * 3.6; // m/s를 km/h로 변환
+      const wc = 13.12 + 0.6215 * temp - 11.37 * Math.pow(v, 0.16) + 0.3965 * temp * Math.pow(v, 0.16);
+      return Math.min(wc, temp);
+    }
+    // 중간 온도: 습도와 풍속을 고려한 보정
+    else {
+      let adjusted = temp;
+      
+      // 습도 보정 (높은 습도일 때 더 덥게 느껴짐)
+      if (humidity > 60) {
+        adjusted += (humidity - 60) * 0.1;
+      }
+      
+      // 바람 보정 (바람이 있으면 시원하게 느껴짐)
+      if (windSpeed > 1) {
+        adjusted -= windSpeed * 0.5;
+      }
+      
+      return adjusted;
     }
   };
 
@@ -265,10 +309,6 @@ const WeatherWidget: React.FC = () => {
             case 'WSD': // 풍속
               weatherData.windSpeed = item.obsrValue;
               break;
-            case 'WCI': // 체감온도 (Wind Chill Index)
-              weatherData.feelLikeTemp = item.obsrValue;
-              console.log('기상청 체감온도(WCI) 수신:', item.obsrValue);
-              break;
           }
         });
 
@@ -297,18 +337,6 @@ const WeatherWidget: React.FC = () => {
         }
         if (popItem) {
           weatherData.precipitationProbability = popItem.fcstValue;
-        }
-        
-        // 단기예보에서 체감온도(WCI) 찾기 (초단기실황에 없을 경우)
-        if (!weatherData.feelLikeTemp) {
-          let wciItem = todayItems.find((item: any) => item.category === 'WCI' && item.fcstTime === currentTimeStr);
-          if (!wciItem) {
-            wciItem = todayItems.find((item: any) => item.category === 'WCI');
-          }
-          if (wciItem) {
-            weatherData.feelLikeTemp = wciItem.fcstValue;
-            console.log('단기예보에서 체감온도(WCI) 발견:', wciItem.fcstValue);
-          }
         }
         
         // 최고/최저 기온 가져오기
@@ -596,17 +624,11 @@ const WeatherWidget: React.FC = () => {
                 <div>
                   <p className="text-xs text-gray-600">체감온도</p>
                   <p className="text-sm font-semibold text-gray-800">
-                    {weather.feelLikeTemp ? (
-                      <>
-                        {weather.feelLikeTemp}°C
-                        {console.log('체감온도 표시: 기상청 WCI 사용', weather.feelLikeTemp)}
-                      </>
-                    ) : (
-                      <>
-                        {(parseFloat(weather.temperature) - parseFloat(weather.windSpeed) * 0.7).toFixed(1)}°C
-                        {console.log('체감온도 표시: 계산식 사용', (parseFloat(weather.temperature) - parseFloat(weather.windSpeed) * 0.7).toFixed(1))}
-                      </>
-                    )}
+                    {calculateFeelLikeTemperature(
+                      parseFloat(weather.temperature),
+                      parseFloat(weather.windSpeed),
+                      parseFloat(weather.humidity)
+                    ).toFixed(1)}°C
                   </p>
                 </div>
               </div>
