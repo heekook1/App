@@ -19,8 +19,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Endpoint is required' });
   }
 
-  // API 키는 Vercel 환경변수에서 가져옴
-  const API_KEY = process.env.KMA_API_KEY || '2yP9tO3qQ4yj_bTt6mOMpg';
+  // API 키는 Vercel 환경변수에서 가져옴 (기상청 허브)
+  const API_KEY = process.env.KMA_API_KEY || 'J_CGQdC8TpywhkHQvP6cQg';
   
   console.log('Environment check:', {
     hasEnvKey: !!process.env.KMA_API_KEY,
