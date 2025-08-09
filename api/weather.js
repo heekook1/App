@@ -85,6 +85,10 @@ export default async function handler(req, res) {
         // 단기예보
         apiPath = '/openApi/VilageFcstInfoService_2.0/getVilageFcst';
         break;
+      case 'getXy':
+        // 격자좌표 조회
+        apiPath = '/openApi/VilageFcstInfoService_2.0/getXy';
+        break;
       default:
         apiPath = `/${endpoint}`;
     }

@@ -29,9 +29,9 @@ const WeatherWidget: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // 인천광역시 남동구 논현동 격자 좌표
-  const nx = 55;
-  const ny = 124;
+  // 격자 좌표 (초기값, 정확한 좌표는 API로 조회)
+  const [gridCoords, setGridCoords] = useState({ nx: 55, ny: 124 });
+  const [coordsLoaded, setCoordsLoaded] = useState(false);
 
   // 시간 업데이트
   useEffect(() => {
@@ -98,6 +98,44 @@ const WeatherWidget: React.FC = () => {
     return typeMap[code] || '없음';
   };
 
+  // 격자 좌표 조회
+  const fetchGridCoordinates = async () => {
+    try {
+      console.log('격자 좌표 조회 시작...');
+      
+      // 인천 남동구 논현동 좌표 조회
+      const xyUrl = `/api/weather?endpoint=getXy&umdName=논현동&numOfRows=10&pageNo=1`;
+      
+      const response = await fetch(xyUrl);
+      const data = await response.json();
+      
+      console.log('격자 좌표 조회 결과:', JSON.stringify(data, null, 2));
+      
+      if (data.response?.header?.resultCode === '00' && data.response?.body?.items?.item) {
+        const items = data.response.body.items.item;
+        // 배열인 경우 첫 번째 항목, 단일 객체인 경우 그대로 사용
+        const coordItem = Array.isArray(items) ? items[0] : items;
+        
+        if (coordItem && coordItem.nx && coordItem.ny) {
+          const newCoords = {
+            nx: parseInt(coordItem.nx),
+            ny: parseInt(coordItem.ny)
+          };
+          
+          console.log('새로운 격자 좌표:', newCoords);
+          setGridCoords(newCoords);
+        }
+      } else {
+        console.warn('격자 좌표 조회 실패, 기본값 사용:', data.response?.header);
+      }
+    } catch (err) {
+      console.error('격자 좌표 조회 오류:', err);
+      console.log('기본 격자 좌표 사용: nx=55, ny=124');
+    } finally {
+      setCoordsLoaded(true);
+    }
+  };
+
   // 풍향 텍스트 변환
   const getWindDirectionText = (deg: string) => {
     const degree = parseInt(deg);
@@ -157,17 +195,17 @@ const WeatherWidget: React.FC = () => {
       console.log('vilageBaseTime:', vilageBaseTime);
       console.log('vilageBaseDate:', vilageBaseDate);
       
-      // 초단기실황 (현재 날씨) - 인천 남동구 논현동 좌표 사용
-      const ncstUrl = `/api/weather?endpoint=getUltraSrtNcst&numOfRows=10&pageNo=1&base_date=${ncstBaseDate}&base_time=${ncstBaseTime}&nx=${nx}&ny=${ny}`;
+      // 초단기실황 (현재 날씨) - 조회된 격자 좌표 사용
+      const ncstUrl = `/api/weather?endpoint=getUltraSrtNcst&numOfRows=10&pageNo=1&base_date=${ncstBaseDate}&base_time=${ncstBaseTime}&nx=${gridCoords.nx}&ny=${gridCoords.ny}`;
       
-      // 초단기예보 (6시간 시간별 예보) - 인천 남동구 논현동 좌표 사용
-      const ultraUrl = `/api/weather?endpoint=getUltraSrtFcst&numOfRows=60&pageNo=1&base_date=${ultraBaseDate}&base_time=${ultraBaseTime}&nx=${nx}&ny=${ny}`;
+      // 초단기예보 (6시간 시간별 예보) - 조회된 격자 좌표 사용
+      const ultraUrl = `/api/weather?endpoint=getUltraSrtFcst&numOfRows=60&pageNo=1&base_date=${ultraBaseDate}&base_time=${ultraBaseTime}&nx=${gridCoords.nx}&ny=${gridCoords.ny}`;
       
-      // 단기예보 (최고/최저 기온) - 인천 남동구 논현동 좌표 사용
-      const vilageUrl = `/api/weather?endpoint=getVilageFcst&numOfRows=300&pageNo=1&base_date=${vilageBaseDate}&base_time=${vilageBaseTime}&nx=${nx}&ny=${ny}`;
+      // 단기예보 (최고/최저 기온) - 조회된 격자 좌표 사용
+      const vilageUrl = `/api/weather?endpoint=getVilageFcst&numOfRows=300&pageNo=1&base_date=${vilageBaseDate}&base_time=${vilageBaseTime}&nx=${gridCoords.nx}&ny=${gridCoords.ny}`;
 
       console.log('API 요청 URL:', { ncstUrl, ultraUrl, vilageUrl });
-      console.log('요청 파라미터:', { baseDate, ncstBaseTime, ultraBaseTime, vilageBaseTime, nx, ny });
+      console.log('요청 파라미터:', { baseDate, ncstBaseTime, ultraBaseTime, vilageBaseTime, gridCoords });
 
       // 세 API 동시 호출
       const [ncstResponse, ultraResponse, vilageResponse] = await Promise.all([
@@ -406,12 +444,20 @@ const WeatherWidget: React.FC = () => {
     };
   };
 
+  // 격자 좌표 초기화
   useEffect(() => {
-    fetchWeather();
-    // 30분마다 날씨 정보 업데이트
-    const interval = setInterval(fetchWeather, 30 * 60 * 1000);
-    return () => clearInterval(interval);
+    fetchGridCoordinates();
   }, []);
+
+  // 격자 좌표가 로드된 후 날씨 정보 조회
+  useEffect(() => {
+    if (coordsLoaded) {
+      fetchWeather();
+      // 30분마다 날씨 정보 업데이트
+      const interval = setInterval(fetchWeather, 30 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [coordsLoaded]);
 
   const formatDate = (date: Date) => {
     const year = date.getFullYear();
