@@ -29,9 +29,9 @@ const WeatherWidget: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // 인천광역시 남동구 논현동 격자 좌표
+  // 서울시 격자 좌표 (공식 기상청 API에서 널리 사용되는 좌표)
   const nx = 55;
-  const ny = 124;
+  const ny = 127;
 
   // 시간 업데이트
   useEffect(() => {
@@ -109,39 +109,52 @@ const WeatherWidget: React.FC = () => {
   // 날씨 데이터 가져오기
   const fetchWeather = async () => {
     try {
-      // 한국 시간 기준으로 현재 시간 계산
+      // 한국 시간 기준으로 현재 시간 계산 (UTC+9)
       const now = new Date();
-      const koreaTime = new Date(now.getTime() + (9 * 60 * 60 * 1000)); // UTC+9
+      const koreaTime = new Date(now.getTime() + (9 * 60 * 60 * 1000));
       const baseDate = koreaTime.toISOString().slice(0, 10).replace(/-/g, '');
       
       console.log('현재 한국 시간:', koreaTime);
       console.log('baseDate:', baseDate);
       
-      // 초단기실황은 매시 10분 이후 발표 (한국 시간 기준)
-      const currentMinutes = koreaTime.getMinutes();
+      // 초단기실황은 매시 40분 이후 발표, 10분마다 업데이트 (한국 시간 기준)
+      const currentMinutes = koreaTime.getUTCMinutes();
+      const currentHour = koreaTime.getUTCHours();
       let ncstBaseTime: string;
+      let ncstBaseDate = baseDate;
       
-      if (currentMinutes < 10) {
-        // 10분 이전이면 이전 시간 데이터 사용
-        const prevHour = new Date(koreaTime);
-        prevHour.setHours(prevHour.getHours() - 1);
-        ncstBaseTime = prevHour.getHours().toString().padStart(2, '0') + '00';
+      // 초단기실황 base_time 계산: 매시 40분 이후에 해당 시간 데이터 제공
+      if (currentMinutes >= 40) {
+        // 40분 이후라면 현재 시간 사용
+        ncstBaseTime = currentHour.toString().padStart(2, '0') + '00';
       } else {
-        ncstBaseTime = koreaTime.getHours().toString().padStart(2, '0') + '00';
+        // 40분 이전이라면 1시간 전 데이터 사용
+        let prevHour = currentHour - 1;
+        if (prevHour < 0) {
+          prevHour = 23;
+          // 날짜가 바뀐 경우 baseDate도 조정
+          const prevDay = new Date(koreaTime.getTime() - (24 * 60 * 60 * 1000));
+          ncstBaseDate = prevDay.toISOString().slice(0, 10).replace(/-/g, '');
+        }
+        ncstBaseTime = prevHour.toString().padStart(2, '0') + '00';
       }
       
       console.log('ncstBaseTime:', ncstBaseTime);
+      console.log('ncstBaseDate:', ncstBaseDate);
       
       // 단기예보 base_time 계산 (한국 시간 기준)
-      const vilageBaseTime = getVilageBaseTime(koreaTime);
+      const vilageResult = getVilageBaseTime(koreaTime);
+      const vilageBaseTime = vilageResult.baseTime;
+      const vilageBaseDate = vilageResult.baseDate;
       
       console.log('vilageBaseTime:', vilageBaseTime);
+      console.log('vilageBaseDate:', vilageBaseDate);
       
-      // 초단기실황 (현재 날씨)
-      const ncstUrl = `/api/weather?endpoint=getUltraSrtNcst&numOfRows=10&pageNo=1&base_date=${baseDate}&base_time=${ncstBaseTime}&nx=${nx}&ny=${ny}`;
+      // 초단기실황 (현재 날씨) - 서울 좌표 사용
+      const ncstUrl = `/api/weather?endpoint=getUltraSrtNcst&numOfRows=10&pageNo=1&base_date=${ncstBaseDate}&base_time=${ncstBaseTime}&nx=${nx}&ny=${ny}`;
       
-      // 단기예보 (최고/최저 기온 및 시간별 예보)
-      const vilageUrl = `/api/weather?endpoint=getVilageFcst&numOfRows=200&pageNo=1&base_date=${baseDate}&base_time=${vilageBaseTime}&nx=${nx}&ny=${ny}`;
+      // 단기예보 (최고/최저 기온 및 시간별 예보) - 서울 좌표 사용
+      const vilageUrl = `/api/weather?endpoint=getVilageFcst&numOfRows=300&pageNo=1&base_date=${vilageBaseDate}&base_time=${vilageBaseTime}&nx=${nx}&ny=${ny}`;
 
       console.log('API 요청 URL:', { ncstUrl, vilageUrl });
       console.log('요청 파라미터:', { baseDate, ncstBaseTime, vilageBaseTime, nx, ny });
@@ -199,12 +212,18 @@ const WeatherWidget: React.FC = () => {
         });
 
         // 단기예보에서 하늘상태와 최고/최저 기온 가져오기
-        const todayItems = vilageItems.filter((item: any) => item.fcstDate === baseDate);
+        const todayItems = vilageItems.filter((item: any) => item.fcstDate === baseDate || item.fcstDate === vilageBaseDate);
         
         // 현재 시간과 가장 가까운 하늘상태 가져오기
-        const currentHour = now.getHours();
+        const currentHour = koreaTime.getUTCHours();
         const currentTimeStr = currentHour.toString().padStart(2, '0') + '00';
-        const skyItem = todayItems.find((item: any) => item.category === 'SKY' && item.fcstTime === currentTimeStr);
+        let skyItem = todayItems.find((item: any) => item.category === 'SKY' && item.fcstTime === currentTimeStr);
+        
+        // 정확한 시간의 데이터가 없으면 가장 가까운 시간의 데이터 사용
+        if (!skyItem) {
+          skyItem = todayItems.find((item: any) => item.category === 'SKY');
+        }
+        
         if (skyItem) {
           weatherData.skyStatus = skyItem.fcstValue;
         }
@@ -277,23 +296,35 @@ const WeatherWidget: React.FC = () => {
 
   // 단기예보 base_time 계산
   const getVilageBaseTime = (date: Date) => {
-    const hour = date.getHours();
-    const minute = date.getMinutes();
+    const hour = date.getUTCHours(); // UTC 시간 사용 (이미 한국 시간으로 조정된 date)
+    const minute = date.getUTCMinutes();
     
-    // 단기예보는 02, 05, 08, 11, 14, 17, 20, 23시에 발표
+    // 단기예보는 02, 05, 08, 11, 14, 17, 20, 23시에 발표 (각 기준시간 + 10분 후)
     const baseTimes = ['0200', '0500', '0800', '1100', '1400', '1700', '2000', '2300'];
     const currentTime = hour * 100 + minute;
     
-    // 발표 시간은 기준 시간 + 10분
+    let selectedBaseTime = '2300'; // 기본값: 전날 23시
+    let baseDate = date.toISOString().slice(0, 10).replace(/-/g, '');
+    
+    // 발표 시간은 기준 시간 + 10분 후부터 사용 가능
     for (let i = baseTimes.length - 1; i >= 0; i--) {
-      const baseTime = parseInt(baseTimes[i]);
-      if (currentTime >= baseTime + 10) {
-        return baseTimes[i];
+      const baseTimeNum = parseInt(baseTimes[i]);
+      if (currentTime >= baseTimeNum + 10) {
+        selectedBaseTime = baseTimes[i];
+        break;
       }
     }
     
-    // 새벽 시간대는 전날 23시 데이터 사용
-    return '2300';
+    // 새벽 시간대(02:10 이전)는 전날 23시 데이터 사용
+    if (selectedBaseTime === '2300' && currentTime < 210) {
+      const prevDay = new Date(date.getTime() - (24 * 60 * 60 * 1000));
+      baseDate = prevDay.toISOString().slice(0, 10).replace(/-/g, '');
+    }
+    
+    return {
+      baseTime: selectedBaseTime,
+      baseDate: baseDate
+    };
   };
 
   useEffect(() => {
@@ -345,7 +376,7 @@ const WeatherWidget: React.FC = () => {
   return (
     <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-lg p-6">
       <div className="mb-4">
-        <h3 className="text-xl font-bold text-gray-900">인천 남동구 논현동</h3>
+        <h3 className="text-xl font-bold text-gray-900">서울특별시</h3>
         <p className="text-sm text-gray-600">{formatDate(currentTime)}</p>
         <p className="text-lg font-semibold text-gray-800">{formatTime(currentTime)}</p>
       </div>
