@@ -109,24 +109,33 @@ const WeatherWidget: React.FC = () => {
   // 날씨 데이터 가져오기
   const fetchWeather = async () => {
     try {
+      // 한국 시간 기준으로 현재 시간 계산
       const now = new Date();
-      const baseDate = now.toISOString().slice(0, 10).replace(/-/g, '');
+      const koreaTime = new Date(now.getTime() + (9 * 60 * 60 * 1000)); // UTC+9
+      const baseDate = koreaTime.toISOString().slice(0, 10).replace(/-/g, '');
       
-      // 초단기실황은 매시 10분 이후 발표 (기상청 허브 규칙)
-      const currentMinutes = now.getMinutes();
+      console.log('현재 한국 시간:', koreaTime);
+      console.log('baseDate:', baseDate);
+      
+      // 초단기실황은 매시 10분 이후 발표 (한국 시간 기준)
+      const currentMinutes = koreaTime.getMinutes();
       let ncstBaseTime: string;
       
       if (currentMinutes < 10) {
         // 10분 이전이면 이전 시간 데이터 사용
-        const prevHour = new Date(now);
+        const prevHour = new Date(koreaTime);
         prevHour.setHours(prevHour.getHours() - 1);
         ncstBaseTime = prevHour.getHours().toString().padStart(2, '0') + '00';
       } else {
-        ncstBaseTime = now.getHours().toString().padStart(2, '0') + '00';
+        ncstBaseTime = koreaTime.getHours().toString().padStart(2, '0') + '00';
       }
       
-      // 단기예보 base_time 계산
-      const vilageBaseTime = getVilageBaseTime(now);
+      console.log('ncstBaseTime:', ncstBaseTime);
+      
+      // 단기예보 base_time 계산 (한국 시간 기준)
+      const vilageBaseTime = getVilageBaseTime(koreaTime);
+      
+      console.log('vilageBaseTime:', vilageBaseTime);
       
       // 초단기실황 (현재 날씨)
       const ncstUrl = `/api/weather?endpoint=getUltraSrtNcst&numOfRows=10&pageNo=1&base_date=${baseDate}&base_time=${ncstBaseTime}&nx=${nx}&ny=${ny}`;
@@ -146,8 +155,8 @@ const WeatherWidget: React.FC = () => {
       const ncstData = await ncstResponse.json();
       const vilageData = await vilageResponse.json();
 
-      console.log('초단기실황 응답:', ncstData);
-      console.log('단기예보 응답:', vilageData);
+      console.log('초단기실황 응답:', JSON.stringify(ncstData, null, 2));
+      console.log('단기예보 응답:', JSON.stringify(vilageData, null, 2));
 
       // 에러 응답 체크
       if (ncstData.error || vilageData.error) {
