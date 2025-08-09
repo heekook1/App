@@ -45,21 +45,36 @@ export default async function handler(req, res) {
         apiPath = `/${endpoint}`;
     }
     
-    // serviceKey를 별도로 처리 (인코딩 문제 방지)
-    const serviceKey = encodeURIComponent(API_KEY);
+    // serviceKey를 인코딩하지 않고 직접 사용
     const queryParams = new URLSearchParams(params);
     queryParams.set('dataType', 'JSON');
     
-    const url = `${baseUrl}${apiPath}?serviceKey=${serviceKey}&${queryParams}`;
+    const url = `${baseUrl}${apiPath}?serviceKey=${API_KEY}&${queryParams}`;
     
-    console.log('Weather API Request URL:', url);
+    console.log('Weather API Request URL:', url.replace(API_KEY, 'API_KEY_HIDDEN'));
     
     // 기상청 API 호출
-    const response = await fetch(url);
-    const text = await response.text();
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
     
     console.log('Weather API Response Status:', response.status);
-    console.log('Weather API Response:', text.substring(0, 200) + '...');
+    console.log('Weather API Response Headers:', Object.fromEntries(response.headers.entries()));
+    
+    const text = await response.text();
+    console.log('Weather API Response Length:', text.length);
+    console.log('Weather API Response Sample:', text.substring(0, 500));
+    
+    if (!response.ok) {
+      console.error('HTTP Error:', response.status, response.statusText);
+      return res.status(500).json({
+        error: `Weather API returned ${response.status}: ${response.statusText}`,
+        details: text.substring(0, 200),
+        url: url.replace(API_KEY, 'API_KEY_HIDDEN')
+      });
+    }
     
     // JSON 파싱 시도
     let data;
@@ -67,12 +82,16 @@ export default async function handler(req, res) {
       data = JSON.parse(text);
     } catch (parseError) {
       console.error('JSON Parse Error:', parseError);
-      console.error('Response Text:', text);
+      console.error('Response Text Sample:', text.substring(0, 500));
       return res.status(500).json({ 
         error: 'Invalid JSON response from weather API',
-        details: text.substring(0, 200)
+        details: text.substring(0, 200),
+        parseError: parseError.message
       });
     }
+    
+    console.log('Parsed Data Result Code:', data?.response?.header?.resultCode);
+    console.log('Parsed Data Result Message:', data?.response?.header?.resultMsg);
     
     // 응답 반환
     res.status(200).json(data);
