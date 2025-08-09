@@ -1633,9 +1633,16 @@ const MaintenanceManagementSystem = () => {
         )}
         
         <div>
-          <h3 className="font-medium text-lg mb-3">작업 목록</h3>
+          <h3 className="font-medium text-lg mb-3">
+            {currentCalendarMonth.getFullYear()}년 {currentCalendarMonth.getMonth() + 1}월 작업 목록
+          </h3>
           <div className="space-y-4">
-            {workOrders.map(order => (
+            {workOrders.filter(order => {
+              // 현재 선택된 월의 작업만 필터링
+              const orderDate = new Date(order.dueDate);
+              return orderDate.getFullYear() === currentCalendarMonth.getFullYear() && 
+                     orderDate.getMonth() === currentCalendarMonth.getMonth();
+            }).map(order => (
               <div key={order.id} className="p-4 border rounded-lg hover:bg-gray-50">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -1666,6 +1673,15 @@ const MaintenanceManagementSystem = () => {
                 </div>
               </div>
             ))}
+            {workOrders.filter(order => {
+              const orderDate = new Date(order.dueDate);
+              return orderDate.getFullYear() === currentCalendarMonth.getFullYear() && 
+                     orderDate.getMonth() === currentCalendarMonth.getMonth();
+            }).length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                {currentCalendarMonth.getFullYear()}년 {currentCalendarMonth.getMonth() + 1}월에는 예정된 작업이 없습니다.
+              </div>
+            )}
           </div>
         </div>
       </div>
