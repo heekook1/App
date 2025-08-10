@@ -276,8 +276,21 @@ const WeatherWidget: React.FC = () => {
         });
 
         // 단기예보에서 하늘상태와 최고/최저 기온 가져오기
-        const todayItems = vilageItems.filter((item: any) => item.fcstDate === baseDate || item.fcstDate === vilageBaseDate);
+        // 오늘과 내일 데이터 모두 포함 (TMX/TMN은 시간대에 따라 다음날 데이터에 있을 수 있음)
+        const tomorrow = new Date(koreaTime.getTime() + (24 * 60 * 60 * 1000));
+        const tomorrowDate = tomorrow.toISOString().slice(0, 10).replace(/-/g, '');
+        
+        const todayItems = vilageItems.filter((item: any) => 
+          item.fcstDate === baseDate || 
+          item.fcstDate === vilageBaseDate ||
+          item.fcstDate === tomorrowDate
+        );
         console.log('단기예보 카테고리 목록:', Array.from(new Set(todayItems.map((item: any) => item.category))));
+        console.log('날짜별 아이템 수:', {
+          baseDate: vilageItems.filter((item: any) => item.fcstDate === baseDate).length,
+          vilageBaseDate: vilageItems.filter((item: any) => item.fcstDate === vilageBaseDate).length,
+          tomorrowDate: vilageItems.filter((item: any) => item.fcstDate === tomorrowDate).length
+        });
         
         // 현재 시간과 가장 가까운 하늘상태 가져오기
         const currentHour = koreaTime.getUTCHours();
@@ -302,11 +315,19 @@ const WeatherWidget: React.FC = () => {
           weatherData.precipitationProbability = popItem.fcstValue;
         }
         
-        // 최고/최저 기온 가져오기
-        todayItems.forEach((item: any) => {
+        // 최고/최저 기온 가져오기 (오늘 날짜 기준)
+        const todayTempItems = todayItems.filter((item: any) => 
+          item.fcstDate === baseDate && (item.category === 'TMX' || item.category === 'TMN')
+        );
+        
+        console.log('오늘 날짜 TMX/TMN 아이템:', todayTempItems);
+        
+        todayTempItems.forEach((item: any) => {
           if (item.category === 'TMX') {
+            console.log('최고기온 찾음:', item.fcstValue, '시간:', item.fcstTime, '날짜:', item.fcstDate);
             weatherData.maxTemp = item.fcstValue;
           } else if (item.category === 'TMN') {
+            console.log('최저기온 찾음:', item.fcstValue, '시간:', item.fcstTime, '날짜:', item.fcstDate);
             weatherData.minTemp = item.fcstValue;
           }
         });
