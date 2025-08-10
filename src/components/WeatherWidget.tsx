@@ -165,8 +165,8 @@ const WeatherWidget: React.FC = () => {
       // console.log('baseDate:', baseDate);
       
       // 초단기실황은 매시 10분 이후 발표, 10분마다 업데이트 (한국 시간 기준)
-      const currentMinutes = koreaTime.getMinutes(); // KST 기준 분
-      const currentHour = koreaTime.getHours(); // KST 기준 시
+      const currentMinutes = koreaTime.getUTCMinutes(); // UTC+9로 변환된 koreaTime에서 UTC 메서드 사용
+      const currentHour = koreaTime.getUTCHours(); // UTC+9로 변환된 koreaTime에서 UTC 메서드 사용
       let ncstBaseTime: string;
       let ncstBaseDate = baseDate;
       
@@ -288,7 +288,7 @@ const WeatherWidget: React.FC = () => {
         );
         
         // 현재 시간과 가장 가까운 하늘상태 가져오기 (KST 기준)
-        const currentHour = koreaTime.getHours();
+        const currentHour = koreaTime.getUTCHours(); // UTC+9로 변환된 koreaTime에서 UTC 메서드 사용
         const currentTimeStr = currentHour.toString().padStart(2, '0') + '00';
         let skyItem = relevantItems.find((item: any) => item.category === 'SKY' && item.fcstTime === currentTimeStr);
         
