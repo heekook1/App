@@ -915,10 +915,10 @@ const MaintenanceManagementSystem = () => {
         <div className="flex items-center justify-between h-20">
           <div className="flex flex-col items-center">
             <h1 className="text-lg font-semibold text-gray-900 mb-1">정비 업체 관리 시스템</h1>
-            <div className="flex items-center gap-2 justify-center">
-              <img src="/wideincheon-logo.png" alt="위드인천에너지" className="h-7 w-auto" />
+            <div className="flex items-center gap-1 justify-center">
+              <img src="/wideincheon-logo.png" alt="위드인천에너지" className="h-6 w-auto" />
               <span className="text-gray-400 text-sm">×</span>
-              <img src="/youngjin-logo.png" alt="영진" className="h-7 w-auto" />
+              <img src="/youngjin-logo.png" alt="영진" className="h-6 w-auto" />
             </div>
           </div>
           
