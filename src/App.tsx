@@ -10,6 +10,7 @@ import ForgotPasswordPage from './ForgotPasswordPage';
 import AuthCallback from './AuthCallback';
 import ResetPasswordPage from './ResetPasswordPage';
 import WeatherWidget from './components/WeatherWidget';
+import { WeatherProvider } from './contexts/WeatherContext';
 import { 
   loadPersonnelFromSupabase, 
   loadWorkOrdersFromSupabase, 
@@ -4963,8 +4964,9 @@ const MaintenanceManagementSystem = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {renderNavigation()}
+    <WeatherProvider>
+      <div className="min-h-screen bg-gray-50">
+        {renderNavigation()}
       
       {/* Loading Indicator */}
       {isLoadingData && (
@@ -5255,7 +5257,8 @@ const MaintenanceManagementSystem = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </WeatherProvider>
   );
 };
 
