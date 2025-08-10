@@ -2677,7 +2677,9 @@ const MaintenanceManagementSystem = () => {
                     </button>
                   </div>
                   <div className="space-y-2 border rounded-lg p-3 max-h-40 overflow-y-auto">
-                    {[...fixedAssignees, ...personnel.map(p => p.name)].filter((name, index, self) => self.indexOf(name) === index).map((name, index) => (
+                    {[...personnel.map(p => p.name), ...fixedAssignees]
+                      .filter((name, index, self) => self.indexOf(name) === index)
+                      .map((name, index) => (
                       <label key={index} className="flex items-center space-x-2">
                         <input
                           type="checkbox"
@@ -2808,23 +2810,6 @@ const MaintenanceManagementSystem = () => {
               
               <div className="space-y-4 max-h-60 overflow-y-auto">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">위드 담당자</h4>
-                  <div className="space-y-1">
-                    {fixedAssignees.map((name) => (
-                      <div key={name} className="flex items-center justify-between p-2 border rounded hover:bg-gray-50">
-                        <span className="text-sm">{name}</span>
-                        <button
-                          onClick={() => handleDeleteAssignee(name)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                <div>
                   <h4 className="text-sm font-medium text-gray-700 mb-2">영진 담당자</h4>
                   <div className="space-y-1">
                     {personnel.map((person) => (
@@ -2842,6 +2827,23 @@ const MaintenanceManagementSystem = () => {
                               }));
                             }
                           }}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">위드 담당자</h4>
+                  <div className="space-y-1">
+                    {fixedAssignees.map((name) => (
+                      <div key={name} className="flex items-center justify-between p-2 border rounded hover:bg-gray-50">
+                        <span className="text-sm">{name}</span>
+                        <button
+                          onClick={() => handleDeleteAssignee(name)}
                           className="text-red-600 hover:text-red-800"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -2887,7 +2889,21 @@ const MaintenanceManagementSystem = () => {
               </tr>
             </thead>
             <tbody>
-              {workOrders.map(order => (
+              {workOrders
+                .sort((a, b) => {
+                  // ID를 연도와 번호로 분리
+                  const [yearA, numA] = a.id.split('-').map(Number);
+                  const [yearB, numB] = b.id.split('-').map(Number);
+                  
+                  // 먼저 연도로 내림차순 정렬
+                  if (yearA !== yearB) {
+                    return yearB - yearA;
+                  }
+                  
+                  // 같은 연도면 번호로 내림차순 정렬
+                  return numB - numA;
+                })
+                .map(order => (
                 <tr key={order.id} className="hover:bg-gray-50">
                   <td className="px-4 py-2 border-b text-sm font-mono whitespace-nowrap" style={{ width: '80px' }}>{order.id}</td>
                   <td className="px-4 py-2 border-b text-sm font-medium" style={{ width: '200px', minWidth: '200px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{order.title}</td>
