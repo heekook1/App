@@ -338,7 +338,16 @@ const MaintenanceManagementSystem = () => {
       order.id.startsWith(`${yearSuffix}-`)
     );
     
-    const nextNumber = currentYearOrders.length + 1;
+    // 가장 큰 번호를 찾아서 +1
+    let maxNumber = 0;
+    currentYearOrders.forEach(order => {
+      const numberPart = parseInt(order.id.split('-')[1]);
+      if (numberPart > maxNumber) {
+        maxNumber = numberPart;
+      }
+    });
+    
+    const nextNumber = maxNumber + 1;
     return `${yearSuffix}-${nextNumber}`;
   };
 
