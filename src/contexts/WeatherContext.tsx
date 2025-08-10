@@ -403,11 +403,66 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     }
   };
 
-  // 컴포넌트 마운트 시 날씨 데이터 로드
+  // 각 API별 독립적인 스케줄링 (5분마다 체크해서 필요시에만 호출)
   useEffect(() => {
+    // 초기 로드
     fetchWeather();
-    // 10분마다 날씨 정보 업데이트 (초단기실황 갱신 주기에 맞춤)
-    const interval = setInterval(fetchWeather, 10 * 60 * 1000);
+
+    let lastNcstBaseTime = '';
+    let lastUltraBaseTime = '';
+    let lastVilageBaseTime = '';
+
+    // 5분마다 체크해서 base_time이 변경된 경우에만 API 호출
+    const checkAndUpdate = () => {
+      try {
+        const now = new Date();
+        const koreaTime = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+        const currentMinutes = koreaTime.getUTCMinutes();
+        const currentHour = koreaTime.getUTCHours();
+
+        // 초단기실황 base_time 계산
+        let ncstBaseTime: string;
+        if (currentMinutes >= 10) {
+          ncstBaseTime = currentHour.toString().padStart(2, '0') + '00';
+        } else {
+          let prevHour = currentHour - 1;
+          if (prevHour < 0) prevHour = 23;
+          ncstBaseTime = prevHour.toString().padStart(2, '0') + '00';
+        }
+
+        // 초단기예보 base_time 계산
+        const ultraResult = getUltraSrtFcstBaseTime(koreaTime);
+        const ultraBaseTime = ultraResult.baseTime;
+
+        // 단기예보 base_time 계산
+        const vilageResult = getVilageBaseTime(koreaTime);
+        const vilageBaseTime = vilageResult.baseTime;
+
+        // 변경된 것이 있으면 업데이트
+        if (ncstBaseTime !== lastNcstBaseTime || 
+            ultraBaseTime !== lastUltraBaseTime || 
+            vilageBaseTime !== lastVilageBaseTime) {
+          
+          console.log('날씨 API 업데이트 감지:', {
+            ncst: `${lastNcstBaseTime} → ${ncstBaseTime}`,
+            ultra: `${lastUltraBaseTime} → ${ultraBaseTime}`,
+            vilage: `${lastVilageBaseTime} → ${vilageBaseTime}`
+          });
+          
+          fetchWeather();
+          
+          lastNcstBaseTime = ncstBaseTime;
+          lastUltraBaseTime = ultraBaseTime;
+          lastVilageBaseTime = vilageBaseTime;
+        }
+      } catch (error) {
+        console.error('스케줄 체크 중 오류:', error);
+      }
+    };
+
+    // 5분마다 체크
+    const interval = setInterval(checkAndUpdate, 5 * 60 * 1000);
+    
     return () => clearInterval(interval);
   }, []);
 
