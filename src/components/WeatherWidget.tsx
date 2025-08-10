@@ -165,8 +165,8 @@ const WeatherWidget: React.FC = () => {
       // console.log('baseDate:', baseDate);
       
       // 초단기실황은 매시 10분 이후 발표, 10분마다 업데이트 (한국 시간 기준)
-      const currentMinutes = koreaTime.getUTCMinutes();
-      const currentHour = koreaTime.getUTCHours();
+      const currentMinutes = koreaTime.getMinutes(); // KST 기준 분
+      const currentHour = koreaTime.getHours(); // KST 기준 시
       let ncstBaseTime: string;
       let ncstBaseDate = baseDate;
       
@@ -210,8 +210,8 @@ const WeatherWidget: React.FC = () => {
       // 초단기예보 (6시간 시간별 예보) - 조회된 격자 좌표 사용
       const ultraUrl = `/api/weather?endpoint=getUltraSrtFcst&numOfRows=60&pageNo=1&base_date=${ultraBaseDate}&base_time=${ultraBaseTime}&nx=${gridCoords.nx}&ny=${gridCoords.ny}`;
       
-      // 단기예보 (최고/최저 기온) - 조회된 격자 좌표 사용
-      const vilageUrl = `/api/weather?endpoint=getVilageFcst&numOfRows=300&pageNo=1&base_date=${vilageBaseDate}&base_time=${vilageBaseTime}&nx=${gridCoords.nx}&ny=${gridCoords.ny}`;
+      // 단기예보 (최고/최저 기온) - TMX/TMN 확보를 위해 더 많은 데이터 요청
+      const vilageUrl = `/api/weather?endpoint=getVilageFcst&numOfRows=1000&pageNo=1&base_date=${vilageBaseDate}&base_time=${vilageBaseTime}&nx=${gridCoords.nx}&ny=${gridCoords.ny}`;
 
       // console.log('API 요청 URL:', { ncstUrl, ultraUrl, vilageUrl });
       // console.log('요청 파라미터:', { baseDate, ncstBaseTime, ultraBaseTime, vilageBaseTime, gridCoords });
@@ -278,30 +278,23 @@ const WeatherWidget: React.FC = () => {
         });
 
         // 단기예보에서 하늘상태와 최고/최저 기온 가져오기
-        // 오늘과 내일 데이터 모두 포함 (TMX/TMN은 시간대에 따라 다음날 데이터에 있을 수 있음)
+        // 오늘과 내일 데이터 확보 (안전 범위)
         const tomorrow = new Date(koreaTime.getTime() + (24 * 60 * 60 * 1000));
         const tomorrowDate = tomorrow.toISOString().slice(0, 10).replace(/-/g, '');
         
-        const todayItems = vilageItems.filter((item: any) => 
-          item.fcstDate === baseDate || 
-          item.fcstDate === vilageBaseDate ||
-          item.fcstDate === tomorrowDate
+        // 오늘/내일 데이터만 필터링
+        const relevantItems = vilageItems.filter((item: any) => 
+          item.fcstDate === baseDate || item.fcstDate === tomorrowDate
         );
-        // console.log('단기예보 카테고리 목록:', Array.from(new Set(todayItems.map((item: any) => item.category))));
-        // console.log('날짜별 아이템 수:', {
-        //   baseDate: vilageItems.filter((item: any) => item.fcstDate === baseDate).length,
-        //   vilageBaseDate: vilageItems.filter((item: any) => item.fcstDate === vilageBaseDate).length,
-        //   tomorrowDate: vilageItems.filter((item: any) => item.fcstDate === tomorrowDate).length
-        // });
         
-        // 현재 시간과 가장 가까운 하늘상태 가져오기
-        const currentHour = koreaTime.getUTCHours();
+        // 현재 시간과 가장 가까운 하늘상태 가져오기 (KST 기준)
+        const currentHour = koreaTime.getHours();
         const currentTimeStr = currentHour.toString().padStart(2, '0') + '00';
-        let skyItem = todayItems.find((item: any) => item.category === 'SKY' && item.fcstTime === currentTimeStr);
+        let skyItem = relevantItems.find((item: any) => item.category === 'SKY' && item.fcstTime === currentTimeStr);
         
         // 정확한 시간의 데이터가 없으면 가장 가까운 시간의 데이터 사용
         if (!skyItem) {
-          skyItem = todayItems.find((item: any) => item.category === 'SKY');
+          skyItem = relevantItems.find((item: any) => item.category === 'SKY');
         }
         
         if (skyItem) {
@@ -309,39 +302,33 @@ const WeatherWidget: React.FC = () => {
         }
         
         // 현재 시간대 강수확률 가져오기
-        let popItem = todayItems.find((item: any) => item.category === 'POP' && item.fcstTime === currentTimeStr);
+        let popItem = relevantItems.find((item: any) => item.category === 'POP' && item.fcstTime === currentTimeStr);
         if (!popItem) {
-          popItem = todayItems.find((item: any) => item.category === 'POP');
+          popItem = relevantItems.find((item: any) => item.category === 'POP');
         }
         if (popItem) {
           weatherData.precipitationProbability = popItem.fcstValue;
         }
         
-        // 최고/최저 기온 가져오기
-        // TMX는 오늘, TMN은 내일 날짜에 있을 수 있음
-        const tempItems = vilageItems.filter((item: any) => 
-          item.category === 'TMX' || item.category === 'TMN'
-        );
+        // TMX/TMN 추출 함수
+        const pickTMXTMN = (items: any[], targetDate: string) => {
+          const dayItems = items.filter((item: any) => item.fcstDate === targetDate);
+          
+          const tmx = dayItems.find((item: any) => item.category === 'TMX')?.fcstValue;
+          const tmn = dayItems.find((item: any) => item.category === 'TMN')?.fcstValue;
+          
+          return { tmx, tmn };
+        };
         
-        // console.log('전체 TMX/TMN 아이템:', tempItems);
+        // 오늘 우선, 없으면 내일 폴백
+        const todayTM = pickTMXTMN(relevantItems, baseDate);
+        const tomorrowTM = pickTMXTMN(relevantItems, tomorrowDate);
         
-        // 오늘 날짜의 TMX 찾기
-        const todayTMX = tempItems.find((item: any) => 
-          item.category === 'TMX' && item.fcstDate === baseDate
-        );
-        if (todayTMX) {
-          // console.log('최고기온 찾음:', todayTMX.fcstValue, '시간:', todayTMX.fcstTime, '날짜:', todayTMX.fcstDate);
-          weatherData.maxTemp = todayTMX.fcstValue;
-        }
+        const finalTMX = todayTM.tmx || tomorrowTM.tmx;
+        const finalTMN = todayTM.tmn || tomorrowTM.tmn;
         
-        // TMN은 오늘 또는 내일 날짜에서 찾기
-        const todayTMN = tempItems.find((item: any) => 
-          item.category === 'TMN' && (item.fcstDate === baseDate || item.fcstDate === tomorrowDate)
-        );
-        if (todayTMN) {
-          // console.log('최저기온 찾음:', todayTMN.fcstValue, '시간:', todayTMN.fcstTime, '날짜:', todayTMN.fcstDate);
-          weatherData.minTemp = todayTMN.fcstValue;
-        }
+        if (finalTMX) weatherData.maxTemp = finalTMX;
+        if (finalTMN) weatherData.minTemp = finalTMN;
 
         // 시간별 예보 (초단기예보 사용 - 향후 6시간)
         const forecast: any[] = [];
