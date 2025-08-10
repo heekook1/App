@@ -161,14 +161,16 @@ const WeatherWidget: React.FC = () => {
       const koreaTime = new Date(now.getTime() + (9 * 60 * 60 * 1000));
       const baseDate = koreaTime.toISOString().slice(0, 10).replace(/-/g, '');
       
-      // console.log('현재 한국 시간:', koreaTime);
-      // console.log('baseDate:', baseDate);
+      console.log('현재 한국 시간:', koreaTime);
+      console.log('baseDate:', baseDate);
       
       // 초단기실황은 매시 10분 이후 발표, 10분마다 업데이트 (한국 시간 기준)
       const currentMinutes = koreaTime.getUTCMinutes(); // UTC+9로 변환된 koreaTime에서 UTC 메서드 사용
       const currentHour = koreaTime.getUTCHours(); // UTC+9로 변환된 koreaTime에서 UTC 메서드 사용
       let ncstBaseTime: string;
       let ncstBaseDate = baseDate;
+      
+      console.log('현재 KST 시간:', currentHour + '시 ' + currentMinutes + '분');
       
       // 초단기실황 base_time 계산: 매시 10분 이후에 해당 시간 데이터 제공
       if (currentMinutes >= 10) {
@@ -186,7 +188,7 @@ const WeatherWidget: React.FC = () => {
         ncstBaseTime = prevHour.toString().padStart(2, '0') + '00';
       }
       
-      // console.log('ncstBaseTime:', ncstBaseTime);
+      console.log('초단기실황 요청 시간:', ncstBaseTime, 'ncstBaseDate:', ncstBaseDate);
       // console.log('ncstBaseDate:', ncstBaseDate);
       
       // 초단기예보 base_time 계산 (매시 30분 발표, 45분 이후 제공)
@@ -228,8 +230,8 @@ const WeatherWidget: React.FC = () => {
       const vilageData = await vilageResponse.json();
 
       // API 응답 로깅 (개발 시에만 필요)
-      // console.log('초단기실황 응답:', JSON.stringify(ncstData, null, 2));
-      // console.log('초단기예보 응답:', JSON.stringify(ultraData, null, 2));
+      console.log('초단기실황 응답:', JSON.stringify(ncstData, null, 2));
+      console.log('초단기예보 응답:', JSON.stringify(ultraData, null, 2));
       // console.log('단기예보 응답:', JSON.stringify(vilageData, null, 2));
 
       // 에러 응답 체크
@@ -253,10 +255,12 @@ const WeatherWidget: React.FC = () => {
         };
 
         // 초단기실황 데이터 파싱 (실시간 현재 날씨)
-        // console.log('초단기실황 카테고리 목록:', ncstItems.map((item: any) => item.category));
+        console.log('초단기실황 카테고리 목록:', ncstItems.map((item: any) => item.category));
+        console.log('초단기실황 T1H 데이터:', ncstItems.filter((item: any) => item.category === 'T1H'));
         ncstItems.forEach((item: any) => {
           switch (item.category) {
             case 'T1H': // 기온
+              console.log('초단기실황 온도:', item.obsrValue);
               weatherData.temperature = item.obsrValue;
               break;
             case 'RN1': // 1시간 강수량
