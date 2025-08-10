@@ -1243,7 +1243,7 @@ const MaintenanceManagementSystem = () => {
       
       {/* 하단 4개 위젯 - 상단 카운터 위젯과 컬럼 정렬 */}
       <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border h-[650px] overflow-y-auto">
+        <div className="bg-white p-4 rounded-lg shadow-sm border h-[670px] overflow-y-auto">
           <h3 className="text-lg font-semibold mb-4">최근 작업</h3>
           <div className="space-y-3">
             {workOrders.slice(0, 6).map(order => (
@@ -1260,7 +1260,7 @@ const MaintenanceManagementSystem = () => {
           </div>
         </div>
         
-        <div className="bg-white p-4 rounded-lg shadow-sm border h-[650px] overflow-y-auto">
+        <div className="bg-white p-4 rounded-lg shadow-sm border h-[670px] overflow-y-auto">
           <h3 className="text-lg font-semibold mb-4">근태 현황</h3>
           <div className="space-y-3">
             {personnel.map(person => {
@@ -1302,7 +1302,7 @@ const MaintenanceManagementSystem = () => {
           </div>
         </div>
         
-        <div className="bg-white p-4 rounded-lg shadow-sm border h-[650px] overflow-y-auto">
+        <div className="bg-white p-4 rounded-lg shadow-sm border h-[670px] overflow-y-auto">
           <h3 className="text-lg font-semibold mb-4">최근 공지사항</h3>
           <div className="space-y-3">
             {announcements.slice(0, 6).map(announcement => (
