@@ -403,7 +403,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     }
   };
 
-  // 각 API별 독립적인 스케줄링 (5분마다 체크해서 필요시에만 호출)
+  // 각 API별 독립적인 스케줄링 (1분마다 체크해서 필요시에만 호출)
   useEffect(() => {
     // 초기 로드
     fetchWeather();
@@ -412,7 +412,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     let lastUltraBaseTime = '';
     let lastVilageBaseTime = '';
 
-    // 5분마다 체크해서 base_time이 변경된 경우에만 API 호출
+    // 1분마다 체크해서 base_time이 변경된 경우에만 API 호출
     const checkAndUpdate = () => {
       try {
         const now = new Date();
@@ -420,11 +420,14 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         const currentMinutes = koreaTime.getUTCMinutes();
         const currentHour = koreaTime.getUTCHours();
 
-        // 초단기실황 base_time 계산
+        // 초단기실황 base_time 계산 (매시 00분 생성, 10분 이후 제공, 10분마다 업데이트)
         let ncstBaseTime: string;
+        
+        // 현재 시각이 해당 시간의 10분 이후라면 그 시간의 00분 데이터 사용
         if (currentMinutes >= 10) {
           ncstBaseTime = currentHour.toString().padStart(2, '0') + '00';
         } else {
+          // 10분 이전이라면 이전 시간의 00분 데이터 사용
           let prevHour = currentHour - 1;
           if (prevHour < 0) prevHour = 23;
           ncstBaseTime = prevHour.toString().padStart(2, '0') + '00';
@@ -460,8 +463,8 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       }
     };
 
-    // 5분마다 체크
-    const interval = setInterval(checkAndUpdate, 5 * 60 * 1000);
+    // 1분마다 체크
+    const interval = setInterval(checkAndUpdate, 1 * 60 * 1000);
     
     return () => clearInterval(interval);
   }, []);
