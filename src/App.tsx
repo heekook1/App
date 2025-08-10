@@ -1921,8 +1921,60 @@ const MaintenanceManagementSystem = () => {
         return;
       }
       
-      // 로컬 상태 업데이트
-      setWorkOrders(prev => prev.filter(order => order.id !== id));
+      // 로컬 상태에서 삭제
+      const updatedOrders = workOrders.filter(order => order.id !== id);
+      
+      // 번호 재정렬 - 같은 연도의 작업들만 재정렬
+      const deletedYear = id.split('-')[0];
+      const deletedNumber = parseInt(id.split('-')[1]);
+      
+      // 재정렬이 필요한 작업들을 찾아서 Supabase에서 ID 업데이트
+      const reorderPromises = updatedOrders
+        .filter(order => {
+          if (order.id.startsWith(deletedYear + '-')) {
+            const orderNumber = parseInt(order.id.split('-')[1]);
+            return orderNumber > deletedNumber;
+          }
+          return false;
+        })
+        .map(async order => {
+          const oldNumber = parseInt(order.id.split('-')[1]);
+          const newId = `${deletedYear}-${oldNumber - 1}`;
+          
+          // Supabase에서 ID 업데이트
+          const { error: updateError } = await supabase
+            .from('work_orders')
+            .update({ id: newId })
+            .eq('id', order.id);
+            
+          if (updateError) {
+            console.error(`작업 지시서 ID 업데이트 오류 (${order.id} → ${newId}):`, updateError);
+            throw updateError;
+          }
+          
+          return { ...order, id: newId };
+        });
+      
+      try {
+        // 모든 업데이트가 완료될 때까지 대기
+        await Promise.all(reorderPromises);
+        
+        // 로컬 상태 업데이트 - 재정렬된 ID 반영
+        const reorderedOrders = updatedOrders.map(order => {
+          if (order.id.startsWith(deletedYear + '-')) {
+            const orderNumber = parseInt(order.id.split('-')[1]);
+            if (orderNumber > deletedNumber) {
+              return { ...order, id: `${deletedYear}-${orderNumber - 1}` };
+            }
+          }
+          return order;
+        });
+        
+        setWorkOrders(reorderedOrders);
+      } catch (updateError) {
+        console.error('작업 지시서 재정렬 중 오류:', updateError);
+        alert('작업 지시서 번호 재정렬 중 오류가 발생했습니다. 새로고침을 해주세요.');
+      }
     } catch (error) {
       console.error('작업 지시서 삭제 오류:', error);
       alert('작업 지시서 삭제 중 오류가 발생했습니다.');
