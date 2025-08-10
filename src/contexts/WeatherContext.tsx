@@ -403,7 +403,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     }
   };
 
-  // 각 API별 독립적인 스케줄링 (1분마다 체크해서 필요시에만 호출)
+  // 각 API별 독립적인 스케줄링 (초단기실황: 10분마다, 예보: base_time 변경시)
   useEffect(() => {
     // 초기 로드
     fetchWeather();
@@ -412,7 +412,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     let lastUltraBaseTime = '';
     let lastVilageBaseTime = '';
 
-    // 1분마다 체크해서 base_time이 변경된 경우에만 API 호출
+    // 1분마다 체크해서 초단기실황은 10분마다, 예보는 base_time 변경시 API 호출
     const checkAndUpdate = () => {
       try {
         const now = new Date();
@@ -420,17 +420,25 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         const currentMinutes = koreaTime.getUTCMinutes();
         const currentHour = koreaTime.getUTCHours();
 
-        // 초단기실황 base_time 계산 (매시 00분 생성, 10분 이후 제공, 10분마다 업데이트)
+        // 초단기실황 base_time 계산 (10분마다 API 호출로 실시간 업데이트)
         let ncstBaseTime: string;
         
-        // 현재 시각이 해당 시간의 10분 이후라면 그 시간의 00분 데이터 사용
-        if (currentMinutes >= 10) {
-          ncstBaseTime = currentHour.toString().padStart(2, '0') + '00';
+        // 10분 단위로 API 호출하여 실제 업데이트된 데이터 받기
+        // 13:00 데이터: 13:10, 13:20, 13:30, 13:40, 13:50, 14:00에 각각 호출
+        const currentTotalMinutes = currentHour * 60 + currentMinutes;
+        const latestCallMinutes = Math.floor(currentTotalMinutes / 10) * 10; // 10분 단위로 내림
+        
+        const latestHour = Math.floor(latestCallMinutes / 60);
+        const latestMinute = latestCallMinutes % 60;
+        
+        // base_time은 해당 시간의 00분이지만, 호출 시점을 구분하기 위해 실제 호출 시간 사용
+        if (latestMinute >= 10) {
+          // 10분 이후: 해당 시간의 00분 데이터
+          const baseHour = Math.floor(latestCallMinutes / 60);
+          ncstBaseTime = baseHour.toString().padStart(2, '0') + latestMinute.toString().padStart(2, '0');
         } else {
-          // 10분 이전이라면 이전 시간의 00분 데이터 사용
-          let prevHour = currentHour - 1;
-          if (prevHour < 0) prevHour = 23;
-          ncstBaseTime = prevHour.toString().padStart(2, '0') + '00';
+          // 정시: 해당 시간의 00분 데이터
+          ncstBaseTime = latestHour.toString().padStart(2, '0') + latestMinute.toString().padStart(2, '0');
         }
 
         // 초단기예보 base_time 계산
