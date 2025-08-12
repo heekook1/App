@@ -1496,7 +1496,7 @@ const MaintenanceManagementSystem = () => {
     
     return (
       <div className="bg-white rounded-lg border">
-        <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center justify-center p-4 border-b">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigateMonth('prev')}
@@ -2656,64 +2656,62 @@ const MaintenanceManagementSystem = () => {
                     </select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-medium text-gray-700">담당자 선택 (중복 가능)</label>
-                      <button
-                        type="button"
-                        onClick={() => setShowAssigneeModal(true)}
-                        className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-                      >
-                        <Plus className="h-3 w-3" />
-                        관리
-                      </button>
-                    </div>
-                    <div className="space-y-2 border rounded-lg p-3 h-40 overflow-y-auto">
-                      {[...personnel.map(p => p.name), ...fixedAssignees]
-                        .filter((name, index, self) => self.indexOf(name) === index)
-                        .map((name, index) => (
-                        <label key={index} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            value={name}
-                            checked={workOrderForm.assignee.includes(name)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setWorkOrderForm(prev => ({ ...prev, assignee: [...prev.assignee, name] }));
-                              } else {
-                                setWorkOrderForm(prev => ({ ...prev, assignee: prev.assignee.filter(a => a !== name) }));
-                              }
-                            }}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
-                          />
-                          <span className="text-sm text-gray-700">{name}</span>
-                        </label>
-                      ))}
-                    </div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-gray-700">담당자 선택 (중복 가능)</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowAssigneeModal(true)}
+                      className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                    >
+                      <Plus className="h-3 w-3" />
+                      관리
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">분야 선택 (중복 가능)</label>
-                    <div className="space-y-2 border rounded-lg p-3 h-40">
-                      {['기계', '전기', '제어'].map((field) => (
-                        <label key={field} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            value={field}
-                            checked={workOrderForm.type.includes(field)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setWorkOrderForm(prev => ({ ...prev, type: [...prev.type, field] }));
-                              } else {
-                                setWorkOrderForm(prev => ({ ...prev, type: prev.type.filter(t => t !== field) }));
-                              }
-                            }}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 h-4 w-4"
-                          />
-                          <span className="text-sm text-gray-700">{field}</span>
-                        </label>
-                      ))}
-                    </div>
+                  <div className="space-y-2 border rounded-lg p-3 max-h-40 overflow-y-auto">
+                    {[...personnel.map(p => p.name), ...fixedAssignees]
+                      .filter((name, index, self) => self.indexOf(name) === index)
+                      .map((name, index) => (
+                      <label key={index} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          value={name}
+                          checked={workOrderForm.assignee.includes(name)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setWorkOrderForm(prev => ({ ...prev, assignee: [...prev.assignee, name] }));
+                            } else {
+                              setWorkOrderForm(prev => ({ ...prev, assignee: prev.assignee.filter(a => a !== name) }));
+                            }
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">{name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">분야 선택 (중복 가능)</label>
+                  <div className="space-y-2 border rounded-lg p-3">
+                    {['기계', '전기', '제어'].map((field) => (
+                      <label key={field} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          value={field}
+                          checked={workOrderForm.type.includes(field)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setWorkOrderForm(prev => ({ ...prev, type: [...prev.type, field] }));
+                            } else {
+                              setWorkOrderForm(prev => ({ ...prev, type: prev.type.filter(t => t !== field) }));
+                            }
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">{field}</span>
+                      </label>
+                    ))}
                   </div>
                 </div>
               </div>
