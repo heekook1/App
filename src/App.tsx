@@ -2015,10 +2015,10 @@ const MaintenanceManagementSystem = () => {
 
   const handleDeleteAssignee = async (name: string) => {
     try {
-      // Supabase에서 삭제 (실제로는 비활성화)
+      // Supabase에서 완전히 삭제
       const { error } = await supabase
         .from('assignees')
-        .update({ is_active: false })
+        .delete()
         .eq('name', name);
         
       if (error) {
