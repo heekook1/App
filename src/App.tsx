@@ -1651,7 +1651,7 @@ const MaintenanceManagementSystem = () => {
   const renderSchedule = () => (
     <div className="space-y-4">
       <div className="bg-white p-6 rounded-lg shadow-sm border">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex flex-col items-center mb-4">
           <h2 className="text-lg font-semibold">작업 일정</h2>
         </div>
         
