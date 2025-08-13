@@ -298,6 +298,113 @@ const MaintenanceManagementSystem = () => {
     return koreanTime.toISOString();
   };
 
+  // 음력 공휴일 데이터 (매년 업데이트 필요)
+  const lunarHolidays: { [key: string]: string } = {
+    // 2025년
+    '2025-01-28': '설날 연휴',
+    '2025-01-29': '설날',
+    '2025-01-30': '설날 연휴',
+    '2025-10-05': '추석 연휴',
+    '2025-10-06': '추석',
+    '2025-10-07': '추석 연휴',
+    // 2026년
+    '2026-02-16': '설날 연휴',
+    '2026-02-17': '설날',
+    '2026-02-18': '설날 연휴',
+    '2026-09-24': '추석 연휴',
+    '2026-09-25': '추석',
+    '2026-09-26': '추석 연휴',
+    // 2027년 (예시)
+    '2027-02-06': '설날 연휴',
+    '2027-02-07': '설날',
+    '2027-02-08': '설날 연휴',
+    '2027-09-14': '추석 연휴',
+    '2027-09-15': '추석',
+    '2027-09-16': '추석 연휴'
+  };
+
+  // 양력 공휴일 (매년 동일)
+  const solarHolidays: { month: number; day: number; name: string }[] = [
+    { month: 1, day: 1, name: '신정' },
+    { month: 3, day: 1, name: '삼일절' },
+    { month: 5, day: 5, name: '어린이날' },
+    { month: 6, day: 6, name: '현충일' },
+    { month: 8, day: 15, name: '광복절' },
+    { month: 10, day: 3, name: '개천절' },
+    { month: 10, day: 9, name: '한글날' },
+    { month: 12, day: 25, name: '크리스마스' }
+  ];
+
+  // 대체공휴일 계산 함수
+  const getSubstituteHoliday = (year: number, month: number, day: number): Date | null => {
+    const holiday = new Date(year, month - 1, day);
+    const dayOfWeek = holiday.getDay();
+    
+    // 어린이날(5/5)이 토요일(6) 또는 일요일(0)인 경우
+    if (month === 5 && day === 5 && (dayOfWeek === 0 || dayOfWeek === 6)) {
+      return new Date(year, month - 1, dayOfWeek === 6 ? 7 : 6); // 토요일이면 월요일(7일), 일요일이면 월요일(6일)
+    }
+    
+    return null;
+  };
+
+  // 공휴일 여부 확인 함수
+  const isHoliday = (date: Date): boolean => {
+    const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    
+    // 음력 공휴일 체크
+    if (dateString in lunarHolidays) return true;
+    
+    // 양력 공휴일 체크
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const year = date.getFullYear();
+    
+    // 일반 양력 공휴일
+    if (solarHolidays.some(h => h.month === month && h.day === day)) return true;
+    
+    // 대체공휴일 체크
+    const substituteHoliday = getSubstituteHoliday(year, 5, 5);
+    if (substituteHoliday && 
+        substituteHoliday.getFullYear() === year && 
+        substituteHoliday.getMonth() === date.getMonth() && 
+        substituteHoliday.getDate() === day) {
+      return true;
+    }
+    
+    return false;
+  };
+
+  // 공휴일 이름 가져오기 함수
+  const getHolidayName = (date: Date): string | null => {
+    const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    
+    // 음력 공휴일 체크
+    if (dateString in lunarHolidays) {
+      return lunarHolidays[dateString];
+    }
+    
+    // 양력 공휴일 체크
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const year = date.getFullYear();
+    
+    // 일반 양력 공휴일
+    const solarHoliday = solarHolidays.find(h => h.month === month && h.day === day);
+    if (solarHoliday) return solarHoliday.name;
+    
+    // 대체공휴일 체크
+    const substituteHoliday = getSubstituteHoliday(year, 5, 5);
+    if (substituteHoliday && 
+        substituteHoliday.getFullYear() === year && 
+        substituteHoliday.getMonth() === date.getMonth() && 
+        substituteHoliday.getDate() === day) {
+      return '대체공휴일';
+    }
+    
+    return null;
+  };
+
   // 업무일지 상태
   const [dailyReports, setDailyReports] = useState<DailyReport[]>([]);
   const [showDailyReportModal, setShowDailyReportModal] = useState(false);
@@ -1468,11 +1575,24 @@ const MaintenanceManagementSystem = () => {
       const dateStr = formatCalendarDate(year, month, day);
       const daySchedules = getSchedulesForDate(dateStr);
       const isToday = dateStr === new Date().toISOString().split('T')[0];
+      const currentDate = new Date(year, month, day);
+      const isHolidayDate = isHoliday(currentDate);
+      const holidayName = getHolidayName(currentDate);
+      const isSunday = currentDate.getDay() === 0;
+      const isSaturday = currentDate.getDay() === 6;
       
       calendarDays.push(
         <div key={day} className={`h-20 border border-gray-200 p-1 ${isToday ? 'bg-blue-50' : 'bg-white'}`}>
-          <div className={`text-sm font-medium mb-1 ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
-            {day}
+          <div className={`text-sm font-medium mb-1 flex items-center justify-between ${
+            isToday ? 'text-blue-600' : 
+            isHolidayDate || isSunday ? 'text-red-600' : 
+            isSaturday ? 'text-blue-600' : 
+            'text-gray-900'
+          }`}>
+            <span>{day}</span>
+            {holidayName && (
+              <span className="text-[10px] font-normal">{holidayName}</span>
+            )}
           </div>
           <div className="space-y-1">
             {daySchedules.slice(0, 2).map(schedule => (
@@ -3331,6 +3451,10 @@ const MaintenanceManagementSystem = () => {
             const dateStr = new Date(currentDate.getTime() + (9 * 60 * 60 * 1000)).toISOString().split('T')[0]; // 한국 시간(UTC+9)
             const isCurrentMonth = currentDate.getMonth() === currentCalendarDate.getMonth();
             const dayAttendances = getAttendanceForDate(dateStr);
+            const isHolidayDate = isHoliday(currentDate);
+            const holidayName = getHolidayName(currentDate);
+            const isSunday = currentDate.getDay() === 0;
+            const isSaturday = currentDate.getDay() === 6;
             
             return (
               <div
@@ -3343,8 +3467,15 @@ const MaintenanceManagementSystem = () => {
                   isCurrentMonth ? 'bg-white' : 'bg-gray-100'
                 }`}
               >
-                <div className="text-xs text-gray-600 mb-1">
+                <div className={`text-xs mb-1 font-medium ${
+                  isHolidayDate || isSunday ? 'text-red-600' : 
+                  isSaturday ? 'text-blue-600' : 
+                  'text-gray-600'
+                }`}>
                   {currentDate.getDate()}
+                  {holidayName && (
+                    <span className="block text-[10px] font-normal">{holidayName}</span>
+                  )}
                 </div>
                 <div className="space-y-1">
                   {dayAttendances.map(att => (
