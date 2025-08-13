@@ -1583,15 +1583,15 @@ const MaintenanceManagementSystem = () => {
       
       calendarDays.push(
         <div key={day} className={`h-20 border border-gray-200 p-1 ${isToday ? 'bg-blue-50' : 'bg-white'}`}>
-          <div className={`text-sm font-medium mb-1 flex items-center justify-between ${
+          <div className={`text-sm font-medium mb-1 ${
             isToday ? 'text-blue-600' : 
             isHolidayDate || isSunday ? 'text-red-600' : 
             isSaturday ? 'text-blue-600' : 
             'text-gray-900'
           }`}>
-            <span>{day}</span>
+            {day}
             {holidayName && (
-              <span className="text-[11px] font-normal">{holidayName}</span>
+              <span className="block text-[11px] font-normal">{holidayName}</span>
             )}
           </div>
           <div className="space-y-1">
