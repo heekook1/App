@@ -1591,7 +1591,7 @@ const MaintenanceManagementSystem = () => {
           }`}>
             <span>{day}</span>
             {holidayName && (
-              <span className="text-[10px] font-normal">{holidayName}</span>
+              <span className="text-[11px] font-normal">{holidayName}</span>
             )}
           </div>
           <div className="space-y-1">
@@ -3474,7 +3474,7 @@ const MaintenanceManagementSystem = () => {
                 }`}>
                   {currentDate.getDate()}
                   {holidayName && (
-                    <span className="block text-[10px] font-normal">{holidayName}</span>
+                    <span className="block text-[11px] font-normal">{holidayName}</span>
                   )}
                 </div>
                 <div className="space-y-1">
