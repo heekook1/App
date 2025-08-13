@@ -1989,7 +1989,10 @@ const MaintenanceManagementSystem = () => {
         // Supabase에 추가
         const { data, error } = await supabase
           .from('assignees')
-          .insert({ name: newAssigneeName.trim() })
+          .insert({ 
+            name: newAssigneeName.trim(),
+            is_active: true 
+          })
           .select()
           .single();
           
