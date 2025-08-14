@@ -1582,8 +1582,8 @@ const MaintenanceManagementSystem = () => {
       const isSaturday = currentDate.getDay() === 6;
       
       calendarDays.push(
-        <div key={day} className={`h-20 border border-gray-200 p-1 ${isToday ? 'bg-blue-50' : 'bg-white'}`}>
-          <div className={`text-sm font-medium mb-1 ${
+        <div key={day} className={`h-28 border border-gray-200 p-1 flex flex-col ${isToday ? 'bg-blue-50' : 'bg-white'}`}>
+          <div className={`text-sm font-medium mb-1 flex-shrink-0 ${
             isToday ? 'text-blue-600' : 
             isHolidayDate || isSunday ? 'text-red-600' : 
             isSaturday ? 'text-blue-600' : 
@@ -1594,8 +1594,8 @@ const MaintenanceManagementSystem = () => {
               <span className="block text-[11px] font-normal">{holidayName}</span>
             )}
           </div>
-          <div className="space-y-1">
-            {daySchedules.slice(0, 2).map(schedule => (
+          <div className="flex-1 overflow-y-auto space-y-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+            {daySchedules.map(schedule => (
               <div
                 key={schedule.id}
                 className={`text-xs px-1 py-0.5 rounded truncate ${getTypeColor(Array.isArray(schedule.type) ? schedule.type[0] : schedule.type)}`}
@@ -1604,11 +1604,6 @@ const MaintenanceManagementSystem = () => {
                 {schedule.title}
               </div>
             ))}
-            {daySchedules.length > 2 && (
-              <div className="text-xs text-gray-500">
-                +{daySchedules.length - 2}개 더
-              </div>
-            )}
           </div>
         </div>
       );
