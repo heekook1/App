@@ -1594,8 +1594,8 @@ const MaintenanceManagementSystem = () => {
               <span className="block text-[11px] font-normal">{holidayName}</span>
             )}
           </div>
-          <div className="space-y-1">
-            {daySchedules.slice(0, 2).map(schedule => (
+          <div className={`${daySchedules.length > 2 ? 'overflow-y-auto max-h-8' : ''} space-y-1`}>
+            {daySchedules.map((schedule, index) => (
               <div
                 key={schedule.id}
                 className={`text-xs px-1 py-0.5 rounded truncate ${getTypeColor(Array.isArray(schedule.type) ? schedule.type[0] : schedule.type)}`}
@@ -1604,11 +1604,6 @@ const MaintenanceManagementSystem = () => {
                 {schedule.title}
               </div>
             ))}
-            {daySchedules.length > 2 && (
-              <div className="text-xs text-gray-500">
-                +{daySchedules.length - 2}개 더
-              </div>
-            )}
           </div>
         </div>
       );
