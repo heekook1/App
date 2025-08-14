@@ -1567,7 +1567,7 @@ const MaintenanceManagementSystem = () => {
     
     // Empty cells for days before the first day of the month
     for (let i = 0; i < firstDay; i++) {
-      calendarDays.push(<div key={`empty-${i}`} className="h-22 border border-gray-200"></div>);
+      calendarDays.push(<div key={`empty-${i}`} className="h-24 border border-gray-200"></div>);
     }
     
     // Days of the month
@@ -1582,7 +1582,7 @@ const MaintenanceManagementSystem = () => {
       const isSaturday = currentDate.getDay() === 6;
       
       calendarDays.push(
-        <div key={day} className={`h-22 border border-gray-200 p-1 ${isToday ? 'bg-blue-50' : 'bg-white'}`}>
+        <div key={day} className={`h-24 border border-gray-200 p-1 ${isToday ? 'bg-blue-50' : 'bg-white'}`}>
           <div className={`text-sm font-medium mb-1 ${
             isToday ? 'text-blue-600' : 
             isHolidayDate || isSunday ? 'text-red-600' : 
@@ -1594,7 +1594,7 @@ const MaintenanceManagementSystem = () => {
               <span className="block text-[11px] font-normal">{holidayName}</span>
             )}
           </div>
-          <div className={`${daySchedules.length > 2 ? 'overflow-y-auto max-h-10' : ''} space-y-1`}>
+          <div className={`${daySchedules.length > 2 ? 'overflow-y-auto max-h-12' : ''} space-y-1`}>
             {daySchedules.map((schedule, index) => (
               <div
                 key={schedule.id}
