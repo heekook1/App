@@ -1567,7 +1567,7 @@ const MaintenanceManagementSystem = () => {
     
     // Empty cells for days before the first day of the month
     for (let i = 0; i < firstDay; i++) {
-      calendarDays.push(<div key={`empty-${i}`} className="h-20 border border-gray-200"></div>);
+      calendarDays.push(<div key={`empty-${i}`} className="h-22 border border-gray-200"></div>);
     }
     
     // Days of the month
