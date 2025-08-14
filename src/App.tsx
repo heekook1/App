@@ -2025,6 +2025,10 @@ const MaintenanceManagementSystem = () => {
   };
 
   const handleDeleteWorkOrder = async (id: string) => {
+    if (!window.confirm('정말 삭제하시겠습니까?')) {
+      return;
+    }
+    
     try {
       // Supabase에서 삭제
       const { error } = await supabase
@@ -3192,6 +3196,10 @@ const MaintenanceManagementSystem = () => {
   };
 
   const handleDeletePersonnel = async (id: number) => {
+    if (!window.confirm('정말 삭제하시겠습니까?')) {
+      return;
+    }
+    
     try {
       // Supabase에서 삭제
       const { error } = await supabase
@@ -3708,6 +3716,10 @@ const MaintenanceManagementSystem = () => {
   };
 
   const handleDeleteEquipment = async (id: number) => {
+    if (!window.confirm('정말 삭제하시겠습니까?')) {
+      return;
+    }
+    
     try {
       // Supabase에서 삭제
       const { error } = await supabase
@@ -4316,6 +4328,10 @@ const MaintenanceManagementSystem = () => {
   };
 
   const handleDeleteAnnouncement = async (id: number) => {
+    if (!window.confirm('정말 삭제하시겠습니까?')) {
+      return;
+    }
+    
     try {
       // Supabase에서 삭제
       const { error } = await supabase
