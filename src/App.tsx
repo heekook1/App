@@ -4120,7 +4120,11 @@ const MaintenanceManagementSystem = () => {
                       다운로드
                     </button>
                     <button
-                      onClick={() => deleteDocument(doc.id)}
+                      onClick={() => {
+                        if (window.confirm('정말 삭제하시겠습니까?')) {
+                          deleteDocument(doc.id);
+                        }
+                      }}
                       className="text-red-600 hover:text-red-900 flex items-center gap-1"
                     >
                       <Trash2 className="w-4 h-4" />
