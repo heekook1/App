@@ -638,7 +638,26 @@ const MaintenanceManagementSystem = () => {
     setSelectedWorkOrder(workOrder);
   };
 
-  const handleAnnouncementClick = (announcement: Announcement) => {
+  const handleAnnouncementClick = async (announcement: Announcement) => {
+    // 조회수 증가
+    try {
+      const { error } = await supabase
+        .from('announcements')
+        .update({ view_count: (announcement.viewCount || 0) + 1 })
+        .eq('id', announcement.id);
+      
+      if (!error) {
+        // 로컬 상태 업데이트
+        setAnnouncements(prev => prev.map(ann => 
+          ann.id === announcement.id 
+            ? { ...ann, viewCount: (ann.viewCount || 0) + 1 }
+            : ann
+        ));
+      }
+    } catch (error) {
+      console.error('조회수 업데이트 오류:', error);
+    }
+    
     setSelectedAnnouncement(announcement);
   };
 
@@ -1363,7 +1382,7 @@ const MaintenanceManagementSystem = () => {
       
       {/* 하단 4개 위젯 - 상단 카운터 위젯과 컬럼 정렬 */}
       <div className="grid grid-cols-4 gap-4">
-        <div className="p-4 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg h-[700px] overflow-y-auto">
+        <div className="p-4 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg h-[690px] overflow-y-auto">
           <h3 className="text-lg font-semibold mb-4">최근 작업</h3>
           <div className="space-y-3">
             {workOrders.slice(0, 7).map(order => (
@@ -1380,7 +1399,7 @@ const MaintenanceManagementSystem = () => {
           </div>
         </div>
         
-        <div className="p-4 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg h-[700px] overflow-y-auto">
+        <div className="p-4 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg h-[690px] overflow-y-auto">
           <h3 className="text-lg font-semibold mb-4">근태 현황</h3>
           <div className="space-y-3">
             {personnel.map(person => {
@@ -1422,7 +1441,7 @@ const MaintenanceManagementSystem = () => {
           </div>
         </div>
         
-        <div className="p-4 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg h-[700px] overflow-y-auto">
+        <div className="p-4 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg h-[690px] overflow-y-auto">
           <h3 className="text-lg font-semibold mb-4">최근 공지사항</h3>
           <div className="space-y-3">
             {announcements
