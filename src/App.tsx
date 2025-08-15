@@ -71,6 +71,8 @@ interface Announcement {
   date: string;
   author: string;
   priority: string;
+  isPinned?: boolean;
+  viewCount?: number;
 }
 
 interface Equipment {
@@ -258,6 +260,7 @@ const MaintenanceManagementSystem = () => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedWorkOrder, setSelectedWorkOrder] = useState<WorkOrder | null>(null);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+  
   
   // 문서 관리 상태
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -643,7 +646,7 @@ const MaintenanceManagementSystem = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case '완료': return 'bg-green-100 text-green-800';
-      case '진행중': return 'bg-blue-100 text-blue-800';
+      case '진행중': return 'bg-gray-100 text-gray-800';
       case '대기': return 'bg-yellow-100 text-yellow-800';
       case '지연': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -1017,8 +1020,8 @@ const MaintenanceManagementSystem = () => {
 
   // Navigation
   const renderNavigation = () => (
-    <nav className="bg-white shadow-sm border-b">
-      <div className="w-full px-2 sm:px-4 lg:px-6">
+    <nav className="bg-white border-b border-gray-200">
+      <div className="w-full table-gs px-2 sm:px-4 lg:px-6">
         <div className="flex items-center justify-between h-20">
           <div className="flex flex-col items-center">
             <h1 className="text-lg font-semibold text-gray-900 mb-1">정비 업체 관리 시스템</h1>
@@ -1046,10 +1049,10 @@ const MaintenanceManagementSystem = () => {
                 <button
                   key={item.id}
                   onClick={() => handlePageChange(item.id)}
-                  className={`flex items-center px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`flex items-center px-4 py-2.5 rounded text-sm font-medium transition-all duration-200 ${
                     currentPage === item.id 
-                      ? 'bg-blue-600 text-white shadow-lg transform scale-105' 
-                      : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50 hover:shadow-md'
+                      ? 'bg-gradient-button text-white shadow-lg transform scale-105' 
+                      : 'text-gray-600 hover:text-gray-700 hover:bg-gray-50 hover:shadow-md'
                   }`}
                 >
                   <item.icon className="h-4 w-4 mr-2" />
@@ -1344,7 +1347,7 @@ const MaintenanceManagementSystem = () => {
           { title: '완료된 작업', value: workOrders.filter(w => w.status === '완료').length, color: 'bg-green-500' },
           { title: '전체 인력', value: personnel.length, color: 'bg-purple-500' }
         ].map((stat, index) => (
-          <div key={index} className="bg-white p-6 rounded-lg shadow-sm border h-24">
+          <div key={index} className="p-6 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg h-24">
             <div className="flex items-center">
               <div className={`p-2 rounded-md ${stat.color}`}>
                 <div className="h-6 w-6 text-white" />
@@ -1360,16 +1363,16 @@ const MaintenanceManagementSystem = () => {
       
       {/* 하단 4개 위젯 - 상단 카운터 위젯과 컬럼 정렬 */}
       <div className="grid grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border h-[680px] overflow-y-auto">
+        <div className="p-4 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg h-[700px] overflow-y-auto">
           <h3 className="text-lg font-semibold mb-4">최근 작업</h3>
           <div className="space-y-3">
-            {workOrders.slice(0, 6).map(order => (
+            {workOrders.slice(0, 7).map(order => (
               <div key={order.id} className="flex items-center justify-between p-3 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => handleWorkOrderClick(order)}>
                 <div className="flex-1">
                   <p className="font-medium text-sm">{order.title}</p>
                   <p className="text-xs text-gray-500">담당자 : {Array.isArray(order.assignee) ? order.assignee.join(', ') : order.assignee}</p>
                 </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(order.status)}`}>
                   {order.status}
                 </span>
               </div>
@@ -1377,7 +1380,7 @@ const MaintenanceManagementSystem = () => {
           </div>
         </div>
         
-        <div className="bg-white p-4 rounded-lg shadow-sm border h-[680px] overflow-y-auto">
+        <div className="p-4 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg h-[700px] overflow-y-auto">
           <h3 className="text-lg font-semibold mb-4">근태 현황</h3>
           <div className="space-y-3">
             {personnel.map(person => {
@@ -1402,11 +1405,11 @@ const MaintenanceManagementSystem = () => {
                     <p className="text-xs text-gray-500">{person.position} - {person.field}</p>
                     <p className="text-xs text-gray-500">{person.phone}</p>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  <span className={`px-2 py-1 rounded-lg text-xs font-medium ${
                     attendanceStatus === '연차' ? 'bg-red-100 text-red-800' :
                     attendanceStatus === '반차(오전)' ? 'bg-yellow-100 text-yellow-800' :
                     attendanceStatus === '반차(오후)' ? 'bg-orange-100 text-orange-800' :
-                    attendanceStatus === '공가' ? 'bg-blue-100 text-blue-800' :
+                    attendanceStatus === '공가' ? 'bg-gray-100 text-gray-800' :
                     attendanceStatus === '병가' ? 'bg-purple-100 text-purple-800' :
                     attendanceStatus === '교육' ? 'bg-green-100 text-green-800' :
                     'bg-green-100 text-green-800'
@@ -1419,14 +1422,25 @@ const MaintenanceManagementSystem = () => {
           </div>
         </div>
         
-        <div className="bg-white p-4 rounded-lg shadow-sm border h-[680px] overflow-y-auto">
+        <div className="p-4 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg h-[700px] overflow-y-auto">
           <h3 className="text-lg font-semibold mb-4">최근 공지사항</h3>
           <div className="space-y-3">
-            {announcements.slice(0, 6).map(announcement => (
+            {announcements
+              .sort((a, b) => {
+                // 고정된 공지를 먼저 정렬
+                if (a.isPinned && !b.isPinned) return -1;
+                if (!a.isPinned && b.isPinned) return 1;
+                // 고정 상태가 같으면 날짜순으로 정렬
+                return new Date(b.date).getTime() - new Date(a.date).getTime();
+              })
+              .slice(0, 7).map(announcement => (
               <div key={announcement.id} className="p-3 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => handleAnnouncementClick(announcement)}>
                 <div className="flex items-start justify-between mb-2">
-                  <p className="font-medium text-sm">{announcement.title}</p>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(announcement.priority)}`}>
+                  <p className="font-medium text-sm flex items-center gap-1">
+                    {announcement.isPinned && <span className="text-blue-600">📌</span>}
+                    {announcement.title}
+                  </p>
+                  <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getPriorityColor(announcement.priority)}`}>
                     {announcement.priority === 'urgent' ? '긴급' :
                      announcement.priority === 'important' ? '중요' : '일반'}
                   </span>
@@ -1582,11 +1596,11 @@ const MaintenanceManagementSystem = () => {
       const isSaturday = currentDate.getDay() === 6;
       
       calendarDays.push(
-        <div key={day} className={`h-24 border border-gray-200 p-1 ${isToday ? 'bg-blue-50' : 'bg-white'}`}>
+        <div key={day} className={`h-24 border border-gray-200 p-1 ${isToday ? 'bg-gray-50' : 'bg-white'}`}>
           <div className={`text-sm font-medium mb-1 ${
-            isToday ? 'text-blue-600' : 
+            isToday ? 'text-gray-700' : 
             isHolidayDate || isSunday ? 'text-red-600' : 
-            isSaturday ? 'text-blue-600' : 
+            isSaturday ? 'text-gray-700' : 
             'text-gray-900'
           }`}>
             {day}
@@ -1610,12 +1624,12 @@ const MaintenanceManagementSystem = () => {
     }
     
     return (
-      <div className="bg-white rounded-lg border">
+      <div className="bg-white rounded border">
         <div className="flex items-center justify-center p-4 border-b">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigateMonth('prev')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-blue-50 rounded transition-colors"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -1624,7 +1638,7 @@ const MaintenanceManagementSystem = () => {
             </h3>
             <button
               onClick={() => navigateMonth('next')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-blue-50 rounded transition-colors"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
@@ -1645,7 +1659,7 @@ const MaintenanceManagementSystem = () => {
 
   const renderSchedule = () => (
     <div className="space-y-4">
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <div className="p-6 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg">
         <div className="flex flex-col items-center mb-4">
           <h2 className="text-lg font-semibold">작업 일정</h2>
         </div>
@@ -1656,7 +1670,7 @@ const MaintenanceManagementSystem = () => {
         </div>
         
         {showScheduleForm && (
-          <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+          <div className="mb-6 p-4 border rounded bg-gray-50">
             <h3 className="font-medium mb-4">{editingSchedule ? '일정 수정' : '새 일정 추가'}</h3>
             <form onSubmit={handleScheduleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1665,20 +1679,20 @@ const MaintenanceManagementSystem = () => {
                   placeholder="일정 제목"
                   value={scheduleForm.title}
                   onChange={(e) => setScheduleForm(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full table-gs px-3 py-2 border rounded"
                   required
                 />
                 <input
                   type="date"
                   value={scheduleForm.date}
                   onChange={(e) => setScheduleForm(prev => ({ ...prev, date: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full table-gs px-3 py-2 border rounded"
                   required
                 />
                 <select
                   value={scheduleForm.type}
                   onChange={(e) => setScheduleForm(prev => ({ ...prev, type: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full table-gs px-3 py-2 border rounded"
                 >
                   <option value="기계">기계</option>
                   <option value="전기">전기</option>
@@ -1692,7 +1706,7 @@ const MaintenanceManagementSystem = () => {
                       equipment: e.target.value
                     }));
                   }}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full table-gs px-3 py-2 border rounded"
                   required
                 >
                   <option value="">설비 선택</option>
@@ -1705,13 +1719,13 @@ const MaintenanceManagementSystem = () => {
                   placeholder="기기명"
                   value={scheduleForm.equipmentName}
                   onChange={(e) => setScheduleForm(prev => ({ ...prev, equipmentName: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full table-gs px-3 py-2 border rounded"
                   required
                 />
                 <select
                   value={scheduleForm.assignee}
                   onChange={(e) => setScheduleForm(prev => ({ ...prev, assignee: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full table-gs px-3 py-2 border rounded"
                   required
                 >
                   <option value="">담당자 선택</option>
@@ -1724,14 +1738,14 @@ const MaintenanceManagementSystem = () => {
                 placeholder="일정 설명"
                 value={scheduleForm.description}
                 onChange={(e) => setScheduleForm(prev => ({ ...prev, description: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full table-gs px-3 py-2 border rounded"
                 rows={3}
                 required
               />
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-4 py-2 rounded bg-gradient-button text-white font-medium transition-all duration-300"
                 >
                   {editingSchedule ? '수정' : '추가'}
                 </button>
@@ -1750,7 +1764,7 @@ const MaintenanceManagementSystem = () => {
                       description: ''
                     });
                   }}
-                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
                 >
                   취소
                 </button>
@@ -1770,7 +1784,7 @@ const MaintenanceManagementSystem = () => {
               return orderDate.getFullYear() === currentCalendarMonth.getFullYear() && 
                      orderDate.getMonth() === currentCalendarMonth.getMonth();
             }).map(order => (
-              <div key={order.id} className="p-4 border rounded-lg hover:bg-gray-50">
+              <div key={order.id} className="p-4 border rounded hover:bg-gray-50">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -2654,20 +2668,20 @@ const MaintenanceManagementSystem = () => {
 
   const renderWorkOrder = () => (
     <div className="space-y-4">
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <div className="p-6 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">작업 관리</h2>
           <div className="flex gap-3">
             <button
               onClick={downloadWorkOrdersExcel}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
             >
               <Download className="w-4 h-4" />
               Excel 다운로드
             </button>
             <button
               onClick={() => setShowWorkOrderForm(true)}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded bg-gradient-button text-white font-medium transition-all duration-300"
             >
               <Plus className="h-4 w-4 mr-2" />
               작업 등록
@@ -2676,7 +2690,7 @@ const MaintenanceManagementSystem = () => {
         </div>
         
         {showWorkOrderForm && (
-          <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+          <div className="mb-6 p-4 border rounded bg-gray-50">
             <h3 className="font-medium mb-4">{editingWorkOrder ? '작업 수정' : '새 작업 등록'}</h3>
             <form onSubmit={handleWorkOrderSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2685,7 +2699,7 @@ const MaintenanceManagementSystem = () => {
                   placeholder="작업 제목"
                   value={workOrderForm.title}
                   onChange={(e) => setWorkOrderForm(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full table-gs px-3 py-2 border rounded"
                   required
                 />
                 <div className="relative equipment-search-container">
@@ -2705,11 +2719,11 @@ const MaintenanceManagementSystem = () => {
                       }
                     }}
                     onFocus={() => setShowEquipmentDropdown(true)}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full table-gs px-3 py-2 border rounded"
                     required
                   />
                   {showEquipmentDropdown && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded max-h-60 overflow-y-auto">
                       {equipment
                         .filter(eq => 
                           eq.name.toLowerCase().includes(equipmentSearchTerm.toLowerCase())
@@ -2723,7 +2737,7 @@ const MaintenanceManagementSystem = () => {
                               setEquipmentSearchTerm(eq.name);
                               setShowEquipmentDropdown(false);
                             }}
-                            className="w-full px-3 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                            className="w-full table-gs px-3 py-2 text-left hover:bg-blue-50 focus:bg-gray-100 focus:outline-none"
                           >
                             <div className="font-medium">{eq.name}</div>
                             <div className="text-sm text-gray-500">
@@ -2746,7 +2760,7 @@ const MaintenanceManagementSystem = () => {
                   placeholder="기기명"
                   value={workOrderForm.equipmentName}
                   onChange={(e) => setWorkOrderForm(prev => ({ ...prev, equipmentName: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full table-gs px-3 py-2 border rounded"
                   required
                 />
               </div>
@@ -2759,7 +2773,7 @@ const MaintenanceManagementSystem = () => {
                       type="date"
                       value={workOrderForm.dueDate}
                       onChange={(e) => setWorkOrderForm(prev => ({ ...prev, dueDate: e.target.value }))}
-                      className="w-full px-2 py-1 border rounded-lg text-sm h-9"
+                      className="w-full table-gs px-2 py-1 border rounded text-sm h-9"
                       required
                       placeholder="작업일"
                     />
@@ -2769,7 +2783,7 @@ const MaintenanceManagementSystem = () => {
                     <select
                       value={workOrderForm.tmNo}
                       onChange={(e) => setWorkOrderForm(prev => ({ ...prev, tmNo: e.target.value }))}
-                      className="w-full px-2 py-1 border rounded-lg text-sm h-9"
+                      className="w-full table-gs px-2 py-1 border rounded text-sm h-9"
                     >
                       <option value="">해당 없음</option>
                       {tmStatusList.map(tm => (
@@ -2784,13 +2798,13 @@ const MaintenanceManagementSystem = () => {
                     <button
                       type="button"
                       onClick={() => setShowAssigneeModal(true)}
-                      className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                      className="flex items-center gap-1 px-2 py-1 text-xs bg-gradient-button text-white rounded "
                     >
                       <Plus className="h-3 w-3" />
                       관리
                     </button>
                   </div>
-                  <div className="space-y-2 border rounded-lg p-3 max-h-40 overflow-y-auto">
+                  <div className="space-y-2 border rounded p-3 max-h-40 overflow-y-auto">
                     {[...personnel.map(p => p.name), ...fixedAssignees]
                       .filter((name, index, self) => self.indexOf(name) === index)
                       .map((name, index) => (
@@ -2806,7 +2820,7 @@ const MaintenanceManagementSystem = () => {
                               setWorkOrderForm(prev => ({ ...prev, assignee: prev.assignee.filter(a => a !== name) }));
                             }
                           }}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="rounded border-gray-300 text-gray-700 focus:ring-gray-500"
                         />
                         <span className="text-sm text-gray-700">{name}</span>
                       </label>
@@ -2815,7 +2829,7 @@ const MaintenanceManagementSystem = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">분야 선택 (중복 가능)</label>
-                  <div className="space-y-2 border rounded-lg p-3">
+                  <div className="space-y-2 border rounded p-3">
                     {['기계', '전기', '제어'].map((field) => (
                       <label key={field} className="flex items-center space-x-2">
                         <input
@@ -2829,7 +2843,7 @@ const MaintenanceManagementSystem = () => {
                               setWorkOrderForm(prev => ({ ...prev, type: prev.type.filter(t => t !== field) }));
                             }
                           }}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="rounded border-gray-300 text-gray-700 focus:ring-gray-500"
                         />
                         <span className="text-sm text-gray-700">{field}</span>
                       </label>
@@ -2842,7 +2856,7 @@ const MaintenanceManagementSystem = () => {
                 placeholder="작업 내용"
                 value={workOrderForm.description}
                 onChange={(e) => setWorkOrderForm(prev => ({ ...prev, description: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full table-gs px-3 py-2 border rounded"
                 rows={3}
                 required
               />
@@ -2850,13 +2864,13 @@ const MaintenanceManagementSystem = () => {
                 placeholder="작업 결과"
                 value={workOrderForm.workResult}
                 onChange={(e) => setWorkOrderForm(prev => ({ ...prev, workResult: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg"
+                className="w-full table-gs px-3 py-2 border rounded"
                 rows={3}
               />
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-4 py-2 rounded bg-gradient-button text-white font-medium transition-all duration-300"
                 >
                   {editingWorkOrder ? '수정' : '생성'}
                 </button>
@@ -2877,7 +2891,7 @@ const MaintenanceManagementSystem = () => {
                       tmNo: ''
                     });
                   }}
-                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
                 >
                   취소
                 </button>
@@ -2889,7 +2903,7 @@ const MaintenanceManagementSystem = () => {
         {/* 담당자 관리 모달 */}
         {showAssigneeModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+            <div className="bg-white p-6 rounded max-w-md w-full mx-4">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">담당자 관리</h3>
                 <button
@@ -2910,12 +2924,12 @@ const MaintenanceManagementSystem = () => {
                     value={newAssigneeName}
                     onChange={(e) => setNewAssigneeName(e.target.value)}
                     placeholder="새 담당자 이름"
-                    className="flex-1 px-3 py-2 border rounded-lg"
+                    className="flex-1 px-3 py-2 border rounded"
                     onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddAssignee())}
                   />
                   <button
                     onClick={handleAddAssignee}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="px-4 py-2 rounded bg-gradient-button text-white font-medium transition-all duration-300"
                   >
                     추가
                   </button>
@@ -2974,7 +2988,7 @@ const MaintenanceManagementSystem = () => {
                     setShowAssigneeModal(false);
                     setNewAssigneeName('');
                   }}
-                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
                 >
                   닫기
                 </button>
@@ -2984,7 +2998,7 @@ const MaintenanceManagementSystem = () => {
         )}
         
         <div className="overflow-x-auto">
-          <table className="w-full border border-gray-200" style={{ minWidth: '1400px' }}>
+          <table className="w-full table-gs border border-gray-200" style={{ minWidth: '1400px' }}>
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900" style={{ width: '80px' }}>번호</th>
@@ -3058,7 +3072,7 @@ const MaintenanceManagementSystem = () => {
                     <div className="flex gap-1">
                       <button
                         onClick={() => handleEditWorkOrder(order)}
-                        className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                        className="p-1 text-gray-700 hover:bg-blue-50 rounded"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
@@ -3240,12 +3254,12 @@ const MaintenanceManagementSystem = () => {
 
   const renderPersonnel = () => (
     <div className="space-y-4">
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <div className="p-6 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">인력 관리</h2>
           <button
             onClick={() => setShowPersonnelForm(true)}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded bg-gradient-button text-white font-medium transition-all duration-300"
           >
             <Plus className="h-4 w-4 mr-2" />
             인력 추가
@@ -3253,7 +3267,7 @@ const MaintenanceManagementSystem = () => {
         </div>
         
         {showPersonnelForm && (
-          <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+          <div className="mb-6 p-4 border rounded bg-gray-50">
             <h3 className="font-medium mb-4">{editingPersonnel ? '인력 정보 수정' : '새 인력 추가'}</h3>
             <form onSubmit={handlePersonnelSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3262,7 +3276,7 @@ const MaintenanceManagementSystem = () => {
                   placeholder="이름"
                   value={personnelForm.name}
                   onChange={(e) => setPersonnelForm(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full table-gs px-3 py-2 border rounded"
                   required
                 />
                 <input
@@ -3270,13 +3284,13 @@ const MaintenanceManagementSystem = () => {
                   placeholder="직급"
                   value={personnelForm.position}
                   onChange={(e) => setPersonnelForm(prev => ({ ...prev, position: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full table-gs px-3 py-2 border rounded"
                   required
                 />
                 <select
                   value={personnelForm.field}
                   onChange={(e) => setPersonnelForm(prev => ({ ...prev, field: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full table-gs px-3 py-2 border rounded"
                   required
                 >
                   <option value="">분야 선택</option>
@@ -3289,14 +3303,14 @@ const MaintenanceManagementSystem = () => {
                   placeholder="연락처"
                   value={personnelForm.phone}
                   onChange={(e) => setPersonnelForm(prev => ({ ...prev, phone: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full table-gs px-3 py-2 border rounded"
                   required
                 />
                 <input
                   type="date"
                   value={personnelForm.hireDate}
                   onChange={(e) => setPersonnelForm(prev => ({ ...prev, hireDate: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full table-gs px-3 py-2 border rounded"
                   required
                 />
               </div>
@@ -3309,13 +3323,13 @@ const MaintenanceManagementSystem = () => {
                     placeholder="자격증 입력"
                     value={newCertification}
                     onChange={(e) => setNewCertification(e.target.value)}
-                    className="flex-1 px-3 py-2 border rounded-lg"
+                    className="flex-1 px-3 py-2 border rounded"
                     onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCertification())}
                   />
                   <button
                     type="button"
                     onClick={addCertification}
-                    className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                   >
                     추가
                   </button>
@@ -3339,7 +3353,7 @@ const MaintenanceManagementSystem = () => {
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-4 py-2 rounded bg-gradient-button text-white font-medium transition-all duration-300"
                 >
                   {editingPersonnel ? '수정' : '추가'}
                 </button>
@@ -3357,7 +3371,7 @@ const MaintenanceManagementSystem = () => {
                       certifications: []
                     });
                   }}
-                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
                 >
                   취소
                 </button>
@@ -3368,7 +3382,7 @@ const MaintenanceManagementSystem = () => {
         
         <div className="space-y-4">
           {personnel.map(person => (
-            <div key={person.id} className="p-4 border rounded-lg hover:bg-gray-50">
+            <div key={person.id} className="p-4 border rounded hover:bg-gray-50">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <h3 className="font-medium text-lg">{person.name}</h3>
@@ -3389,7 +3403,7 @@ const MaintenanceManagementSystem = () => {
                 <div className="flex gap-1">
                   <button
                     onClick={() => handleEditPersonnel(person)}
-                    className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                    className="p-1 text-gray-700 hover:bg-blue-50 rounded"
                   >
                     <Edit className="h-4 w-4" />
                   </button>
@@ -3411,13 +3425,13 @@ const MaintenanceManagementSystem = () => {
   // Attendance Management
   const renderAttendance = () => (
     <div className="space-y-4">
-      <div className="bg-white p-4 rounded-lg shadow-sm border">
+      <div className="p-4 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg">
         <div className="flex flex-col items-center mb-4">
           <h2 className="text-lg font-semibold mb-3">근태 관리</h2>
           <div className="flex items-center gap-4">
             <button
               onClick={handlePrevMonth}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-blue-50 rounded transition-colors"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -3426,7 +3440,7 @@ const MaintenanceManagementSystem = () => {
             </span>
             <button
               onClick={handleNextMonth}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-blue-50 rounded transition-colors"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
@@ -3466,13 +3480,13 @@ const MaintenanceManagementSystem = () => {
                   setSelectedAttendanceDate(dateStr);
                   setShowAttendanceModal(true);
                 }}
-                className={`min-h-[80px] p-1 border rounded cursor-pointer hover:bg-blue-50 ${
+                className={`min-h-[120px] p-1 border rounded cursor-pointer hover:bg-gray-50 ${
                   isCurrentMonth ? 'bg-white' : 'bg-gray-100'
                 }`}
               >
                 <div className={`text-xs mb-1 font-medium ${
                   isHolidayDate || isSunday ? 'text-red-600' : 
-                  isSaturday ? 'text-blue-600' : 
+                  isSaturday ? 'text-gray-700' : 
                   'text-gray-600'
                 }`}>
                   {currentDate.getDate()}
@@ -3486,7 +3500,7 @@ const MaintenanceManagementSystem = () => {
                       att.type === '연차' ? 'bg-red-100 text-red-800' :
                       att.type === '반차(오전)' ? 'bg-yellow-100 text-yellow-800' :
                       att.type === '반차(오후)' ? 'bg-orange-100 text-orange-800' :
-                      att.type === '공가' ? 'bg-blue-100 text-blue-800' :
+                      att.type === '공가' ? 'bg-gray-100 text-gray-800' :
                       att.type === '병가' ? 'bg-purple-100 text-purple-800' :
                       att.type === '교육' ? 'bg-green-100 text-green-800' :
                       'bg-gray-100 text-gray-800'
@@ -3518,7 +3532,7 @@ const MaintenanceManagementSystem = () => {
       {/* 근태 등록 모달 */}
       {showAttendanceModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+          <div className="bg-white p-6 rounded max-w-md w-full mx-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">근태 등록</h3>
               <button
@@ -3549,7 +3563,7 @@ const MaintenanceManagementSystem = () => {
                       personnelName: selectedPerson?.name || ''
                     }));
                   }}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full table-gs px-3 py-2 border rounded"
                   required
                 >
                   <option value={0}>담당자 선택</option>
@@ -3567,7 +3581,7 @@ const MaintenanceManagementSystem = () => {
                     ...prev, 
                     type: e.target.value as '연차' | '반차(오전)' | '반차(오후)' | '공가' | '병가' | '교육'
                   }))}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full table-gs px-3 py-2 border rounded"
                 >
                   <option value="연차">연차</option>
                   <option value="반차(오전)">반차(오전)</option>
@@ -3583,13 +3597,13 @@ const MaintenanceManagementSystem = () => {
                 <button
                   type="button"
                   onClick={() => setShowAttendanceModal(false)}
-                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
                 >
                   취소
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-4 py-2 rounded bg-gradient-button text-white font-medium transition-all duration-300"
                 >
                   등록
                 </button>
@@ -3771,12 +3785,12 @@ const MaintenanceManagementSystem = () => {
       
       return (
         <div className="space-y-4">
-          <div className="bg-white p-4 rounded-lg shadow-sm border">
+          <div className="p-4 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold">설비 상세정보</h2>
               <button
                 onClick={() => setSelectedEquipment(null)}
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
               >
                 목록으로
               </button>
@@ -3811,7 +3825,7 @@ const MaintenanceManagementSystem = () => {
               <h3 className="font-medium text-lg mb-3">작업 이력</h3>
               {maintenanceHistory.length > 0 ? (
                 <div className="overflow-x-auto">
-                  <table className="w-full border border-gray-200" style={{ minWidth: '100%' }}>
+                  <table className="w-full table-gs border border-gray-200" style={{ minWidth: '100%' }}>
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900 w-20">번호</th>
@@ -3858,12 +3872,12 @@ const MaintenanceManagementSystem = () => {
     // Equipment list view
     return (
       <div className="space-y-4">
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <div className="p-4 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">설비 관리</h2>
             <button
               onClick={() => setShowEquipmentForm(true)}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded bg-gradient-button text-white font-medium transition-all duration-300"
             >
               <Plus className="h-4 w-4 mr-2" />
               설비 추가
@@ -3871,7 +3885,7 @@ const MaintenanceManagementSystem = () => {
           </div>
           
           {showEquipmentForm && (
-            <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+            <div className="mb-6 p-4 border rounded bg-gray-50">
               <h3 className="font-medium mb-4">{editingEquipment ? '설비 정보 수정' : '새 설비 추가'}</h3>
               <form onSubmit={handleEquipmentSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3880,7 +3894,7 @@ const MaintenanceManagementSystem = () => {
                     placeholder="설비명"
                     value={equipmentForm.name}
                     onChange={(e) => setEquipmentForm(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full table-gs px-3 py-2 border rounded"
                     required
                   />
                   <input
@@ -3888,7 +3902,7 @@ const MaintenanceManagementSystem = () => {
                     placeholder="기기번호"
                     value={equipmentForm.model}
                     onChange={(e) => setEquipmentForm(prev => ({ ...prev, model: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full table-gs px-3 py-2 border rounded"
                     required
                   />
                   <input
@@ -3896,13 +3910,13 @@ const MaintenanceManagementSystem = () => {
                     placeholder="P&ID"
                     value={equipmentForm.manufacturer}
                     onChange={(e) => setEquipmentForm(prev => ({ ...prev, manufacturer: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full table-gs px-3 py-2 border rounded"
                     required
                   />
                   <select
                     value={equipmentForm.status}
                     onChange={(e) => setEquipmentForm(prev => ({ ...prev, status: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full table-gs px-3 py-2 border rounded"
                   >
                     <option value="정상">정상</option>
                     <option value="점검중">점검중</option>
@@ -3914,7 +3928,7 @@ const MaintenanceManagementSystem = () => {
                     placeholder="위치"
                     value={equipmentForm.location}
                     onChange={(e) => setEquipmentForm(prev => ({ ...prev, location: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg"
+                    className="w-full table-gs px-3 py-2 border rounded"
                     required
                   />
                 </div>
@@ -3922,7 +3936,7 @@ const MaintenanceManagementSystem = () => {
                 <div className="flex gap-2">
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="px-4 py-2 rounded bg-gradient-button text-white font-medium transition-all duration-300"
                   >
                     {editingEquipment ? '수정' : '추가'}
                   </button>
@@ -3940,7 +3954,7 @@ const MaintenanceManagementSystem = () => {
                         specifications: {}
                       });
                     }}
-                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
                   >
                     취소
                   </button>
@@ -3981,7 +3995,7 @@ const MaintenanceManagementSystem = () => {
                       <td className="px-4 py-2 border-b text-sm">
                         <button
                           onClick={() => setSelectedEquipment(eq)}
-                          className="text-blue-600 hover:text-blue-800 font-medium"
+                          className="text-gray-700 hover:text-gray-900 font-medium"
                         >
                           보기
                         </button>
@@ -3990,7 +4004,7 @@ const MaintenanceManagementSystem = () => {
                         <div className="flex gap-1">
                           <button
                             onClick={() => handleEditEquipment(eq)}
-                            className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                            className="p-1 text-gray-700 hover:bg-blue-50 rounded"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
@@ -4020,7 +4034,7 @@ const MaintenanceManagementSystem = () => {
         <h2 className="text-2xl font-bold">문서 관리</h2>
         <button
           onClick={() => setShowUploadModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="flex items-center gap-2 px-4 py-2 rounded bg-gradient-button text-white font-medium transition-all duration-300"
         >
           <Upload className="w-4 h-4" />
           문서 업로드
@@ -4028,16 +4042,16 @@ const MaintenanceManagementSystem = () => {
       </div>
 
       {/* 문서 목록 */}
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded shadow-md border overflow-hidden">
+        <table className="w-full table-gs">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">문서명</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">카테고리</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">파일 크기</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">업로드일</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">업로더</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">액션</th>
+              <th className="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">문서명</th>
+              <th className="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">카테고리</th>
+              <th className="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">파일 크기</th>
+              <th className="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">업로드일</th>
+              <th className="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">업로더</th>
+              <th className="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">액션</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -4055,7 +4069,7 @@ const MaintenanceManagementSystem = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                  <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-lg text-xs">
                     {doc.category}
                   </span>
                 </td>
@@ -4126,7 +4140,7 @@ const MaintenanceManagementSystem = () => {
                           }
                         }
                       }}
-                      className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
+                      className="text-gray-700 hover:text-blue-900 flex items-center gap-1"
                     >
                       <Download className="w-4 h-4" />
                       다운로드
@@ -4160,7 +4174,7 @@ const MaintenanceManagementSystem = () => {
       {/* 업로드 모달 */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-md w-full mx-4">
+          <div className="bg-white p-6 rounded max-w-md w-full mx-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">문서 업로드</h3>
               <button
@@ -4178,7 +4192,7 @@ const MaintenanceManagementSystem = () => {
                   type="file"
                   multiple
                   onChange={(e) => setSelectedFiles(e.target.files)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full table-gs px-3 py-2 rounded input-gs"
                 />
               </div>
               
@@ -4187,7 +4201,7 @@ const MaintenanceManagementSystem = () => {
                 <select
                   value={uploadCategory}
                   onChange={(e) => setUploadCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full table-gs px-3 py-2 rounded input-gs"
                 >
                   <option value="매뉴얼">매뉴얼</option>
                   <option value="데이타 시트">데이타 시트</option>
@@ -4201,7 +4215,7 @@ const MaintenanceManagementSystem = () => {
                 <textarea
                   value={uploadDescription}
                   onChange={(e) => setUploadDescription(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full table-gs px-3 py-2 rounded input-gs"
                   rows={3}
                   placeholder="문서에 대한 간단한 설명을 입력하세요"
                 />
@@ -4218,7 +4232,7 @@ const MaintenanceManagementSystem = () => {
               <button
                 onClick={handleFileUpload}
                 disabled={!selectedFiles || selectedFiles.length === 0}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-gradient-button text-white rounded  disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 업로드
               </button>
@@ -4236,7 +4250,8 @@ const MaintenanceManagementSystem = () => {
     title: '',
     content: '',
     priority: 'normal',
-    author: '관리자'
+    author: '관리자',
+    isPinned: false
   });
 
   const handleAnnouncementSubmit = async (e: React.FormEvent) => {
@@ -4253,7 +4268,8 @@ const MaintenanceManagementSystem = () => {
             title: updatedAnnouncement.title,
             content: updatedAnnouncement.content,
             priority: updatedAnnouncement.priority,
-            author: updatedAnnouncement.author
+            author: updatedAnnouncement.author,
+            is_pinned: updatedAnnouncement.isPinned
           })
           .eq('id', editingAnnouncement.id);
           
@@ -4275,7 +4291,8 @@ const MaintenanceManagementSystem = () => {
           content: announcementForm.content,
           priority: announcementForm.priority,
           author: announcementForm.author,
-          date: new Date().toISOString().split('T')[0]
+          date: new Date().toISOString().split('T')[0],
+          is_pinned: announcementForm.isPinned
         };
         
         // Supabase 추가
@@ -4298,7 +4315,9 @@ const MaintenanceManagementSystem = () => {
           content: data.content,
           date: data.date,
           author: data.author,
-          priority: data.priority
+          priority: data.priority,
+          isPinned: data.is_pinned || false,
+          viewCount: data.view_count || 0
         };
         setAnnouncements(prev => [...prev, newAnnouncementWithId]);
       }
@@ -4308,7 +4327,8 @@ const MaintenanceManagementSystem = () => {
         title: '',
         content: '',
         priority: 'normal',
-        author: '관리자'
+        author: '관리자',
+        isPinned: false
       });
     } catch (error) {
       console.error('공지사항 관리 오류:', error);
@@ -4322,7 +4342,8 @@ const MaintenanceManagementSystem = () => {
       title: announcement.title,
       content: announcement.content,
       priority: announcement.priority,
-      author: announcement.author
+      author: announcement.author,
+      isPinned: announcement.isPinned || false
     });
     setShowAnnouncementForm(true);
   };
@@ -4355,7 +4376,7 @@ const MaintenanceManagementSystem = () => {
 
   const renderAnnouncements = () => (
     <div className="space-y-4">
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <div className="p-6 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">공지사항</h2>
           <button
@@ -4363,7 +4384,7 @@ const MaintenanceManagementSystem = () => {
               setShowAnnouncementForm(true);
               setAnnouncementForm(prev => ({ ...prev, author: currentUser?.fullName || '관리자' }));
             }}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded bg-gradient-button text-white font-medium transition-all duration-300"
           >
             <Plus className="h-4 w-4 mr-2" />
             공지사항 작성
@@ -4371,7 +4392,7 @@ const MaintenanceManagementSystem = () => {
         </div>
         
         {showAnnouncementForm && (
-          <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+          <div className="mb-6 p-4 border rounded bg-gray-50">
             <h3 className="font-medium mb-4">{editingAnnouncement ? '공지사항 수정' : '새 공지사항 작성'}</h3>
             <form onSubmit={handleAnnouncementSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -4380,39 +4401,112 @@ const MaintenanceManagementSystem = () => {
                   placeholder="제목"
                   value={announcementForm.title}
                   onChange={(e) => setAnnouncementForm(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full table-gs px-3 py-2 border rounded"
                   required
                 />
                 <select
                   value={announcementForm.priority}
                   onChange={(e) => setAnnouncementForm(prev => ({ ...prev, priority: e.target.value }))}
-                  className="w-full px-3 py-2 border rounded-lg"
+                  className="w-full table-gs px-3 py-2 border rounded"
                 >
                   <option value="normal">일반</option>
                   <option value="important">중요</option>
                   <option value="urgent">긴급</option>
                 </select>
               </div>
-              <textarea
-                placeholder="내용"
-                value={announcementForm.content}
-                onChange={(e) => setAnnouncementForm(prev => ({ ...prev, content: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg"
-                rows={4}
-                required
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">내용</label>
+                <div className="border rounded">
+                  {/* 텍스트 에디터 툴바 */}
+                  <div className="flex items-center gap-2 p-2 border-b bg-gray-50">
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        document.execCommand('bold', false, undefined);
+                      }}
+                      className="px-2 py-1 bg-white border rounded text-sm hover:bg-gray-100"
+                      title="굵게"
+                    >
+                      <strong>B</strong>
+                    </button>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        document.execCommand('italic', false, undefined);
+                      }}
+                      className="px-2 py-1 bg-white border rounded text-sm hover:bg-gray-100"
+                      title="기울임"
+                    >
+                      <em>I</em>
+                    </button>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        document.execCommand('foreColor', false, 'red');
+                      }}
+                      className="px-2 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
+                      title="빨간색"
+                    >
+                      A
+                    </button>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        document.execCommand('foreColor', false, 'blue');
+                      }}
+                      className="px-2 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                      title="파란색"
+                    >
+                      A
+                    </button>
+                  </div>
+                  <div
+                    id="content"
+                    contentEditable
+                    suppressContentEditableWarning={true}
+                    onInput={(e) => {
+                      const content = e.currentTarget.innerHTML;
+                      setAnnouncementForm(prev => ({ ...prev, content }));
+                    }}
+                    onBlur={(e) => {
+                      const content = e.currentTarget.innerHTML;
+                      setAnnouncementForm(prev => ({ ...prev, content }));
+                    }}
+                    dangerouslySetInnerHTML={{
+                      __html: announcementForm.content || ''
+                    }}
+                    className="w-full px-3 py-2 border rounded min-h-[152px] focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    style={{ whiteSpace: 'pre-wrap' }}
+                    data-placeholder="내용을 입력하세요. **굵게**, *기울임* 형식을 사용할 수 있습니다."
+                  />
+                </div>
+              </div>
               <input
                 type="text"
                 placeholder="작성자"
                 value={announcementForm.author}
                 onChange={(e) => setAnnouncementForm(prev => ({ ...prev, author: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg bg-gray-100"
+                className="w-full table-gs px-3 py-2 border rounded bg-gray-100"
                 readOnly
               />
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isPinned"
+                  checked={announcementForm.isPinned}
+                  onChange={(e) => setAnnouncementForm(prev => ({ ...prev, isPinned: e.target.checked }))}
+                  className="w-4 h-4 text-blue-600 rounded"
+                />
+                <label htmlFor="isPinned" className="text-sm text-gray-700">📌 상단 고정</label>
+              </div>
               <div className="flex gap-2">
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-4 py-2 rounded bg-gradient-button text-white font-medium transition-all duration-300"
                 >
                   {editingAnnouncement ? '수정' : '작성'}
                 </button>
@@ -4425,10 +4519,11 @@ const MaintenanceManagementSystem = () => {
                       title: '',
                       content: '',
                       priority: 'normal',
-                      author: '관리자'
+                      author: '관리자',
+                      isPinned: false
                     });
                   }}
-                  className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                  className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
                 >
                   취소
                 </button>
@@ -4438,18 +4533,27 @@ const MaintenanceManagementSystem = () => {
         )}
         
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full table-gs">
             <thead>
               <tr className="border-b bg-gray-50">
                 <th className="text-left py-3 px-4 font-medium text-gray-700">우선순위</th>
                 <th className="text-left py-3 px-4 font-medium text-gray-700">제목</th>
                 <th className="text-left py-3 px-4 font-medium text-gray-700">작성자</th>
                 <th className="text-left py-3 px-4 font-medium text-gray-700">작성일</th>
+                <th className="text-center py-3 px-4 font-medium text-gray-700">조회수</th>
                 <th className="text-center py-3 px-4 font-medium text-gray-700">관리</th>
               </tr>
             </thead>
             <tbody>
-              {announcements.map((announcement) => (
+              {announcements
+                .sort((a, b) => {
+                  // 고정된 공지를 먼저 정렬
+                  if (a.isPinned && !b.isPinned) return -1;
+                  if (!a.isPinned && b.isPinned) return 1;
+                  // 고정 상태가 같으면 날짜순으로 정렬
+                  return new Date(b.date).getTime() - new Date(a.date).getTime();
+                })
+                .map((announcement) => (
                 <tr key={announcement.id} className="border-b hover:bg-gray-50">
                   <td className="py-3 px-4">
                     <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(announcement.priority)}`}>
@@ -4459,19 +4563,42 @@ const MaintenanceManagementSystem = () => {
                   </td>
                   <td className="py-3 px-4">
                     <button
-                      onClick={() => setSelectedAnnouncement(announcement)}
-                      className="text-blue-600 hover:text-blue-800 hover:underline text-left"
+                      onClick={async () => {
+                        // 조회수 증가
+                        try {
+                          const { error } = await supabase
+                            .from('announcements')
+                            .update({ view_count: (announcement.viewCount || 0) + 1 })
+                            .eq('id', announcement.id);
+                          
+                          if (!error) {
+                            // 로컬 상태 업데이트
+                            setAnnouncements(prev => prev.map(ann => 
+                              ann.id === announcement.id 
+                                ? { ...ann, viewCount: (ann.viewCount || 0) + 1 }
+                                : ann
+                            ));
+                          }
+                        } catch (error) {
+                          console.error('조회수 업데이트 오류:', error);
+                        }
+                        
+                        setSelectedAnnouncement(announcement);
+                      }}
+                      className="text-gray-700 hover:text-gray-900 hover:underline text-left flex items-center gap-2"
                     >
+                      {announcement.isPinned && <span className="text-blue-600">📌</span>}
                       {announcement.title}
                     </button>
                   </td>
                   <td className="py-3 px-4 text-sm text-gray-600">{announcement.author}</td>
                   <td className="py-3 px-4 text-sm text-gray-600">{announcement.date}</td>
+                  <td className="py-3 px-4 text-center text-sm text-gray-600">{announcement.viewCount || 0}</td>
                   <td className="py-3 px-4">
                     <div className="flex justify-center gap-1">
                       <button
                         onClick={() => handleEditAnnouncement(announcement)}
-                        className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                        className="p-1 text-gray-700 hover:bg-blue-50 rounded"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
@@ -4500,7 +4627,7 @@ const MaintenanceManagementSystem = () => {
       {/* 공지사항 상세 모달 */}
       {selectedAnnouncement && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-start mb-6">
                 <div>
@@ -4523,15 +4650,21 @@ const MaintenanceManagementSystem = () => {
               </div>
               
               <div className="prose max-w-none">
-                <p className="text-gray-700 whitespace-pre-line leading-relaxed">
-                  {selectedAnnouncement.content}
-                </p>
+                <div 
+                  className="text-gray-700 whitespace-pre-line leading-relaxed"
+                  dangerouslySetInnerHTML={{
+                    __html: selectedAnnouncement.content
+                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                      .replace(/\n/g, '<br/>')
+                  }}
+                />
               </div>
               
               <div className="mt-6 pt-6 border-t flex justify-end">
                 <button
                   onClick={() => setSelectedAnnouncement(null)}
-                  className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                  className="px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
                 >
                   닫기
                 </button>
@@ -4552,7 +4685,7 @@ const MaintenanceManagementSystem = () => {
     return (
       <div className="space-y-6">
         {/* 헤더 */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <div className="p-6 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">업무일지 관리</h2>
@@ -4563,7 +4696,7 @@ const MaintenanceManagementSystem = () => {
                 type="month"
                 value={dailyReportSelectedMonth}
                 onChange={(e) => setDailyReportSelectedMonth(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded-md input-gs"
               />
               <button
                 onClick={() => exportDailyReportsToExcel(dailyReportSelectedMonth)}
@@ -4592,7 +4725,7 @@ const MaintenanceManagementSystem = () => {
                   });
                   setShowDailyReportModal(true);
                 }}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                className="flex items-center px-4 py-2 bg-gradient-button text-white rounded-md  transition-colors"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 업무일지 등록
@@ -4602,14 +4735,14 @@ const MaintenanceManagementSystem = () => {
         </div>
 
         {/* 검색 */}
-        <div className="bg-white p-4 rounded-lg shadow-sm border">
+        <div className="p-4 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg">
           <div className="flex gap-4">
             <input
               type="date"
               value={dailyReportSearchDate}
               onChange={(e) => setDailyReportSearchDate(e.target.value)}
               placeholder="날짜로 검색"
-              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-gray-300 rounded-md input-gs"
             />
             <button
               onClick={() => setDailyReportSearchDate('')}
@@ -4621,16 +4754,16 @@ const MaintenanceManagementSystem = () => {
         </div>
 
         {/* 업무일지 목록 */}
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <div className="bg-white rounded shadow-md border overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full table-gs">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">날짜</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작성자</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">안전구호</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작성일시</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
+                  <th className="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">날짜</th>
+                  <th className="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작성자</th>
+                  <th className="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">안전구호</th>
+                  <th className="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작성일시</th>
+                  <th className="px-5 py-2.5 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">관리</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -4658,7 +4791,7 @@ const MaintenanceManagementSystem = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                         <button
                           onClick={() => handleDailyReportEdit(report)}
-                          className="text-blue-600 hover:text-blue-800 inline-flex items-center"
+                          className="text-gray-700 hover:text-gray-900 inline-flex items-center"
                         >
                           <Edit className="h-4 w-4 mr-1" />
                           수정
@@ -4682,7 +4815,7 @@ const MaintenanceManagementSystem = () => {
         {/* 업무일지 등록/수정 모달 */}
         {showDailyReportModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center p-6 border-b">
                 <h3 className="text-xl font-semibold">
                   {selectedDailyReport ? '업무일지 수정' : '업무일지 등록'}
@@ -4706,14 +4839,14 @@ const MaintenanceManagementSystem = () => {
                     type="date"
                     value={dailyReportForm.date}
                     onChange={(e) => setDailyReportForm(prev => ({ ...prev, date: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    className="w-full table-gs px-3 py-2 border border-gray-300 rounded-md input-gs"
                     required
                   />
                 </div>
 
                 {/* 업무 현황 테이블 */}
-                <div className="border rounded-lg overflow-hidden">
-                  <table className="w-full">
+                <div className="border rounded overflow-hidden">
+                  <table className="w-full table-gs">
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 w-32">구분</th>
@@ -4731,7 +4864,7 @@ const MaintenanceManagementSystem = () => {
                               ...prev,
                               mechanical: { ...prev.mechanical, today: e.target.value }
                             }))}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            className="w-full table-gs px-2 py-1 border border-gray-300 rounded-md input-gs resize-none text-xs"
                             rows={8}
                           />
                         </td>
@@ -4742,12 +4875,12 @@ const MaintenanceManagementSystem = () => {
                               ...prev,
                               mechanical: { ...prev.mechanical, tomorrow: e.target.value }
                             }))}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            className="w-full table-gs px-2 py-1 border border-gray-300 rounded-md input-gs resize-none text-xs"
                             rows={8}
                           />
                         </td>
                       </tr>
-                      <tr className="bg-blue-50">
+                      <tr className="bg-gray-50">
                         <td className="px-4 py-3 text-xs font-medium text-gray-900">영진(기계)</td>
                         <td className="px-4 py-3">
                           <textarea
@@ -4756,7 +4889,7 @@ const MaintenanceManagementSystem = () => {
                               ...prev,
                               youngjinMechanical: { ...prev.youngjinMechanical, today: e.target.value }
                             }))}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            className="w-full table-gs px-2 py-1 border border-gray-300 rounded-md input-gs resize-none text-xs"
                             rows={8}
                           />
                         </td>
@@ -4767,7 +4900,7 @@ const MaintenanceManagementSystem = () => {
                               ...prev,
                               youngjinMechanical: { ...prev.youngjinMechanical, tomorrow: e.target.value }
                             }))}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            className="w-full table-gs px-2 py-1 border border-gray-300 rounded-md input-gs resize-none text-xs"
                             rows={8}
                           />
                         </td>
@@ -4781,7 +4914,7 @@ const MaintenanceManagementSystem = () => {
                               ...prev,
                               control: { ...prev.control, today: e.target.value }
                             }))}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            className="w-full table-gs px-2 py-1 border border-gray-300 rounded-md input-gs resize-none text-xs"
                             rows={8}
                           />
                         </td>
@@ -4792,12 +4925,12 @@ const MaintenanceManagementSystem = () => {
                               ...prev,
                               control: { ...prev.control, tomorrow: e.target.value }
                             }))}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            className="w-full table-gs px-2 py-1 border border-gray-300 rounded-md input-gs resize-none text-xs"
                             rows={8}
                           />
                         </td>
                       </tr>
-                      <tr className="bg-blue-50">
+                      <tr className="bg-gray-50">
                         <td className="px-4 py-3 text-xs font-medium text-gray-900">영진(제어)</td>
                         <td className="px-4 py-3">
                           <textarea
@@ -4806,7 +4939,7 @@ const MaintenanceManagementSystem = () => {
                               ...prev,
                               youngjinControl: { ...prev.youngjinControl, today: e.target.value }
                             }))}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            className="w-full table-gs px-2 py-1 border border-gray-300 rounded-md input-gs resize-none text-xs"
                             rows={8}
                           />
                         </td>
@@ -4817,7 +4950,7 @@ const MaintenanceManagementSystem = () => {
                               ...prev,
                               youngjinControl: { ...prev.youngjinControl, tomorrow: e.target.value }
                             }))}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            className="w-full table-gs px-2 py-1 border border-gray-300 rounded-md input-gs resize-none text-xs"
                             rows={8}
                           />
                         </td>
@@ -4831,7 +4964,7 @@ const MaintenanceManagementSystem = () => {
                               ...prev,
                               electrical: { ...prev.electrical, today: e.target.value }
                             }))}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            className="w-full table-gs px-2 py-1 border border-gray-300 rounded-md input-gs resize-none text-xs"
                             rows={8}
                           />
                         </td>
@@ -4842,12 +4975,12 @@ const MaintenanceManagementSystem = () => {
                               ...prev,
                               electrical: { ...prev.electrical, tomorrow: e.target.value }
                             }))}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            className="w-full table-gs px-2 py-1 border border-gray-300 rounded-md input-gs resize-none text-xs"
                             rows={8}
                           />
                         </td>
                       </tr>
-                      <tr className="bg-blue-50">
+                      <tr className="bg-gray-50">
                         <td className="px-4 py-3 text-xs font-medium text-gray-900">영진(전기)</td>
                         <td className="px-4 py-3">
                           <textarea
@@ -4856,7 +4989,7 @@ const MaintenanceManagementSystem = () => {
                               ...prev,
                               youngjinElectrical: { ...prev.youngjinElectrical, today: e.target.value }
                             }))}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            className="w-full table-gs px-2 py-1 border border-gray-300 rounded-md input-gs resize-none text-xs"
                             rows={8}
                           />
                         </td>
@@ -4867,7 +5000,7 @@ const MaintenanceManagementSystem = () => {
                               ...prev,
                               youngjinElectrical: { ...prev.youngjinElectrical, tomorrow: e.target.value }
                             }))}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            className="w-full table-gs px-2 py-1 border border-gray-300 rounded-md input-gs resize-none text-xs"
                             rows={8}
                           />
                         </td>
@@ -4878,7 +5011,7 @@ const MaintenanceManagementSystem = () => {
                           <textarea
                             value={dailyReportForm.attendanceStatus}
                             onChange={(e) => setDailyReportForm(prev => ({ ...prev, attendanceStatus: e.target.value }))}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            className="w-full table-gs px-2 py-1 border border-gray-300 rounded-md input-gs resize-none text-xs"
                             rows={1}
                             placeholder="근태 현황을 입력하세요"
                           />
@@ -4890,7 +5023,7 @@ const MaintenanceManagementSystem = () => {
                           <textarea
                             value={dailyReportForm.safetySlogan}
                             onChange={(e) => setDailyReportForm(prev => ({ ...prev, safetySlogan: e.target.value }))}
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 resize-none text-xs"
+                            className="w-full table-gs px-2 py-1 border border-gray-300 rounded-md input-gs resize-none text-xs"
                             rows={1}
                             placeholder="안전구호를 입력하세요"
                           />
@@ -4913,7 +5046,7 @@ const MaintenanceManagementSystem = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                    className="px-4 py-2 bg-gradient-button text-white rounded-md  transition-colors"
                   >
                     {selectedDailyReport ? '수정' : '등록'}
                   </button>
@@ -4929,7 +5062,7 @@ const MaintenanceManagementSystem = () => {
   // Chat
   const renderChat = () => (
     <div className="space-y-4">
-      <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <div className="p-6 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg">
         <h2 className="text-lg font-semibold mb-4">실시간 소통</h2>
         <p className="text-gray-500">실시간 채팅 기능이 여기에 표시됩니다.</p>
       </div>
@@ -4947,7 +5080,7 @@ const MaintenanceManagementSystem = () => {
           <h2 className="text-2xl font-bold text-gray-900">TM 현황</h2>
         </div>
         
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded shadow overflow-hidden">
           <table className="min-w-full">
             <thead className="bg-gray-50">
               <tr>
@@ -4972,7 +5105,7 @@ const MaintenanceManagementSystem = () => {
                     setShowTMDetailModal(true);
                   }}
                 >
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-700">
                     {tm.tmNo}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -4985,7 +5118,7 @@ const MaintenanceManagementSystem = () => {
                     {tm.description}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${ 
+                    <span className={`px-2 py-1 text-xs font-medium rounded-lg ${ 
                       tm.status.includes('진행중') ? 'bg-orange-100 text-orange-800' : 
                       tm.status.includes('완료') ? 'bg-green-100 text-green-800' : 
                       'bg-gray-100 text-gray-800'
@@ -5009,7 +5142,7 @@ const MaintenanceManagementSystem = () => {
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                     {tm.drawingLink ? (
                       <a href={tm.drawingLink} target="_blank" rel="noopener noreferrer" 
-                         className="text-blue-600 hover:text-blue-800">링크</a>
+                         className="text-gray-700 hover:text-gray-900">링크</a>
                     ) : (
                       <span className="text-gray-400">없음</span>
                     )}
@@ -5023,7 +5156,7 @@ const MaintenanceManagementSystem = () => {
         {/* TM 상세 모달 */}
         {showTMDetailModal && selectedTMStatus && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-bold text-gray-900">
                   TM 상세정보 - {selectedTMStatus.tmNo}
@@ -5075,10 +5208,10 @@ const MaintenanceManagementSystem = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">우선순위</label>
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    <span className={`px-2 py-1 text-xs font-medium rounded-lg ${
                       selectedTMStatus.priority === '높음' ? 'bg-red-100 text-red-800' :
                       selectedTMStatus.priority === '낮음' ? 'bg-gray-100 text-gray-800' :
-                      'bg-blue-100 text-blue-800'
+                      'bg-gray-100 text-gray-800'
                     }`}>
                       {selectedTMStatus.priority}
                     </span>
@@ -5183,22 +5316,22 @@ const MaintenanceManagementSystem = () => {
 
   return (
     <WeatherProvider>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-gs">
         {renderNavigation()}
       
       {/* Loading Indicator */}
       {isLoadingData && (
-        <div className="w-full bg-blue-50 border-b border-blue-200 px-4 py-3">
+        <div className="w-full table-gs bg-gray-50 border-b border-blue-200 px-4 py-3">
           <div className="flex items-center">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-3"></div>
-            <p className="text-sm text-blue-700">데이터를 불러오는 중입니다...</p>
+            <div className="animate-spin rounded-lg h-4 w-4 border-b-2 border-gray-600 mr-3"></div>
+            <p className="text-sm text-gray-700">데이터를 불러오는 중입니다...</p>
           </div>
         </div>
       )}
       
       {/* Error Display */}
       {dataLoadError && !isLoadingData && (
-        <div className="w-full bg-red-50 border-b border-red-200 px-4 py-3">
+        <div className="w-full table-gs bg-red-50 border-b border-red-200 px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <svg className="h-5 w-5 text-red-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -5216,14 +5349,14 @@ const MaintenanceManagementSystem = () => {
         </div>
       )}
       
-      <main className="w-full py-4 px-2 sm:px-4 lg:px-6">
+      <main className="w-full table-gs py-4 px-2 sm:px-4 lg:px-6">
         {renderContent()}
       </main>
       
       {/* Work Order Detail Modal */}
       {selectedWorkOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded shadow-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-900">작업 상세 정보</h2>
@@ -5243,7 +5376,7 @@ const MaintenanceManagementSystem = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">상태</label>
-                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedWorkOrder?.status || '')}`}>
+                    <span className={`inline-flex px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(selectedWorkOrder?.status || '')}`}>
                       {selectedWorkOrder?.status}
                     </span>
                   </div>
@@ -5311,7 +5444,7 @@ const MaintenanceManagementSystem = () => {
       {/* Announcement Detail Modal */}
       {selectedAnnouncement && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded shadow-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-900">공지사항 상세</h2>
@@ -5328,14 +5461,22 @@ const MaintenanceManagementSystem = () => {
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900">{selectedAnnouncement?.title}</h3>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(selectedAnnouncement?.priority || '')}`}>
+                  <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getPriorityColor(selectedAnnouncement?.priority || '')}`}>
                     {selectedAnnouncement?.priority === 'urgent' ? '긴급' :
                      selectedAnnouncement?.priority === 'important' ? '중요' : '일반'}
                   </span>
                 </div>
                 
                 <div className="border-t pt-4">
-                  <p className="text-gray-700 whitespace-pre-line leading-relaxed">{selectedAnnouncement?.content}</p>
+                  <div 
+                    className="text-gray-700 whitespace-pre-line leading-relaxed"
+                    dangerouslySetInnerHTML={{
+                      __html: selectedAnnouncement?.content
+                        ?.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        ?.replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        ?.replace(/\n/g, '<br/>') || ''
+                    }}
+                  />
                 </div>
                 
                 <div className="border-t pt-4 text-sm text-gray-500">
@@ -5351,7 +5492,7 @@ const MaintenanceManagementSystem = () => {
       {/* Work Order Detail Modal */}
       {selectedWorkOrder && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded shadow-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-900">작업 상세 정보</h2>
@@ -5371,7 +5512,7 @@ const MaintenanceManagementSystem = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">상태</label>
-                    <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedWorkOrder?.status || '')}`}>
+                    <span className={`inline-flex px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(selectedWorkOrder?.status || '')}`}>
                       {selectedWorkOrder?.status}
                     </span>
                   </div>
@@ -5439,7 +5580,7 @@ const MaintenanceManagementSystem = () => {
       {/* Announcement Detail Modal */}
       {selectedAnnouncement && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded shadow-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-gray-900">공지사항 상세</h2>
@@ -5456,14 +5597,22 @@ const MaintenanceManagementSystem = () => {
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900">{selectedAnnouncement?.title}</h3>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(selectedAnnouncement?.priority || '')}`}>
+                  <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getPriorityColor(selectedAnnouncement?.priority || '')}`}>
                     {selectedAnnouncement?.priority === 'urgent' ? '긴급' :
                      selectedAnnouncement?.priority === 'important' ? '중요' : '일반'}
                   </span>
                 </div>
                 
                 <div className="border-t pt-4">
-                  <p className="text-gray-700 whitespace-pre-line leading-relaxed">{selectedAnnouncement?.content}</p>
+                  <div 
+                    className="text-gray-700 whitespace-pre-line leading-relaxed"
+                    dangerouslySetInnerHTML={{
+                      __html: selectedAnnouncement?.content
+                        ?.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        ?.replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        ?.replace(/\n/g, '<br/>') || ''
+                    }}
+                  />
                 </div>
                 
                 <div className="border-t pt-4 text-sm text-gray-500">

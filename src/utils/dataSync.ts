@@ -178,7 +178,9 @@ export const loadAnnouncementsFromSupabase = async () => {
       content: announcement.content,
       date: announcement.date,
       author: announcement.author,
-      priority: announcement.priority
+      priority: announcement.priority,
+      isPinned: announcement.is_pinned || false,
+      viewCount: announcement.view_count || 0
     }));
   } catch (err) {
     console.error('❌ loadAnnouncementsFromSupabase 예외:', err);

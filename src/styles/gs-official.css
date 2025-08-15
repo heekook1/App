@@ -1,0 +1,199 @@
+/* GS 그룹 공식 디자인 시스템 */
+:root {
+  /* GS 공식 컬러 팔레트 */
+  --gs-primary: #005BAC;
+  --gs-primary-dark: #003D73;
+  --gs-secondary: #0084CA;
+  --gs-accent: #00A0E9;
+  --gs-gray-900: #1A1A1A;
+  --gs-gray-700: #4A4A4A;
+  --gs-gray-500: #7A7A7A;
+  --gs-gray-300: #DADADA;
+  --gs-gray-100: #F5F5F5;
+  --gs-white: #FFFFFF;
+  
+  /* 그림자 */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* GS 타이포그래피 */
+body {
+  font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--gs-gray-900);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* GS 버튼 스타일 */
+.btn-gs-primary {
+  background-color: var(--gs-primary);
+  color: white;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-gs-primary:hover {
+  background-color: var(--gs-primary-dark);
+}
+
+.btn-gs-primary:active {
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* GS 보조 버튼 */
+.btn-gs-secondary {
+  background-color: white;
+  color: var(--gs-primary);
+  border: 1px solid var(--gs-primary);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-gs-secondary:hover {
+  background-color: var(--gs-primary);
+  color: white;
+}
+
+/* GS 카드 스타일 */
+.card-gs {
+  background-color: white;
+  border: 1px solid var(--gs-gray-300);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease;
+}
+
+.card-gs:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* GS 네비게이션 */
+.nav-gs {
+  background-color: white;
+  border-bottom: 2px solid var(--gs-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.nav-link-gs {
+  color: var(--gs-gray-700);
+  font-weight: 500;
+  transition: color 0.2s ease;
+  position: relative;
+}
+
+.nav-link-gs:hover {
+  color: var(--gs-primary);
+}
+
+.nav-link-gs.active {
+  color: var(--gs-primary);
+}
+
+.nav-link-gs.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--gs-primary);
+}
+
+/* GS 입력 필드 */
+.input-gs {
+  border: 1px solid var(--gs-gray-300);
+  transition: border-color 0.2s ease;
+}
+
+.input-gs:focus {
+  border-color: var(--gs-primary);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 91, 172, 0.1);
+}
+
+/* GS 테이블 */
+.table-gs thead {
+  background-color: var(--gs-gray-100);
+  border-bottom: 2px solid var(--gs-primary);
+}
+
+.table-gs th {
+  color: var(--gs-gray-700);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+}
+
+.table-gs tbody tr {
+  border-bottom: 1px solid var(--gs-gray-300);
+  transition: background-color 0.2s ease;
+}
+
+.table-gs tbody tr:hover {
+  background-color: var(--gs-gray-100);
+}
+
+/* GS 배지 */
+.badge-gs {
+  background-color: var(--gs-secondary);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+}
+
+.badge-gs-outline {
+  background-color: white;
+  color: var(--gs-primary);
+  border: 1px solid var(--gs-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+}
+
+/* GS 알림 */
+.alert-gs {
+  background-color: #E3F2FD;
+  border-left: 4px solid var(--gs-primary);
+  color: var(--gs-gray-900);
+}
+
+/* GS 로딩 스피너 */
+.spinner-gs {
+  border-color: var(--gs-gray-300);
+  border-top-color: var(--gs-primary);
+}
+
+/* 페이지 배경 */
+.bg-gs-light {
+  background-color: var(--gs-gray-100);
+}
+
+/* 구분선 */
+.divider-gs {
+  border-top: 1px solid var(--gs-gray-300);
+  margin: 1.5rem 0;
+}
+
+/* 반응형 그리드 */
+@media (max-width: 768px) {
+  .card-gs {
+    box-shadow: none;
+    border-radius: 0;
+  }
+}
+
+/* 애니메이션 제거 (공식적인 느낌) */
+* {
+  animation-duration: 0.2s !important;
+}
+
+/* 포커스 스타일 */
+:focus-visible {
+  outline: 2px solid var(--gs-primary);
+  outline-offset: 2px;
+}
