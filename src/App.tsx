@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import * as React from 'react';
-import { Calendar, Users, Settings, FileText, MessageSquare, Wrench, Home, Plus, Edit, Trash2, X, Download, Upload, Eye, ChevronLeft, ChevronRight, ClipboardList } from 'lucide-react';
+import { Calendar, Users, Settings, FileText, MessageSquare, Wrench, Home, Plus, Edit, Trash2, X, Download, Upload, Eye, ChevronLeft, ChevronRight, ClipboardList, Brain } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { supabase } from './supabaseClient';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import LoginPage from './LoginPage';
 import SignupPage from './SignupPage';
 import ForgotPasswordPage from './ForgotPasswordPage';
@@ -1063,7 +1066,8 @@ const MaintenanceManagementSystem = () => {
                 { id: 'documents', label: '문서관리', icon: FileText },
                 { id: 'personnel', label: '인력관리', icon: Users },
                 { id: 'attendance', label: '근태관리', icon: Calendar },
-                { id: 'dailyreport', label: '업무일지', icon: FileText }
+                { id: 'dailyreport', label: '업무일지', icon: FileText },
+                { id: 'ai-analysis', label: 'AI 분석', icon: Brain }
               ].map(item => (
                 <button
                   key={item.id}
@@ -5088,6 +5092,420 @@ const MaintenanceManagementSystem = () => {
     </div>
   );
 
+  // AI 분석 기능
+  const renderAIAnalysis = () => {
+    // 월별 트렌드 데이터 준비
+    const prepareMonthlyTrend = () => {
+      const monthlyData = new Map();
+      const today = new Date();
+      
+      // 최근 6개월 데이터 준비
+      for (let i = 5; i >= 0; i--) {
+        const month = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const monthKey = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
+        monthlyData.set(monthKey, { month: monthKey, count: 0, 높음: 0, 보통: 0, 낮음: 0 });
+      }
+      
+      // TM 데이터를 월별로 집계
+      tmStatusList.forEach(tm => {
+        const tmDate = new Date(tm.createdDate);
+        const monthKey = `${tmDate.getFullYear()}-${String(tmDate.getMonth() + 1).padStart(2, '0')}`;
+        
+        if (monthlyData.has(monthKey)) {
+          const data = monthlyData.get(monthKey);
+          data.count++;
+          if (tm.priority === '높음') data.높음++;
+          else if (tm.priority === '보통') data.보통++;
+          else data.낮음++;
+        }
+      });
+      
+      return Array.from(monthlyData.values());
+    };
+
+    // 분기별 트렌드 데이터 준비
+    const prepareQuarterlyTrend = () => {
+      const quarterlyData = new Map();
+      const today = new Date();
+      const currentYear = today.getFullYear();
+      const currentQuarter = Math.floor(today.getMonth() / 3) + 1;
+      
+      // 최근 4분기 데이터 준비
+      for (let i = 3; i >= 0; i--) {
+        let year = currentYear;
+        let quarter = currentQuarter - i;
+        
+        if (quarter <= 0) {
+          year--;
+          quarter += 4;
+        }
+        
+        const quarterKey = `${year} Q${quarter}`;
+        quarterlyData.set(quarterKey, { quarter: quarterKey, count: 0, resolved: 0, pending: 0 });
+      }
+      
+      // TM 데이터를 분기별로 집계
+      tmStatusList.forEach(tm => {
+        const tmDate = new Date(tm.createdDate);
+        const year = tmDate.getFullYear();
+        const quarter = Math.floor(tmDate.getMonth() / 3) + 1;
+        const quarterKey = `${year} Q${quarter}`;
+        
+        if (quarterlyData.has(quarterKey)) {
+          const data = quarterlyData.get(quarterKey);
+          data.count++;
+          if (tm.status.includes('완료')) data.resolved++;
+          else data.pending++;
+        }
+      });
+      
+      return Array.from(quarterlyData.values());
+    };
+
+    // PDF 생성 함수
+    const generatePDF = async () => {
+      const element = document.getElementById('ai-analysis-content');
+      if (!element) return;
+      
+      try {
+        // 캔버스로 변환
+        const canvas = await html2canvas(element, { scale: 2 });
+        const imgData = canvas.toDataURL('image/png');
+        
+        // PDF 생성
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgWidth = 210;
+        const pageHeight = 295;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        let heightLeft = imgHeight;
+        
+        let position = 0;
+        
+        // 첫 페이지
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        
+        // 추가 페이지가 필요한 경우
+        while (heightLeft >= 0) {
+          position = heightLeft - imgHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+        }
+        
+        // PDF 다운로드
+        const today = new Date().toISOString().split('T')[0];
+        pdf.save(`AI_분석_리포트_${today}.pdf`);
+      } catch (error) {
+        console.error('PDF 생성 오류:', error);
+        alert('PDF 생성 중 오류가 발생했습니다.');
+      }
+    };
+
+    // 예측적 유지보수 분석 함수
+    const analyzeEquipmentRisk = () => {
+      const riskAnalysis = tmStatusList.map(tm => {
+        // TM 발생 빈도 계산 (같은 설비의 TM 개수)
+        const tmCount = tmStatusList.filter(t => t.equipmentName === tm.equipmentName).length;
+        
+        // 최근 TM 이후 경과일 계산
+        const tmDate = new Date(tm.createdDate);
+        const today = new Date();
+        const daysSinceTM = Math.floor((today.getTime() - tmDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // 우선순위 가중치
+        const priorityWeight = tm.priority === '높음' ? 3 : tm.priority === '보통' ? 2 : 1;
+        
+        // 위험도 점수 계산 (0-100)
+        let riskScore = 0;
+        riskScore += Math.min(tmCount * 10, 40); // 빈도 (최대 40점)
+        riskScore += Math.min(daysSinceTM / 3, 30); // 경과일 (90일 = 30점)
+        riskScore += priorityWeight * 10; // 우선순위 (최대 30점)
+        
+        return {
+          equipmentName: tm.equipmentName,
+          tmNo: tm.tmNo,
+          status: tm.status,
+          priority: tm.priority,
+          daysSinceTM,
+          tmCount,
+          riskScore: Math.min(Math.round(riskScore), 100)
+        };
+      });
+      
+      // 설비별로 그룹화하고 최고 위험도만 선택
+      const equipmentRisks = new Map();
+      riskAnalysis.forEach(item => {
+        const existing = equipmentRisks.get(item.equipmentName);
+        if (!existing || existing.riskScore < item.riskScore) {
+          equipmentRisks.set(item.equipmentName, item);
+        }
+      });
+      
+      return Array.from(equipmentRisks.values()).sort((a, b) => b.riskScore - a.riskScore);
+    };
+
+    // 텍스트 마이닝 분석 함수
+    const analyzeTextPatterns = () => {
+      // 고장코드별 빈도 분석
+      const faultCodeAnalysis = new Map();
+      tmStatusList.forEach(tm => {
+        if (tm.faultCode) {
+          const count = faultCodeAnalysis.get(tm.faultCode) || 0;
+          faultCodeAnalysis.set(tm.faultCode, count + 1);
+        }
+      });
+      
+      // 키워드 추출 (description과 workDescription에서)
+      const keywordMap = new Map();
+      const keywords = ['누수', '소음', '진동', '과열', '이상', '고장', '점검', '교체', '수리', '정비'];
+      
+      tmStatusList.forEach(tm => {
+        const combinedText = `${tm.description || ''} ${tm.workDescription || ''}`.toLowerCase();
+        keywords.forEach(keyword => {
+          if (combinedText.includes(keyword)) {
+            const count = keywordMap.get(keyword) || 0;
+            keywordMap.set(keyword, count + 1);
+          }
+        });
+      });
+      
+      // 우선순위별 패턴 분석
+      const priorityAnalysis = {
+        높음: tmStatusList.filter(tm => tm.priority === '높음').length,
+        보통: tmStatusList.filter(tm => tm.priority === '보통').length,
+        낮음: tmStatusList.filter(tm => tm.priority === '낮음').length
+      };
+      
+      return {
+        faultCodes: Array.from(faultCodeAnalysis.entries()).sort((a, b) => b[1] - a[1]),
+        keywords: Array.from(keywordMap.entries()).sort((a, b) => b[1] - a[1]),
+        priorities: priorityAnalysis
+      };
+    };
+
+    const equipmentRisks = analyzeEquipmentRisk();
+    const textPatterns = analyzeTextPatterns();
+    const monthlyTrend = prepareMonthlyTrend();
+    const quarterlyTrend = prepareQuarterlyTrend();
+
+    return (
+      <div className="p-6 space-y-6">
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">AI 분석</h2>
+            <p className="text-sm text-gray-600 mt-1">TM 데이터 기반 예측적 유지보수 및 패턴 분석</p>
+          </div>
+          <button
+            onClick={generatePDF}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-button text-white rounded hover:opacity-90 transition-opacity"
+          >
+            <Download className="h-4 w-4" />
+            PDF 리포트 다운로드
+          </button>
+        </div>
+
+        <div id="ai-analysis-content" className="space-y-6">
+
+        {/* 예측적 유지보수 섹션 */}
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h3 className="text-lg font-semibold mb-4 text-gray-800">🔧 예측적 유지보수 분석</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="bg-red-50 rounded-lg p-4">
+              <p className="text-sm font-medium text-red-800 mb-2">고위험 설비</p>
+              <p className="text-2xl font-bold text-red-900">
+                {equipmentRisks.filter(e => e.riskScore >= 70).length}개
+              </p>
+            </div>
+            <div className="bg-yellow-50 rounded-lg p-4">
+              <p className="text-sm font-medium text-yellow-800 mb-2">중위험 설비</p>
+              <p className="text-2xl font-bold text-yellow-900">
+                {equipmentRisks.filter(e => e.riskScore >= 40 && e.riskScore < 70).length}개
+              </p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">설비명</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">최근 TM</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">TM 빈도</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">경과일</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">우선순위</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">위험도</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {equipmentRisks.slice(0, 10).map((risk, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{risk.equipmentName}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{risk.tmNo}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{risk.tmCount}건</td>
+                    <td className="px-4 py-3 text-sm text-gray-600">{risk.daysSinceTM}일</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        risk.priority === '높음' ? 'bg-red-100 text-red-800' :
+                        risk.priority === '보통' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-green-100 text-green-800'
+                      }`}>
+                        {risk.priority || '낮음'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center">
+                        <div className="w-20 bg-gray-200 rounded-full h-2 mr-2">
+                          <div 
+                            className={`h-2 rounded-full ${
+                              risk.riskScore >= 70 ? 'bg-red-600' :
+                              risk.riskScore >= 40 ? 'bg-yellow-600' :
+                              'bg-green-600'
+                            }`}
+                            style={{ width: `${risk.riskScore}%` }}
+                          />
+                        </div>
+                        <span className="text-sm font-medium">{risk.riskScore}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* 텍스트 마이닝 섹션 */}
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h3 className="text-lg font-semibold mb-4 text-gray-800">📊 텍스트 마이닝 분석</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* 고장코드 분석 */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h4 className="font-medium text-gray-700 mb-3">고장코드 빈도</h4>
+              {textPatterns.faultCodes.length > 0 ? (
+                <div className="space-y-2">
+                  {textPatterns.faultCodes.slice(0, 5).map(([code, count], index) => (
+                    <div key={index} className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">{code}</span>
+                      <span className="text-sm font-medium text-gray-900">{count}건</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">데이터 없음</p>
+              )}
+            </div>
+
+            {/* 키워드 분석 */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h4 className="font-medium text-gray-700 mb-3">주요 문제 키워드</h4>
+              {textPatterns.keywords.length > 0 ? (
+                <div className="space-y-2">
+                  {textPatterns.keywords.slice(0, 5).map(([keyword, count], index) => (
+                    <div key={index} className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">{keyword}</span>
+                      <span className="text-sm font-medium text-gray-900">{count}건</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">키워드 없음</p>
+              )}
+            </div>
+
+            {/* 우선순위 분포 */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h4 className="font-medium text-gray-700 mb-3">우선순위 분포</h4>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-red-600 font-medium">높음</span>
+                  <span className="text-sm font-medium text-gray-900">{textPatterns.priorities.높음}건</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-yellow-600 font-medium">보통</span>
+                  <span className="text-sm font-medium text-gray-900">{textPatterns.priorities.보통}건</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-green-600 font-medium">낮음</span>
+                  <span className="text-sm font-medium text-gray-900">{textPatterns.priorities.낮음}건</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 인사이트 섹션 */}
+        <div className="bg-blue-50 rounded-lg p-6">
+          <h3 className="text-lg font-semibold mb-3 text-blue-800">💡 AI 인사이트</h3>
+          <ul className="space-y-2 text-sm text-blue-700">
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span>
+                현재 {equipmentRisks.filter(e => e.riskScore >= 70).length}개의 설비가 고위험 상태입니다. 
+                즉시 점검이 필요합니다.
+              </span>
+            </li>
+            {textPatterns.keywords.length > 0 && (
+              <li className="flex items-start">
+                <span className="mr-2">•</span>
+                <span>
+                  가장 빈번한 문제는 "{textPatterns.keywords[0][0]}"로 {textPatterns.keywords[0][1]}건 발생했습니다.
+                </span>
+              </li>
+            )}
+            <li className="flex items-start">
+              <span className="mr-2">•</span>
+              <span>
+                30일 이상 점검하지 않은 설비가 {equipmentRisks.filter(e => e.daysSinceTM > 30).length}개 있습니다.
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        {/* 트렌드 차트 섹션 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 월별 트렌드 차트 */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800">📈 월별 TM 발생 추이</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={monthlyTrend}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="count" stroke="#3B82F6" strokeWidth={2} name="전체" />
+                <Line type="monotone" dataKey="높음" stroke="#EF4444" strokeWidth={2} />
+                <Line type="monotone" dataKey="보통" stroke="#F59E0B" strokeWidth={2} />
+                <Line type="monotone" dataKey="낮음" stroke="#10B981" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* 분기별 처리 현황 차트 */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800">📊 분기별 처리 현황</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={quarterlyTrend}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="quarter" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="resolved" fill="#10B981" name="처리완료" />
+                <Bar dataKey="pending" fill="#F59E0B" name="처리중" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        </div>
+      </div>
+    );
+  };
+
   // TM 현황 렌더링 함수
   const renderTMStatus = () => {
     // Supabase 실제 데이터 사용
@@ -5302,6 +5720,7 @@ const MaintenanceManagementSystem = () => {
       case 'announcements': return renderAnnouncements();
       case 'dailyreport': return renderDailyReport();
       case 'chat': return renderChat();
+      case 'ai-analysis': return renderAIAnalysis();
       default: return renderDashboard();
     }
   };
