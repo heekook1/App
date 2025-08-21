@@ -5508,8 +5508,13 @@ const MaintenanceManagementSystem = () => {
 
   // TM 현황 렌더링 함수
   const renderTMStatus = () => {
-    // Supabase 실제 데이터 사용
-    const displayTMData = tmStatusList;
+    // Supabase 실제 데이터 사용 - TM NO. 기준 내림차순 정렬
+    const displayTMData = [...tmStatusList].sort((a, b) => {
+      // TM NO. 에서 숫자 부분만 추출 (예: "25-081" -> 81)
+      const aNum = parseInt(a.tmNo.split('-')[1] || '0');
+      const bNum = parseInt(b.tmNo.split('-')[1] || '0');
+      return bNum - aNum; // 내림차순 (큰 번호가 위로)
+    });
 
     return (
       <div className="p-6">
