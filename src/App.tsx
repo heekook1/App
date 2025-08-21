@@ -5510,10 +5510,16 @@ const MaintenanceManagementSystem = () => {
   const renderTMStatus = () => {
     // Supabase 실제 데이터 사용 - TM NO. 기준 내림차순 정렬
     const displayTMData = [...tmStatusList].sort((a, b) => {
-      // TM NO. 에서 숫자 부분만 추출 (예: "25-081" -> 81)
-      const aNum = parseInt(a.tmNo.split('-')[1] || '0');
-      const bNum = parseInt(b.tmNo.split('-')[1] || '0');
-      return bNum - aNum; // 내림차순 (큰 번호가 위로)
+      // TM NO. 에서 년도와 번호 추출 (예: "25-081" -> 년도: 25, 번호: 81)
+      const [aYear, aNum] = a.tmNo.split('-').map(n => parseInt(n) || 0);
+      const [bYear, bNum] = b.tmNo.split('-').map(n => parseInt(n) || 0);
+      
+      // 먼저 년도 비교 (내림차순)
+      if (aYear !== bYear) {
+        return bYear - aYear;
+      }
+      // 년도가 같으면 번호 비교 (내림차순)
+      return bNum - aNum;
     });
 
     return (
