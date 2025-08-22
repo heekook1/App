@@ -3642,6 +3642,7 @@ const MaintenanceManagementSystem = () => {
   const [showEquipmentForm, setShowEquipmentForm] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
+  const [equipmentSearchQuery, setEquipmentSearchQuery] = useState(''); // 검색어 상태 추가
   const [equipmentForm, setEquipmentForm] = useState({
     name: '',
     model: '',
@@ -3792,6 +3793,32 @@ const MaintenanceManagementSystem = () => {
     }
   };
 
+  // 설비 검색 필터링 함수
+  const filteredEquipment = equipment.filter(eq => {
+    if (!equipmentSearchQuery.trim()) return true;
+    
+    const searchLower = equipmentSearchQuery.toLowerCase().trim();
+    return (
+      eq.name.toLowerCase().includes(searchLower) ||
+      eq.model.toLowerCase().includes(searchLower) ||
+      eq.manufacturer.toLowerCase().includes(searchLower) ||
+      eq.location.toLowerCase().includes(searchLower) ||
+      eq.status.toLowerCase().includes(searchLower)
+    );
+  });
+
+  // 검색어 하이라이트 함수
+  const highlightSearchTerm = (text: string, searchTerm: string) => {
+    if (!searchTerm.trim()) return text;
+    
+    const parts = text.split(new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
+    return parts.map((part, index) => 
+      part.toLowerCase() === searchTerm.toLowerCase() ? 
+        <span key={index} className="bg-yellow-200 font-semibold">{part}</span> : 
+        part
+    );
+  };
+
   const removeSpecification = (key: string) => {
     setEquipmentForm(prev => {
       const newSpecs = { ...prev.specifications };
@@ -3907,6 +3934,33 @@ const MaintenanceManagementSystem = () => {
             </button>
           </div>
           
+          {/* 검색 입력란 추가 */}
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="설비명, 기기번호, P&ID, 위치, 상태로 검색..."
+                value={equipmentSearchQuery}
+                onChange={(e) => setEquipmentSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+              {equipmentSearchQuery && (
+                <button
+                  onClick={() => setEquipmentSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            {equipmentSearchQuery && (
+              <div className="mt-2 text-sm text-gray-600">
+                검색 결과: {filteredEquipment.length}개의 설비
+              </div>
+            )}
+          </div>
+          
           {showEquipmentForm && (
             <div className="mb-6 p-4 border rounded bg-gray-50">
               <h3 className="font-medium mb-4">{editingEquipment ? '설비 정보 수정' : '새 설비 추가'}</h3>
@@ -3994,6 +4048,7 @@ const MaintenanceManagementSystem = () => {
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">기기번호</th>
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">P&ID</th>
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">상태</th>
+                  <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">위치</th>
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">마지막 정비일</th>
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">다음 정비일</th>
                   <th className="px-4 py-2 border-b text-left text-sm font-medium text-gray-900">상세 정보</th>
@@ -4001,18 +4056,19 @@ const MaintenanceManagementSystem = () => {
                 </tr>
               </thead>
               <tbody>
-                {equipment.map(eq => {
+                {filteredEquipment.map(eq => {
                   const { lastMaintenance, nextMaintenance } = getMaintenanceDates(eq.name);
                   return (
                     <tr key={eq.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 border-b text-sm font-medium">{eq.name}</td>
-                      <td className="px-4 py-2 border-b text-sm">{eq.model}</td>
-                      <td className="px-4 py-2 border-b text-sm">{eq.manufacturer}</td>
+                      <td className="px-4 py-2 border-b text-sm font-medium">{highlightSearchTerm(eq.name, equipmentSearchQuery)}</td>
+                      <td className="px-4 py-2 border-b text-sm">{highlightSearchTerm(eq.model, equipmentSearchQuery)}</td>
+                      <td className="px-4 py-2 border-b text-sm">{highlightSearchTerm(eq.manufacturer, equipmentSearchQuery)}</td>
                       <td className="px-4 py-2 border-b text-sm">
                         <span className={`px-2 py-1 rounded text-xs font-medium ${getEquipmentStatusColor(eq.status)}`}>
                           {eq.status}
                         </span>
                       </td>
+                      <td className="px-4 py-2 border-b text-sm">{highlightSearchTerm(eq.location, equipmentSearchQuery)}</td>
                       <td className="px-4 py-2 border-b text-sm">{lastMaintenance || '-'}</td>
                       <td className="px-4 py-2 border-b text-sm">{nextMaintenance || '-'}</td>
                       <td className="px-4 py-2 border-b text-sm">
