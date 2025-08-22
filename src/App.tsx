@@ -279,6 +279,7 @@ const MaintenanceManagementSystem = () => {
   const [tmStatusList, setTmStatusList] = useState<TMStatus[]>([]);
   const [selectedTMStatus, setSelectedTMStatus] = useState<TMStatus | null>(null);
   const [showTMDetailModal, setShowTMDetailModal] = useState(false);
+  const [tmSearchQuery, setTmSearchQuery] = useState(''); // TM 현황 검색어 추가
 
   // Attendance Management State
   const [attendances, setAttendances] = useState<Attendance[]>([]);
@@ -5564,8 +5565,38 @@ const MaintenanceManagementSystem = () => {
 
   // TM 현황 렌더링 함수
   const renderTMStatus = () => {
+    // TM 검색 필터링
+    const filteredTMData = tmStatusList.filter(tm => {
+      if (!tmSearchQuery.trim()) return true;
+      
+      const searchLower = tmSearchQuery.toLowerCase().trim();
+      return (
+        tm.tmNo.toLowerCase().includes(searchLower) ||
+        tm.equipmentName.toLowerCase().includes(searchLower) ||
+        tm.description.toLowerCase().includes(searchLower) ||
+        tm.status.toLowerCase().includes(searchLower) ||
+        tm.createdBy.toLowerCase().includes(searchLower) ||
+        tm.assignee.toLowerCase().includes(searchLower) ||
+        (tm.type && tm.type.toLowerCase().includes(searchLower)) ||
+        (tm.completedDate && tm.completedDate.includes(searchLower))
+      );
+    });
+
+    // TM 검색어 하이라이트 함수
+    const highlightTMSearchTerm = (text: string | undefined) => {
+      if (!text) return '-';
+      if (!tmSearchQuery.trim()) return text;
+      
+      const parts = text.split(new RegExp(`(${tmSearchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi'));
+      return parts.map((part, index) => 
+        part.toLowerCase() === tmSearchQuery.toLowerCase() ? 
+          <span key={index} className="bg-yellow-200 font-semibold">{part}</span> : 
+          part
+      );
+    };
+
     // Supabase 실제 데이터 사용 - TM NO. 기준 내림차순 정렬
-    const displayTMData = [...tmStatusList].sort((a, b) => {
+    const displayTMData = [...filteredTMData].sort((a, b) => {
       // TM NO. 에서 년도와 번호 추출 (예: "25-081" -> 년도: 25, 번호: 81)
       const [aYear, aNum] = a.tmNo.split('-').map(n => parseInt(n) || 0);
       const [bYear, bNum] = b.tmNo.split('-').map(n => parseInt(n) || 0);
@@ -5582,6 +5613,33 @@ const MaintenanceManagementSystem = () => {
       <div className="p-6">
         <div className="mb-6">
           <h2 className="text-2xl font-bold text-gray-900">TM 현황</h2>
+        </div>
+        
+        {/* 검색 입력란 추가 */}
+        <div className="mb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="TM NO., 기기명, 설명, 상태, 담당자 등으로 검색..."
+              value={tmSearchQuery}
+              onChange={(e) => setTmSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+            {tmSearchQuery && (
+              <button
+                onClick={() => setTmSearchQuery('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {tmSearchQuery && (
+            <div className="mt-2 text-sm text-gray-600">
+              검색 결과: {filteredTMData.length}개의 TM 현황
+            </div>
+          )}
         </div>
         
         <div className="bg-white rounded shadow overflow-hidden">
@@ -5610,16 +5668,16 @@ const MaintenanceManagementSystem = () => {
                   }}
                 >
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-700">
-                    {tm.tmNo}
+                    {highlightTMSearchTerm(tm.tmNo)}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                     {tm.createdDate}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {tm.equipmentName}
+                    {highlightTMSearchTerm(tm.equipmentName)}
                   </td>
                   <td className="px-4 py-4 text-sm text-gray-900 max-w-xs truncate">
-                    {tm.description}
+                    {highlightTMSearchTerm(tm.description)}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs font-medium rounded-lg ${ 
@@ -5627,14 +5685,14 @@ const MaintenanceManagementSystem = () => {
                       tm.status.includes('완료') ? 'bg-green-100 text-green-800' : 
                       'bg-gray-100 text-gray-800'
                     }`}>
-                      {tm.status}
+                      {highlightTMSearchTerm(tm.status)}
                     </span>
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {tm.createdBy}
+                    {highlightTMSearchTerm(tm.createdBy)}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {tm.assignee}
+                    {highlightTMSearchTerm(tm.assignee)}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                     {tm.images.length > 0 ? (
