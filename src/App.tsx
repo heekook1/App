@@ -5577,8 +5577,9 @@ const MaintenanceManagementSystem = () => {
         tm.status.toLowerCase().includes(searchLower) ||
         tm.createdBy.toLowerCase().includes(searchLower) ||
         tm.assignee.toLowerCase().includes(searchLower) ||
-        (tm.type && tm.type.toLowerCase().includes(searchLower)) ||
-        (tm.completedDate && tm.completedDate.includes(searchLower))
+        (tm.priority && tm.priority.toLowerCase().includes(searchLower)) ||
+        (tm.faultCode && tm.faultCode.toLowerCase().includes(searchLower)) ||
+        (tm.workSchedule && tm.workSchedule.includes(searchLower))
       );
     });
 
