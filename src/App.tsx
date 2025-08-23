@@ -5232,17 +5232,34 @@ const MaintenanceManagementSystem = () => {
     const aiEnhancedRisks = [];
     for (const equipment of sortedRisks.slice(0, 10)) { // 상위 10개만 AI 분석
       try {
-        const recentIssues = tmStatusList
+        // 해당 설비의 완전한 TM 이력 수집
+        const equipmentTMHistory = tmStatusList
           .filter(tm => tm.equipmentName === equipment.equipmentName)
+          .sort((a, b) => new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime()) // 최신순 정렬
+          .map(tm => ({
+            tmNo: tm.tmNo,
+            requestDate: tm.createdDate,
+            dueDate: tm.workSchedule || '',
+            type: tm.faultCode ? [tm.faultCode] : ['미분류'],
+            description: tm.description || '',
+            workResult: tm.workDescription || '',
+            completionNote: '', // TMStatus에는 completionNote가 없음
+            status: tm.status,
+            priority: tm.priority || '보통'
+          }));
+        
+        const recentIssues = equipmentTMHistory
           .slice(0, 5)
-          .map(tm => `${tm.description || ''} ${tm.workDescription || ''}`)
+          .map(tm => `${tm.description} ${tm.workResult}`)
           .join(', ');
         
         const aiPrediction = await openAIService.predictMaintenance({
           name: equipment.equipmentName,
+          model: equipment.equipmentModel || 'Unknown',
           count: equipment.tmCount,
           daysSince: equipment.daysSinceTM,
           recentIssues,
+          tmHistory: equipmentTMHistory, // 완전한 TM 이력 데이터 추가
           priorityDist: {
             high: tmStatusList.filter(tm => tm.equipmentName === equipment.equipmentName && tm.priority === '높음').length,
             medium: tmStatusList.filter(tm => tm.equipmentName === equipment.equipmentName && tm.priority === '보통').length,
@@ -5602,7 +5619,7 @@ const MaintenanceManagementSystem = () => {
                     </td>
                     <td className="px-4 py-3">
                       {risk.aiPrediction ? (
-                        <div className="text-xs space-y-1">
+                        <div className="text-xs space-y-2">
                           {risk.aiPrediction.predictedFailureDate && (
                             <p className="text-red-600 font-medium">
                               예상 고장일: {new Date(risk.aiPrediction.predictedFailureDate).toLocaleDateString()}
@@ -5611,6 +5628,22 @@ const MaintenanceManagementSystem = () => {
                           <p className="text-gray-600">
                             신뢰도: {Math.round(risk.aiPrediction.confidence * 100)}%
                           </p>
+                          {risk.aiPrediction.analysisDetails && (
+                            <div className="mt-2 p-2 bg-gray-50 rounded">
+                              <p className="font-medium text-gray-700 mb-1">상세 분석:</p>
+                              <p className="text-gray-600 text-xs mb-1">
+                                <span className="font-medium">패턴:</span> {risk.aiPrediction.analysisDetails.failurePattern}
+                              </p>
+                              {risk.aiPrediction.analysisDetails.criticalComponents?.length > 0 && (
+                                <p className="text-gray-600 text-xs mb-1">
+                                  <span className="font-medium">핵심 부품:</span> {risk.aiPrediction.analysisDetails.criticalComponents.join(', ')}
+                                </p>
+                              )}
+                              <p className="text-gray-600 text-xs">
+                                <span className="font-medium">권장 주기:</span> {risk.aiPrediction.analysisDetails.maintenanceInterval}
+                              </p>
+                            </div>
+                          )}
                           {risk.aiPrediction.recommendedActions.length > 0 && (
                             <div className="mt-1">
                               <p className="font-medium text-gray-700">권장 조치:</p>

@@ -12,6 +12,12 @@ interface PredictiveMaintenanceResult {
   recommendedActions: string[];
   estimatedCost: number;
   confidence: number;
+  analysisDetails?: {
+    failurePattern: string;
+    criticalComponents: string[];
+    maintenanceInterval: string;
+    riskFactors: string[];
+  };
 }
 
 interface AIInsight {
@@ -100,6 +106,20 @@ class OpenAIService {
   async predictMaintenance(equipmentData: any): Promise<PredictiveMaintenanceResult> {
     try {
       console.log('🚀 Calling OpenAI API via proxy for predictive maintenance');
+      
+      // TM 이력 데이터 포맷팅
+      const tmHistoryText = equipmentData.tmHistory && equipmentData.tmHistory.length > 0
+        ? equipmentData.tmHistory.map((tm: any) => `
+          TM NO: ${tm.tmNo}
+          작업일자: ${tm.requestDate} ~ ${tm.dueDate}
+          작업유형: ${tm.type ? tm.type.join(', ') : '미분류'}
+          작업내용: ${tm.description}
+          작업결과: ${tm.workResult || '미기록'}
+          완료노트: ${tm.completionNote || '없음'}
+          상태: ${tm.status}
+        `).join('\n---\n')
+        : '이력 없음';
+
       const response = await fetch(this.apiUrl, {
         method: 'POST',
         headers: {
@@ -110,15 +130,30 @@ class OpenAIService {
           messages: [
             {
               role: 'system',
-              content: `You MUST respond ONLY with valid JSON. No text before or after the JSON.
+              content: `You are an expert maintenance engineer analyzing equipment reliability. You MUST respond ONLY with valid JSON.
               
-              Analyze equipment data and return this exact JSON format:
+              Analyze the complete maintenance history including work descriptions, completion dates, and work details to predict failures.
+              
+              Consider:
+              1. Maintenance frequency patterns and trends
+              2. Types of work performed (예방정비, 고장수리, 점검, 교체)
+              3. Recurring issues in work descriptions
+              4. Time intervals between similar failures
+              5. Severity and urgency of past work
+              
+              Return this exact JSON format:
               {
-                "riskScore": 75,
-                "predictedFailureDate": "2025-09-15",
-                "recommendedActions": ["즉시 점검 필요", "예비 부품 준비"],
-                "estimatedCost": 150000,
-                "confidence": 0.8
+                "riskScore": 0-100 (based on failure probability),
+                "predictedFailureDate": "YYYY-MM-DD" or null,
+                "recommendedActions": ["specific action 1", "specific action 2"],
+                "estimatedCost": amount in KRW,
+                "confidence": 0.0-1.0,
+                "analysisDetails": {
+                  "failurePattern": "description of identified pattern",
+                  "criticalComponents": ["component1", "component2"],
+                  "maintenanceInterval": "recommended interval",
+                  "riskFactors": ["factor1", "factor2"]
+                }
               }
               
               RESPOND ONLY WITH JSON - NO OTHER TEXT.`
@@ -126,14 +161,21 @@ class OpenAIService {
             {
               role: 'user',
               content: `Equipment: ${equipmentData.name}
-              Failure count: ${equipmentData.count}
-              Days since maintenance: ${equipmentData.daysSince}
-              Last issues: ${equipmentData.recentIssues}
-              Priority distribution: ${JSON.stringify(equipmentData.priorityDist)}`
+              Model: ${equipmentData.model || 'Unknown'}
+              Total TM Count: ${equipmentData.count}
+              Days Since Last Maintenance: ${equipmentData.daysSince}
+              
+              Complete Maintenance History:
+              ${tmHistoryText}
+              
+              Recent Issues Summary: ${equipmentData.recentIssues}
+              Priority Distribution: ${JSON.stringify(equipmentData.priorityDist)}
+              
+              Analyze the patterns in the maintenance history and predict future failures based on the actual work performed.`
             }
           ],
           temperature: 0.4,
-          max_tokens: 800
+          max_tokens: 1200
         })
       });
 
