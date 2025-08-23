@@ -26,6 +26,7 @@ import {
   loadAssigneesFromSupabase
 } from './utils/dataSync';
 import openAIService from './services/openaiService';
+import aiCacheService from './services/aiCacheService';
 
 // Type definitions
 interface Personnel {
@@ -5362,7 +5363,7 @@ const MaintenanceManagementSystem = () => {
     };
   };
 
-  // AI 분석 수행 (스마트 갱신 적용)
+  // AI 분석 수행 (Supabase 캐시 활용)
   useEffect(() => {
     const performSmartAnalysis = async () => {
       if (currentPage !== 'ai-analysis' || tmStatusList.length === 0) return;
@@ -5370,20 +5371,41 @@ const MaintenanceManagementSystem = () => {
       // 현재 데이터 해시 생성
       const currentDataHash = generateDataHash(tmStatusList);
       
-      // 해시가 같으면 캐시된 결과 사용 (API 호출 생략)
+      // 로컬 캐시 먼저 체크 (빠른 응답)
       if (currentDataHash === lastDataHash && equipmentRisks.length > 0) {
-        console.log('🚀 스마트 캐시 사용 - TM 데이터 변경 없음, API 호출 생략');
+        console.log('🚀 로컬 캐시 사용 - TM 데이터 변경 없음, API 호출 생략');
         return;
       }
       
-      console.log('🔄 TM 데이터 변경 감지 - AI 분석 실행', {
+      console.log('🔄 TM 데이터 변경 감지 - AI 분석 확인 중', {
         이전: lastDataHash.substring(0, 8) + '...',
         현재: currentDataHash.substring(0, 8) + '...',
         TM수: tmStatusList.length
       });
       
       setIsAIAnalysisLoading(true);
+      
       try {
+        // Supabase에서 캐시된 분석 결과 확인
+        const cachedResults = await aiCacheService.getAllAnalysisCache(currentDataHash);
+        
+        if (cachedResults.equipment_risks && cachedResults.text_patterns && cachedResults.ai_insights) {
+          // 캐시된 결과가 모두 있으면 사용
+          console.log('✅ Supabase 캐시 사용 - API 호출 생략');
+          
+          setEquipmentRisks(cachedResults.equipment_risks);
+          setTextPatterns(cachedResults.text_patterns);
+          setAiInsights(cachedResults.ai_insights);
+          setLastDataHash(currentDataHash);
+          setLastAnalysisTime(new Date());
+          
+          setIsAIAnalysisLoading(false);
+          return;
+        }
+        
+        // 캐시가 없거나 불완전하면 새로 분석
+        console.log('🤖 새로운 AI 분석 시작');
+        
         // 병렬로 분석 수행
         const [risks, patterns] = await Promise.all([
           analyzeEquipmentRisk(),
@@ -5403,6 +5425,17 @@ const MaintenanceManagementSystem = () => {
         
         const insights = await openAIService.generateInsights(analysisData);
         setAiInsights(insights);
+        
+        // Supabase에 결과 캐시 저장 (비동기로 처리)
+        Promise.all([
+          aiCacheService.saveAnalysisCache(currentDataHash, 'equipment_risks', risks),
+          aiCacheService.saveAnalysisCache(currentDataHash, 'text_patterns', patterns),
+          aiCacheService.saveAnalysisCache(currentDataHash, 'ai_insights', insights)
+        ]).then(() => {
+          console.log('💾 모든 AI 분석 결과를 Supabase에 캐시 저장 완료');
+        }).catch(error => {
+          console.error('캐시 저장 오류:', error);
+        });
         
         // 해시 및 분석 시간 업데이트
         setLastDataHash(currentDataHash);
