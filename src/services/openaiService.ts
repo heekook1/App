@@ -40,23 +40,23 @@ class OpenAIService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'gpt-4',
+          model: 'gpt-4o',
           messages: [
             {
               role: 'system',
-              content: `You are an expert maintenance analyst for Korean industrial equipment. Analyze maintenance text and return JSON only.
-              
-              Return format:
+              content: `You MUST respond ONLY with valid JSON. No text before or after the JSON. 
+
+              Analyze Korean maintenance text and return this exact JSON format:
               {
-                "keywords": [{"keyword": "word", "count": number, "importance": 0-1}],
-                "categories": [{"category": "name", "confidence": 0-1}],
-                "sentiment": "positive|negative|neutral",
-                "urgency": "high|medium|low",
-                "summary": "brief summary in Korean"
+                "keywords": [{"keyword": "word", "count": 3, "importance": 0.8}],
+                "categories": [{"category": "기계고장", "confidence": 0.9}],
+                "sentiment": "neutral",
+                "urgency": "medium", 
+                "summary": "Korean summary"
               }
-              
-              Categories should be from: 기계고장, 전기문제, 유압문제, 공압문제, 제어문제, 안전문제, 정기점검, 기타
-              Extract Korean keywords related to maintenance issues.`
+
+              Categories: 기계고장, 전기문제, 유압문제, 공압문제, 제어문제, 안전문제, 정기점검, 기타
+              RESPOND ONLY WITH JSON - NO OTHER TEXT.`
             },
             {
               role: 'user',
@@ -74,7 +74,22 @@ class OpenAIService {
         throw new Error(data.error.message);
       }
 
-      return JSON.parse(data.choices[0].message.content);
+      const content = data.choices[0].message.content;
+      console.log('🔍 GPT Response:', content.substring(0, 100) + '...');
+      
+      try {
+        // JSON 응답에서 코드 블록 제거 (```json ... ``` 형태)
+        const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        
+        // JSON 파싱 시도
+        return JSON.parse(cleanedContent);
+      } catch (parseError) {
+        console.error('🚨 JSON Parse Error:', parseError);
+        console.log('📄 Full GPT Response:', content);
+        
+        // JSON이 아닌 응답이면 기본값 반환
+        throw new Error('Invalid JSON response from GPT');
+      }
     } catch (error) {
       console.error('OpenAI API error:', error);
       // Fallback to basic analysis
@@ -91,23 +106,22 @@ class OpenAIService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'gpt-4',
+          model: 'gpt-4o',
           messages: [
             {
               role: 'system',
-              content: `You are an expert in predictive maintenance. Analyze equipment data and predict maintenance needs.
+              content: `You MUST respond ONLY with valid JSON. No text before or after the JSON.
               
-              Return JSON only:
+              Analyze equipment data and return this exact JSON format:
               {
-                "riskScore": 0-100,
-                "predictedFailureDate": "YYYY-MM-DD or null",
-                "recommendedActions": ["action1", "action2"],
-                "estimatedCost": number,
-                "confidence": 0-1
+                "riskScore": 75,
+                "predictedFailureDate": "2025-09-15",
+                "recommendedActions": ["즉시 점검 필요", "예비 부품 준비"],
+                "estimatedCost": 150000,
+                "confidence": 0.8
               }
               
-              Consider: failure frequency, days since last maintenance, priority levels, seasonal patterns.
-              Provide Korean text for recommendedActions.`
+              RESPOND ONLY WITH JSON - NO OTHER TEXT.`
             },
             {
               role: 'user',
@@ -129,7 +143,22 @@ class OpenAIService {
         throw new Error(data.error.message);
       }
 
-      return JSON.parse(data.choices[0].message.content);
+      const content = data.choices[0].message.content;
+      console.log('🔍 GPT Response:', content.substring(0, 100) + '...');
+      
+      try {
+        // JSON 응답에서 코드 블록 제거 (```json ... ``` 형태)
+        const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        
+        // JSON 파싱 시도
+        return JSON.parse(cleanedContent);
+      } catch (parseError) {
+        console.error('🚨 JSON Parse Error:', parseError);
+        console.log('📄 Full GPT Response:', content);
+        
+        // JSON이 아닌 응답이면 기본값 반환
+        throw new Error('Invalid JSON response from GPT');
+      }
     } catch (error) {
       console.error('Predictive maintenance error:', error);
       return this.basicPredictiveMaintenance(equipmentData);
@@ -145,24 +174,24 @@ class OpenAIService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'gpt-4',
+          model: 'gpt-4o',
           messages: [
             {
               role: 'system',
-              content: `You are a maintenance expert providing actionable insights. Generate insights based on analysis data.
+              content: `You MUST respond ONLY with valid JSON array. No text before or after the JSON.
               
-              Return JSON array only:
+              Return this exact JSON array format:
               [
                 {
-                  "type": "warning|recommendation|trend",
-                  "title": "Korean title",
-                  "description": "Korean description",
-                  "priority": "high|medium|low",
-                  "actionItems": ["Korean action 1", "Korean action 2"]
+                  "type": "warning",
+                  "title": "고위험 장비 발견",
+                  "description": "즉시 점검이 필요한 장비가 있습니다",
+                  "priority": "high",
+                  "actionItems": ["긴급 점검 수행", "예비 부품 확보"]
                 }
               ]
               
-              Focus on: safety risks, cost savings, efficiency improvements, preventive actions.`
+              RESPOND ONLY WITH JSON ARRAY - NO OTHER TEXT.`
             },
             {
               role: 'user',
@@ -180,7 +209,22 @@ class OpenAIService {
         throw new Error(data.error.message);
       }
 
-      return JSON.parse(data.choices[0].message.content);
+      const content = data.choices[0].message.content;
+      console.log('🔍 GPT Response:', content.substring(0, 100) + '...');
+      
+      try {
+        // JSON 응답에서 코드 블록 제거 (```json ... ``` 형태)
+        const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        
+        // JSON 파싱 시도
+        return JSON.parse(cleanedContent);
+      } catch (parseError) {
+        console.error('🚨 JSON Parse Error:', parseError);
+        console.log('📄 Full GPT Response:', content);
+        
+        // JSON이 아닌 응답이면 기본값 반환
+        throw new Error('Invalid JSON response from GPT');
+      }
     } catch (error) {
       console.error('AI insights error:', error);
       return this.basicInsights(analysisData);
