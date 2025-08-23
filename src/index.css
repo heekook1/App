@@ -46,6 +46,9 @@ code {
   animation: slideIn 0.3s ease-out !important;
   width: 540px !important;
   max-width: 90vw !important;
+  position: fixed !important;
+  bottom: 80px !important;
+  right: 20px !important;
 }
 
 /* 챗봇 메시지 텍스트 박스 너비 조정 */
