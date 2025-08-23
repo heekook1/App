@@ -23,22 +23,21 @@ interface AIInsight {
 }
 
 class OpenAIService {
-  private apiKey: string;
-  private apiUrl = 'https://api.openai.com/v1/chat/completions';
+  private apiUrl = '/api/openai'; // Vercel Serverless Function 프록시 사용
 
   constructor() {
-    this.apiKey = process.env.REACT_APP_OPENAI_API_KEY || '';
+    console.log('🔑 OpenAI Service initialized with proxy endpoint');
   }
 
   async analyzeText(texts: string[]): Promise<TextAnalysisResult> {
     const combinedText = texts.join(' ');
     
     try {
+      console.log('🚀 Calling OpenAI API via proxy for text analysis');
       const response = await fetch(this.apiUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           model: 'gpt-4',
@@ -85,11 +84,11 @@ class OpenAIService {
 
   async predictMaintenance(equipmentData: any): Promise<PredictiveMaintenanceResult> {
     try {
+      console.log('🚀 Calling OpenAI API via proxy for predictive maintenance');
       const response = await fetch(this.apiUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           model: 'gpt-4',
@@ -139,11 +138,11 @@ class OpenAIService {
 
   async generateInsights(analysisData: any): Promise<AIInsight[]> {
     try {
+      console.log('🚀 Calling OpenAI API via proxy for insights generation');
       const response = await fetch(this.apiUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           model: 'gpt-4',
