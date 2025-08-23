@@ -130,48 +130,48 @@ class OpenAIService {
           messages: [
             {
               role: 'system',
-              content: `You are an expert maintenance engineer analyzing equipment reliability. You MUST respond ONLY with valid JSON.
+              content: `당신은 설비 신뢰성을 분석하는 전문 정비 엔지니어입니다. 반드시 유효한 JSON으로만 응답하세요.
               
-              Analyze the complete maintenance history including work descriptions, completion dates, and work details to predict failures.
+              작업 설명, 완료 날짜, 작업 세부사항을 포함한 완전한 정비 이력을 분석하여 고장을 예측하세요.
               
-              Consider:
-              1. Maintenance frequency patterns and trends
-              2. Types of work performed (예방정비, 고장수리, 점검, 교체)
-              3. Recurring issues in work descriptions
-              4. Time intervals between similar failures
-              5. Severity and urgency of past work
+              고려사항:
+              1. 정비 빈도 패턴과 트렌드
+              2. 수행된 작업 유형 (예방정비, 고장수리, 점검, 교체)
+              3. 작업 설명에서 반복되는 문제
+              4. 유사한 고장 간의 시간 간격
+              5. 과거 작업의 심각도와 긴급성
               
-              Return this exact JSON format:
+              다음 정확한 JSON 형식으로 한국어로 응답하세요:
               {
-                "riskScore": 0-100 (based on failure probability),
-                "predictedFailureDate": "YYYY-MM-DD" or null,
-                "recommendedActions": ["specific action 1", "specific action 2"],
-                "estimatedCost": amount in KRW,
+                "riskScore": 0-100 (고장 확률 기준),
+                "predictedFailureDate": "YYYY-MM-DD" 또는 null,
+                "recommendedActions": ["구체적인 조치 1", "구체적인 조치 2"],
+                "estimatedCost": KRW 단위 금액,
                 "confidence": 0.0-1.0,
                 "analysisDetails": {
-                  "failurePattern": "description of identified pattern",
-                  "criticalComponents": ["component1", "component2"],
-                  "maintenanceInterval": "recommended interval",
-                  "riskFactors": ["factor1", "factor2"]
+                  "failurePattern": "식별된 패턴에 대한 한국어 설명",
+                  "criticalComponents": ["부품1", "부품2"],
+                  "maintenanceInterval": "권장 정비 주기",
+                  "riskFactors": ["위험요소1", "위험요소2"]
                 }
               }
               
-              RESPOND ONLY WITH JSON - NO OTHER TEXT.`
+              반드시 한국어로 JSON만 응답하세요 - 다른 텍스트는 없어야 합니다.`
             },
             {
               role: 'user',
-              content: `Equipment: ${equipmentData.name}
-              Model: ${equipmentData.model || 'Unknown'}
-              Total TM Count: ${equipmentData.count}
-              Days Since Last Maintenance: ${equipmentData.daysSince}
+              content: `설비명: ${equipmentData.name}
+              모델: ${equipmentData.model || '미상'}
+              총 TM 건수: ${equipmentData.count}건
+              마지막 정비 후 경과일: ${equipmentData.daysSince}일
               
-              Complete Maintenance History:
+              완전한 정비 이력:
               ${tmHistoryText}
               
-              Recent Issues Summary: ${equipmentData.recentIssues}
-              Priority Distribution: ${JSON.stringify(equipmentData.priorityDist)}
+              최근 문제 요약: ${equipmentData.recentIssues}
+              우선순위 분포: 높음 ${equipmentData.priorityDist.high}건, 보통 ${equipmentData.priorityDist.medium}건, 낮음 ${equipmentData.priorityDist.low}건
               
-              Analyze the patterns in the maintenance history and predict future failures based on the actual work performed.`
+              정비 이력의 패턴을 분석하고 실제 수행된 작업을 기반으로 향후 고장을 예측해주세요.`
             }
           ],
           temperature: 0.4,
