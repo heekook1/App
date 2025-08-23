@@ -5589,11 +5589,12 @@ const MaintenanceManagementSystem = () => {
         <div className="bg-white rounded-lg shadow-lg p-6">
           <h3 className="text-lg font-semibold mb-4 text-gray-800">📊 텍스트 마이닝 분석</h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {textPatterns ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* 고장코드 분석 */}
             <div className="bg-gray-50 rounded-lg p-4">
               <h4 className="font-medium text-gray-700 mb-3">고장코드 빈도</h4>
-              {textPatterns.faultCodes.length > 0 ? (
+              {textPatterns?.faultCodes && textPatterns.faultCodes.length > 0 ? (
                 <div className="space-y-2">
                   {textPatterns?.faultCodes.slice(0, 5).map(([code, count]: [string, number], index: number) => (
                     <div key={index} className="flex justify-between items-center">
@@ -5643,6 +5644,11 @@ const MaintenanceManagementSystem = () => {
               </div>
             </div>
           </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">AI 분석 중...</p>
+            </div>
+          )}
         </div>
 
         {/* AI 인사이트 섹션 */}
