@@ -281,6 +281,12 @@ const MaintenanceManagementSystem = () => {
   const [selectedTMStatus, setSelectedTMStatus] = useState<TMStatus | null>(null);
   const [showTMDetailModal, setShowTMDetailModal] = useState(false);
   const [tmSearchQuery, setTmSearchQuery] = useState(''); // TM 현황 검색어 추가
+  
+  // AI 분석 상태
+  const [equipmentRisks, setEquipmentRisks] = useState<any[]>([]);
+  const [textPatterns, setTextPatterns] = useState<any>(null);
+  const [aiInsights, setAiInsights] = useState<any[]>([]);
+  const [isAIAnalysisLoading, setIsAIAnalysisLoading] = useState(false);
 
   // Attendance Management State
   const [attendances, setAttendances] = useState<Attendance[]>([]);
@@ -5150,6 +5156,196 @@ const MaintenanceManagementSystem = () => {
     </div>
   );
 
+  // AI 분석 관련 함수들을 컴포넌트 레벨로 이동
+  // 예측적 유지보수 분석 함수 (AI 강화)
+  const analyzeEquipmentRisk = async () => {
+    const riskAnalysis = tmStatusList.map(tm => {
+      // TM 발생 빈도 계산 (같은 설비의 TM 개수)
+      const tmCount = tmStatusList.filter(t => t.equipmentName === tm.equipmentName).length;
+      
+      // 최근 TM 이후 경과일 계산
+      const tmDate = new Date(tm.createdDate);
+      const today = new Date();
+      const daysSinceTM = Math.floor((today.getTime() - tmDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // 우선순위 가중치
+      const priorityWeight = tm.priority === '높음' ? 3 : tm.priority === '보통' ? 2 : 1;
+      
+      // 위험도 점수 계산 (0-100)
+      let riskScore = 0;
+      riskScore += Math.min(tmCount * 10, 40); // 빈도 (최대 40점)
+      riskScore += Math.min(daysSinceTM / 3, 30); // 경과일 (90일 = 30점)
+      riskScore += priorityWeight * 10; // 우선순위 (최대 30점)
+      
+      return {
+        equipmentName: tm.equipmentName,
+        tmNo: tm.tmNo,
+        status: tm.status,
+        priority: tm.priority,
+        daysSinceTM,
+        tmCount,
+        riskScore: Math.min(Math.round(riskScore), 100),
+        description: tm.description,
+        workDescription: tm.workDescription
+      };
+    });
+    
+    // 설비별로 그룹화하고 최고 위험도만 선택
+    const equipmentRisks = new Map();
+    riskAnalysis.forEach(item => {
+      const existing = equipmentRisks.get(item.equipmentName);
+      if (!existing || existing.riskScore < item.riskScore) {
+        equipmentRisks.set(item.equipmentName, item);
+      }
+    });
+    
+    const sortedRisks = Array.from(equipmentRisks.values()).sort((a, b) => b.riskScore - a.riskScore);
+    
+    // AI 기반 예측적 유지보수 분석 추가
+    const aiEnhancedRisks = [];
+    for (const equipment of sortedRisks.slice(0, 10)) { // 상위 10개만 AI 분석
+      try {
+        const recentIssues = tmStatusList
+          .filter(tm => tm.equipmentName === equipment.equipmentName)
+          .slice(0, 5)
+          .map(tm => `${tm.description || ''} ${tm.workDescription || ''}`)
+          .join(', ');
+        
+        const aiPrediction = await openAIService.predictMaintenance({
+          name: equipment.equipmentName,
+          count: equipment.tmCount,
+          daysSince: equipment.daysSinceTM,
+          recentIssues,
+          priorityDist: {
+            high: tmStatusList.filter(tm => tm.equipmentName === equipment.equipmentName && tm.priority === '높음').length,
+            medium: tmStatusList.filter(tm => tm.equipmentName === equipment.equipmentName && tm.priority === '보통').length,
+            low: tmStatusList.filter(tm => tm.equipmentName === equipment.equipmentName && tm.priority === '낮음').length
+          }
+        });
+        
+        aiEnhancedRisks.push({
+          ...equipment,
+          aiPrediction
+        });
+      } catch (error) {
+        console.error('AI 예측 오류:', error);
+        aiEnhancedRisks.push(equipment);
+      }
+    }
+    
+    // 나머지 설비는 AI 분석 없이 추가
+    aiEnhancedRisks.push(...sortedRisks.slice(10));
+    
+    return aiEnhancedRisks;
+  };
+
+  // 텍스트 마이닝 분석 함수 (AI 강화)
+  const analyzeTextPatterns = async () => {
+    // 고장코드별 빈도 분석
+    const faultCodeAnalysis = new Map();
+    tmStatusList.forEach(tm => {
+      if (tm.faultCode) {
+        const count = faultCodeAnalysis.get(tm.faultCode) || 0;
+        faultCodeAnalysis.set(tm.faultCode, count + 1);
+      }
+    });
+    
+    // AI 기반 텍스트 분석
+    let aiAnalysisResult = null;
+    try {
+      // TM 텍스트 수집
+      const texts = tmStatusList.map(tm => 
+        `${tm.description || ''} ${tm.workDescription || ''}`
+      ).filter(text => text.trim());
+      
+      if (texts.length > 0) {
+        // OpenAI API 호출
+        aiAnalysisResult = await openAIService.analyzeText(texts);
+      }
+    } catch (error) {
+      console.error('AI 텍스트 분석 오류:', error);
+    }
+    
+    // AI 분석 실패 시 기본 분석 사용
+    if (!aiAnalysisResult) {
+      // 기본 키워드 추출
+      const keywordMap = new Map();
+      const keywords = ['누수', '소음', '진동', '과열', '이상', '고장', '점검', '교체', '수리', '정비'];
+      
+      tmStatusList.forEach(tm => {
+        const combinedText = `${tm.description || ''} ${tm.workDescription || ''}`.toLowerCase();
+        keywords.forEach(keyword => {
+          if (combinedText.includes(keyword)) {
+            const count = keywordMap.get(keyword) || 0;
+            keywordMap.set(keyword, count + 1);
+          }
+        });
+      });
+      
+      aiAnalysisResult = {
+        keywords: Array.from(keywordMap.entries()).map(([keyword, count]) => ({
+          keyword,
+          count,
+          importance: Math.min(count / 10, 1)
+        })),
+        categories: [],
+        sentiment: 'neutral',
+        urgency: 'medium',
+        summary: '기본 텍스트 분석 결과'
+      };
+    }
+    
+    // 우선순위별 패턴 분석
+    const priorityAnalysis = {
+      높음: tmStatusList.filter(tm => tm.priority === '높음').length,
+      보통: tmStatusList.filter(tm => tm.priority === '보통').length,
+      낮음: tmStatusList.filter(tm => tm.priority === '낮음').length
+    };
+    
+    return {
+      faultCodes: Array.from(faultCodeAnalysis.entries()).sort((a, b) => b[1] - a[1]),
+      keywords: aiAnalysisResult.keywords.sort((a, b) => b.count - a.count),
+      priorities: priorityAnalysis,
+      aiAnalysis: aiAnalysisResult
+    };
+  };
+
+  // AI 분석 수행 (컴포넌트 레벨에서)
+  useEffect(() => {
+    const performAnalysis = async () => {
+      if (currentPage !== 'ai-analysis' || tmStatusList.length === 0) return;
+      
+      setIsAIAnalysisLoading(true);
+      try {
+        // 병렬로 분석 수행
+        const [risks, patterns] = await Promise.all([
+          analyzeEquipmentRisk(),
+          analyzeTextPatterns()
+        ]);
+        
+        setEquipmentRisks(risks);
+        setTextPatterns(patterns);
+        
+        // AI 인사이트 생성
+        const analysisData = {
+          highRiskEquipment: risks.filter((e: any) => e.riskScore >= 70),
+          topKeywords: patterns.keywords.slice(0, 5),
+          urgency: patterns.aiAnalysis?.urgency || 'medium',
+          totalTMs: tmStatusList.length
+        };
+        
+        const insights = await openAIService.generateInsights(analysisData);
+        setAiInsights(insights);
+      } catch (error) {
+        console.error('분석 오류:', error);
+      } finally {
+        setIsAIAnalysisLoading(false);
+      }
+    };
+
+    performAnalysis();
+  }, [tmStatusList, currentPage]);
+
   // AI 분석 기능
   const renderAIAnalysis = () => {
     // 월별 트렌드 데이터 준비
@@ -5260,203 +5456,11 @@ const MaintenanceManagementSystem = () => {
       }
     };
 
-    // 예측적 유지보수 분석 함수 (AI 강화)
-    const analyzeEquipmentRisk = async () => {
-      const riskAnalysis = tmStatusList.map(tm => {
-        // TM 발생 빈도 계산 (같은 설비의 TM 개수)
-        const tmCount = tmStatusList.filter(t => t.equipmentName === tm.equipmentName).length;
-        
-        // 최근 TM 이후 경과일 계산
-        const tmDate = new Date(tm.createdDate);
-        const today = new Date();
-        const daysSinceTM = Math.floor((today.getTime() - tmDate.getTime()) / (1000 * 60 * 60 * 24));
-        
-        // 우선순위 가중치
-        const priorityWeight = tm.priority === '높음' ? 3 : tm.priority === '보통' ? 2 : 1;
-        
-        // 위험도 점수 계산 (0-100)
-        let riskScore = 0;
-        riskScore += Math.min(tmCount * 10, 40); // 빈도 (최대 40점)
-        riskScore += Math.min(daysSinceTM / 3, 30); // 경과일 (90일 = 30점)
-        riskScore += priorityWeight * 10; // 우선순위 (최대 30점)
-        
-        return {
-          equipmentName: tm.equipmentName,
-          tmNo: tm.tmNo,
-          status: tm.status,
-          priority: tm.priority,
-          daysSinceTM,
-          tmCount,
-          riskScore: Math.min(Math.round(riskScore), 100),
-          description: tm.description,
-          workDescription: tm.workDescription
-        };
-      });
-      
-      // 설비별로 그룹화하고 최고 위험도만 선택
-      const equipmentRisks = new Map();
-      riskAnalysis.forEach(item => {
-        const existing = equipmentRisks.get(item.equipmentName);
-        if (!existing || existing.riskScore < item.riskScore) {
-          equipmentRisks.set(item.equipmentName, item);
-        }
-      });
-      
-      const sortedRisks = Array.from(equipmentRisks.values()).sort((a, b) => b.riskScore - a.riskScore);
-      
-      // AI 기반 예측적 유지보수 분석 추가
-      const aiEnhancedRisks = [];
-      for (const equipment of sortedRisks.slice(0, 10)) { // 상위 10개만 AI 분석
-        try {
-          const recentIssues = tmStatusList
-            .filter(tm => tm.equipmentName === equipment.equipmentName)
-            .slice(0, 5)
-            .map(tm => `${tm.description || ''} ${tm.workDescription || ''}`)
-            .join(', ');
-          
-          const aiPrediction = await openAIService.predictMaintenance({
-            name: equipment.equipmentName,
-            count: equipment.tmCount,
-            daysSince: equipment.daysSinceTM,
-            recentIssues,
-            priorityDist: {
-              high: tmStatusList.filter(tm => tm.equipmentName === equipment.equipmentName && tm.priority === '높음').length,
-              medium: tmStatusList.filter(tm => tm.equipmentName === equipment.equipmentName && tm.priority === '보통').length,
-              low: tmStatusList.filter(tm => tm.equipmentName === equipment.equipmentName && tm.priority === '낮음').length
-            }
-          });
-          
-          aiEnhancedRisks.push({
-            ...equipment,
-            aiPrediction
-          });
-        } catch (error) {
-          console.error('AI 예측 오류:', error);
-          aiEnhancedRisks.push(equipment);
-        }
-      }
-      
-      // 나머지 설비는 AI 분석 없이 추가
-      aiEnhancedRisks.push(...sortedRisks.slice(10));
-      
-      return aiEnhancedRisks;
-    };
 
-    // 텍스트 마이닝 분석 함수 (AI 강화)
-    const analyzeTextPatterns = async () => {
-      // 고장코드별 빈도 분석
-      const faultCodeAnalysis = new Map();
-      tmStatusList.forEach(tm => {
-        if (tm.faultCode) {
-          const count = faultCodeAnalysis.get(tm.faultCode) || 0;
-          faultCodeAnalysis.set(tm.faultCode, count + 1);
-        }
-      });
-      
-      // AI 기반 텍스트 분석
-      let aiAnalysisResult = null;
-      try {
-        // TM 텍스트 수집
-        const texts = tmStatusList.map(tm => 
-          `${tm.description || ''} ${tm.workDescription || ''}`
-        ).filter(text => text.trim());
-        
-        if (texts.length > 0) {
-          // OpenAI API 호출
-          aiAnalysisResult = await openAIService.analyzeText(texts);
-        }
-      } catch (error) {
-        console.error('AI 텍스트 분석 오류:', error);
-      }
-      
-      // AI 분석 실패 시 기본 분석 사용
-      if (!aiAnalysisResult) {
-        // 기본 키워드 추출
-        const keywordMap = new Map();
-        const keywords = ['누수', '소음', '진동', '과열', '이상', '고장', '점검', '교체', '수리', '정비'];
-        
-        tmStatusList.forEach(tm => {
-          const combinedText = `${tm.description || ''} ${tm.workDescription || ''}`.toLowerCase();
-          keywords.forEach(keyword => {
-            if (combinedText.includes(keyword)) {
-              const count = keywordMap.get(keyword) || 0;
-              keywordMap.set(keyword, count + 1);
-            }
-          });
-        });
-        
-        aiAnalysisResult = {
-          keywords: Array.from(keywordMap.entries()).map(([keyword, count]) => ({
-            keyword,
-            count,
-            importance: Math.min(count / 10, 1)
-          })),
-          categories: [],
-          sentiment: 'neutral',
-          urgency: 'medium',
-          summary: '기본 텍스트 분석 결과'
-        };
-      }
-      
-      // 우선순위별 패턴 분석
-      const priorityAnalysis = {
-        높음: tmStatusList.filter(tm => tm.priority === '높음').length,
-        보통: tmStatusList.filter(tm => tm.priority === '보통').length,
-        낮음: tmStatusList.filter(tm => tm.priority === '낮음').length
-      };
-      
-      return {
-        faultCodes: Array.from(faultCodeAnalysis.entries()).sort((a, b) => b[1] - a[1]),
-        keywords: aiAnalysisResult.keywords.sort((a, b) => b.count - a.count),
-        priorities: priorityAnalysis,
-        aiAnalysis: aiAnalysisResult
-      };
-    };
-
-    const [equipmentRisks, setEquipmentRisks] = useState<any[]>([]);
-    const [textPatterns, setTextPatterns] = useState<any>(null);
-    const [aiInsights, setAiInsights] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    
-    useEffect(() => {
-      const performAnalysis = async () => {
-        setIsLoading(true);
-        try {
-          // 병렬로 분석 수행
-          const [risks, patterns] = await Promise.all([
-            analyzeEquipmentRisk(),
-            analyzeTextPatterns()
-          ]);
-          
-          setEquipmentRisks(risks);
-          setTextPatterns(patterns);
-          
-          // AI 인사이트 생성
-          const analysisData = {
-            highRiskEquipment: risks.filter(e => e.riskScore >= 70),
-            topKeywords: patterns.keywords.slice(0, 5),
-            urgency: patterns.aiAnalysis?.urgency || 'medium',
-            totalTMs: tmStatusList.length
-          };
-          
-          const insights = await openAIService.generateInsights(analysisData);
-          setAiInsights(insights);
-        } catch (error) {
-          console.error('분석 오류:', error);
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      if (tmStatusList.length > 0) {
-        performAnalysis();
-      }
-    }, [tmStatusList]);
-    
     const monthlyTrend = prepareMonthlyTrend();
     const quarterlyTrend = prepareQuarterlyTrend();
     
-    if (isLoading) {
+    if (isAIAnalysisLoading) {
       return (
         <div className="p-6 flex items-center justify-center h-64">
           <div className="text-gray-600">
