@@ -5176,8 +5176,16 @@ const MaintenanceManagementSystem = () => {
       }));
       
       const dataString = JSON.stringify(essentialData);
-      // 간단한 해시 생성 (btoa는 Base64 인코딩)
-      return btoa(dataString).slice(0, 16);
+      
+      // 간단한 해시 함수 (한글 지원)
+      let hash = 0;
+      for (let i = 0; i < dataString.length; i++) {
+        const char = dataString.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // 32비트 정수로 변환
+      }
+      
+      return Math.abs(hash).toString(36).slice(0, 16);
     } catch (error) {
       console.error('해시 생성 오류:', error);
       return Date.now().toString(); // 오류 시 타임스탬프 사용
