@@ -287,6 +287,8 @@ const MaintenanceManagementSystem = () => {
   const [textPatterns, setTextPatterns] = useState<any>(null);
   const [aiInsights, setAiInsights] = useState<any[]>([]);
   const [isAIAnalysisLoading, setIsAIAnalysisLoading] = useState(false);
+  const [lastDataHash, setLastDataHash] = useState<string>('');
+  const [lastAnalysisTime, setLastAnalysisTime] = useState<Date | null>(null);
 
   // Attendance Management State
   const [attendances, setAttendances] = useState<Attendance[]>([]);
@@ -5157,6 +5159,31 @@ const MaintenanceManagementSystem = () => {
   );
 
   // AI 분석 관련 함수들을 컴포넌트 레벨로 이동
+  // TM 데이터 해시 생성 함수 (스마트 갱신용)
+  const generateDataHash = (data: any[]) => {
+    try {
+      // TM 데이터의 핵심 정보만 해시화 (성능 최적화)
+      const essentialData = data.map(tm => ({
+        id: tm.id,
+        tmNo: tm.tmNo,
+        equipmentName: tm.equipmentName,
+        description: tm.description,
+        workDescription: tm.workDescription,
+        status: tm.status,
+        priority: tm.priority,
+        createdDate: tm.createdDate,
+        faultCode: tm.faultCode
+      }));
+      
+      const dataString = JSON.stringify(essentialData);
+      // 간단한 해시 생성 (btoa는 Base64 인코딩)
+      return btoa(dataString).slice(0, 16);
+    } catch (error) {
+      console.error('해시 생성 오류:', error);
+      return Date.now().toString(); // 오류 시 타임스탬프 사용
+    }
+  };
+
   // 예측적 유지보수 분석 함수 (AI 강화)
   const analyzeEquipmentRisk = async () => {
     const riskAnalysis = tmStatusList.map(tm => {
@@ -5310,10 +5337,25 @@ const MaintenanceManagementSystem = () => {
     };
   };
 
-  // AI 분석 수행 (컴포넌트 레벨에서)
+  // AI 분석 수행 (스마트 갱신 적용)
   useEffect(() => {
-    const performAnalysis = async () => {
+    const performSmartAnalysis = async () => {
       if (currentPage !== 'ai-analysis' || tmStatusList.length === 0) return;
+      
+      // 현재 데이터 해시 생성
+      const currentDataHash = generateDataHash(tmStatusList);
+      
+      // 해시가 같으면 캐시된 결과 사용 (API 호출 생략)
+      if (currentDataHash === lastDataHash && equipmentRisks.length > 0) {
+        console.log('🚀 스마트 캐시 사용 - TM 데이터 변경 없음, API 호출 생략');
+        return;
+      }
+      
+      console.log('🔄 TM 데이터 변경 감지 - AI 분석 실행', {
+        이전: lastDataHash.substring(0, 8) + '...',
+        현재: currentDataHash.substring(0, 8) + '...',
+        TM수: tmStatusList.length
+      });
       
       setIsAIAnalysisLoading(true);
       try {
@@ -5336,6 +5378,12 @@ const MaintenanceManagementSystem = () => {
         
         const insights = await openAIService.generateInsights(analysisData);
         setAiInsights(insights);
+        
+        // 해시 및 분석 시간 업데이트
+        setLastDataHash(currentDataHash);
+        setLastAnalysisTime(new Date());
+        
+        console.log('✅ AI 분석 완료 및 캐시 저장');
       } catch (error) {
         console.error('분석 오류:', error);
       } finally {
@@ -5343,7 +5391,7 @@ const MaintenanceManagementSystem = () => {
       }
     };
 
-    performAnalysis();
+    performSmartAnalysis();
   }, [tmStatusList, currentPage]);
 
   // AI 분석 기능
