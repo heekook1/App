@@ -180,7 +180,7 @@ class OpenAIService {
               role: 'system',
               content: `You MUST respond ONLY with valid JSON array. No text before or after the JSON.
               
-              Return this exact JSON array format:
+              Generate 2-4 insights based on the analysis data. Return this JSON array format:
               [
                 {
                   "type": "warning",
@@ -188,9 +188,17 @@ class OpenAIService {
                   "description": "즉시 점검이 필요한 장비가 있습니다",
                   "priority": "high",
                   "actionItems": ["긴급 점검 수행", "예비 부품 확보"]
+                },
+                {
+                  "type": "recommendation", 
+                  "title": "예방 정비 권장",
+                  "description": "정기적인 예방 정비로 비용을 절약할 수 있습니다",
+                  "priority": "medium",
+                  "actionItems": ["정기 점검 스케줄 수립", "부품 교체 계획 작성"]
                 }
               ]
               
+              Types: warning, recommendation, trend
               RESPOND ONLY WITH JSON ARRAY - NO OTHER TEXT.`
             },
             {
