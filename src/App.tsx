@@ -25,6 +25,7 @@ import {
   loadTMStatusFromSupabase,
   loadAssigneesFromSupabase
 } from './utils/dataSync';
+import openAIService from './services/openaiService';
 
 // Type definitions
 interface Personnel {
@@ -5259,8 +5260,8 @@ const MaintenanceManagementSystem = () => {
       }
     };
 
-    // 예측적 유지보수 분석 함수
-    const analyzeEquipmentRisk = () => {
+    // 예측적 유지보수 분석 함수 (AI 강화)
+    const analyzeEquipmentRisk = async () => {
       const riskAnalysis = tmStatusList.map(tm => {
         // TM 발생 빈도 계산 (같은 설비의 TM 개수)
         const tmCount = tmStatusList.filter(t => t.equipmentName === tm.equipmentName).length;
@@ -5286,7 +5287,9 @@ const MaintenanceManagementSystem = () => {
           priority: tm.priority,
           daysSinceTM,
           tmCount,
-          riskScore: Math.min(Math.round(riskScore), 100)
+          riskScore: Math.min(Math.round(riskScore), 100),
+          description: tm.description,
+          workDescription: tm.workDescription
         };
       });
       
@@ -5299,11 +5302,48 @@ const MaintenanceManagementSystem = () => {
         }
       });
       
-      return Array.from(equipmentRisks.values()).sort((a, b) => b.riskScore - a.riskScore);
+      const sortedRisks = Array.from(equipmentRisks.values()).sort((a, b) => b.riskScore - a.riskScore);
+      
+      // AI 기반 예측적 유지보수 분석 추가
+      const aiEnhancedRisks = [];
+      for (const equipment of sortedRisks.slice(0, 10)) { // 상위 10개만 AI 분석
+        try {
+          const recentIssues = tmStatusList
+            .filter(tm => tm.equipmentName === equipment.equipmentName)
+            .slice(0, 5)
+            .map(tm => `${tm.description || ''} ${tm.workDescription || ''}`)
+            .join(', ');
+          
+          const aiPrediction = await openAIService.predictMaintenance({
+            name: equipment.equipmentName,
+            count: equipment.tmCount,
+            daysSince: equipment.daysSinceTM,
+            recentIssues,
+            priorityDist: {
+              high: tmStatusList.filter(tm => tm.equipmentName === equipment.equipmentName && tm.priority === '높음').length,
+              medium: tmStatusList.filter(tm => tm.equipmentName === equipment.equipmentName && tm.priority === '보통').length,
+              low: tmStatusList.filter(tm => tm.equipmentName === equipment.equipmentName && tm.priority === '낮음').length
+            }
+          });
+          
+          aiEnhancedRisks.push({
+            ...equipment,
+            aiPrediction
+          });
+        } catch (error) {
+          console.error('AI 예측 오류:', error);
+          aiEnhancedRisks.push(equipment);
+        }
+      }
+      
+      // 나머지 설비는 AI 분석 없이 추가
+      aiEnhancedRisks.push(...sortedRisks.slice(10));
+      
+      return aiEnhancedRisks;
     };
 
-    // 텍스트 마이닝 분석 함수
-    const analyzeTextPatterns = () => {
+    // 텍스트 마이닝 분석 함수 (AI 강화)
+    const analyzeTextPatterns = async () => {
       // 고장코드별 빈도 분석
       const faultCodeAnalysis = new Map();
       tmStatusList.forEach(tm => {
@@ -5313,19 +5353,50 @@ const MaintenanceManagementSystem = () => {
         }
       });
       
-      // 키워드 추출 (description과 workDescription에서)
-      const keywordMap = new Map();
-      const keywords = ['누수', '소음', '진동', '과열', '이상', '고장', '점검', '교체', '수리', '정비'];
+      // AI 기반 텍스트 분석
+      let aiAnalysisResult = null;
+      try {
+        // TM 텍스트 수집
+        const texts = tmStatusList.map(tm => 
+          `${tm.description || ''} ${tm.workDescription || ''}`
+        ).filter(text => text.trim());
+        
+        if (texts.length > 0) {
+          // OpenAI API 호출
+          aiAnalysisResult = await openAIService.analyzeText(texts);
+        }
+      } catch (error) {
+        console.error('AI 텍스트 분석 오류:', error);
+      }
       
-      tmStatusList.forEach(tm => {
-        const combinedText = `${tm.description || ''} ${tm.workDescription || ''}`.toLowerCase();
-        keywords.forEach(keyword => {
-          if (combinedText.includes(keyword)) {
-            const count = keywordMap.get(keyword) || 0;
-            keywordMap.set(keyword, count + 1);
-          }
+      // AI 분석 실패 시 기본 분석 사용
+      if (!aiAnalysisResult) {
+        // 기본 키워드 추출
+        const keywordMap = new Map();
+        const keywords = ['누수', '소음', '진동', '과열', '이상', '고장', '점검', '교체', '수리', '정비'];
+        
+        tmStatusList.forEach(tm => {
+          const combinedText = `${tm.description || ''} ${tm.workDescription || ''}`.toLowerCase();
+          keywords.forEach(keyword => {
+            if (combinedText.includes(keyword)) {
+              const count = keywordMap.get(keyword) || 0;
+              keywordMap.set(keyword, count + 1);
+            }
+          });
         });
-      });
+        
+        aiAnalysisResult = {
+          keywords: Array.from(keywordMap.entries()).map(([keyword, count]) => ({
+            keyword,
+            count,
+            importance: Math.min(count / 10, 1)
+          })),
+          categories: [],
+          sentiment: 'neutral',
+          urgency: 'medium',
+          summary: '기본 텍스트 분석 결과'
+        };
+      }
       
       // 우선순위별 패턴 분석
       const priorityAnalysis = {
@@ -5336,15 +5407,65 @@ const MaintenanceManagementSystem = () => {
       
       return {
         faultCodes: Array.from(faultCodeAnalysis.entries()).sort((a, b) => b[1] - a[1]),
-        keywords: Array.from(keywordMap.entries()).sort((a, b) => b[1] - a[1]),
-        priorities: priorityAnalysis
+        keywords: aiAnalysisResult.keywords.sort((a, b) => b.count - a.count),
+        priorities: priorityAnalysis,
+        aiAnalysis: aiAnalysisResult
       };
     };
 
-    const equipmentRisks = analyzeEquipmentRisk();
-    const textPatterns = analyzeTextPatterns();
+    const [equipmentRisks, setEquipmentRisks] = useState<any[]>([]);
+    const [textPatterns, setTextPatterns] = useState<any>(null);
+    const [aiInsights, setAiInsights] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    
+    useEffect(() => {
+      const performAnalysis = async () => {
+        setIsLoading(true);
+        try {
+          // 병렬로 분석 수행
+          const [risks, patterns] = await Promise.all([
+            analyzeEquipmentRisk(),
+            analyzeTextPatterns()
+          ]);
+          
+          setEquipmentRisks(risks);
+          setTextPatterns(patterns);
+          
+          // AI 인사이트 생성
+          const analysisData = {
+            highRiskEquipment: risks.filter(e => e.riskScore >= 70),
+            topKeywords: patterns.keywords.slice(0, 5),
+            urgency: patterns.aiAnalysis?.urgency || 'medium',
+            totalTMs: tmStatusList.length
+          };
+          
+          const insights = await openAIService.generateInsights(analysisData);
+          setAiInsights(insights);
+        } catch (error) {
+          console.error('분석 오류:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      
+      if (tmStatusList.length > 0) {
+        performAnalysis();
+      }
+    }, [tmStatusList]);
+    
     const monthlyTrend = prepareMonthlyTrend();
     const quarterlyTrend = prepareQuarterlyTrend();
+    
+    if (isLoading) {
+      return (
+        <div className="p-6 flex items-center justify-center h-64">
+          <div className="text-gray-600">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            AI 분석 중...
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="p-6 space-y-6">
@@ -5393,6 +5514,7 @@ const MaintenanceManagementSystem = () => {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">경과일</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">우선순위</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">위험도</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">AI 예측</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -5426,6 +5548,32 @@ const MaintenanceManagementSystem = () => {
                         <span className="text-sm font-medium">{risk.riskScore}%</span>
                       </div>
                     </td>
+                    <td className="px-4 py-3">
+                      {risk.aiPrediction ? (
+                        <div className="text-xs space-y-1">
+                          {risk.aiPrediction.predictedFailureDate && (
+                            <p className="text-red-600 font-medium">
+                              예상 고장일: {new Date(risk.aiPrediction.predictedFailureDate).toLocaleDateString()}
+                            </p>
+                          )}
+                          <p className="text-gray-600">
+                            신뢰도: {Math.round(risk.aiPrediction.confidence * 100)}%
+                          </p>
+                          {risk.aiPrediction.recommendedActions.length > 0 && (
+                            <div className="mt-1">
+                              <p className="font-medium text-gray-700">권장 조치:</p>
+                              <ul className="text-gray-600">
+                                {risk.aiPrediction.recommendedActions.slice(0, 2).map((action: string, idx: number) => (
+                                  <li key={idx}>• {action}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">분석 중...</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -5443,7 +5591,7 @@ const MaintenanceManagementSystem = () => {
               <h4 className="font-medium text-gray-700 mb-3">고장코드 빈도</h4>
               {textPatterns.faultCodes.length > 0 ? (
                 <div className="space-y-2">
-                  {textPatterns.faultCodes.slice(0, 5).map(([code, count], index) => (
+                  {textPatterns?.faultCodes.slice(0, 5).map(([code, count]: [string, number], index: number) => (
                     <div key={index} className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">{code}</span>
                       <span className="text-sm font-medium text-gray-900">{count}건</span>
@@ -5458,12 +5606,12 @@ const MaintenanceManagementSystem = () => {
             {/* 키워드 분석 */}
             <div className="bg-gray-50 rounded-lg p-4">
               <h4 className="font-medium text-gray-700 mb-3">주요 문제 키워드</h4>
-              {textPatterns.keywords.length > 0 ? (
+              {textPatterns?.keywords.length > 0 ? (
                 <div className="space-y-2">
-                  {textPatterns.keywords.slice(0, 5).map(([keyword, count], index) => (
+                  {textPatterns?.keywords.slice(0, 5).map((item: any, index: number) => (
                     <div key={index} className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">{keyword}</span>
-                      <span className="text-sm font-medium text-gray-900">{count}건</span>
+                      <span className="text-sm text-gray-600">{item.keyword}</span>
+                      <span className="text-sm font-medium text-gray-900">{item.count}건</span>
                     </div>
                   ))}
                 </div>
@@ -5478,47 +5626,132 @@ const MaintenanceManagementSystem = () => {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-red-600 font-medium">높음</span>
-                  <span className="text-sm font-medium text-gray-900">{textPatterns.priorities.높음}건</span>
+                  <span className="text-sm font-medium text-gray-900">{textPatterns?.priorities.높음}건</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-yellow-600 font-medium">보통</span>
-                  <span className="text-sm font-medium text-gray-900">{textPatterns.priorities.보통}건</span>
+                  <span className="text-sm font-medium text-gray-900">{textPatterns?.priorities.보통}건</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-green-600 font-medium">낮음</span>
-                  <span className="text-sm font-medium text-gray-900">{textPatterns.priorities.낮음}건</span>
+                  <span className="text-sm font-medium text-gray-900">{textPatterns?.priorities.낮음}건</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* 인사이트 섹션 */}
-        <div className="bg-blue-50 rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-3 text-blue-800">💡 AI 인사이트</h3>
-          <ul className="space-y-2 text-sm text-blue-700">
-            <li className="flex items-start">
-              <span className="mr-2">•</span>
-              <span>
-                현재 {equipmentRisks.filter(e => e.riskScore >= 70).length}개의 설비가 고위험 상태입니다. 
-                즉시 점검이 필요합니다.
-              </span>
-            </li>
-            {textPatterns.keywords.length > 0 && (
+        {/* AI 인사이트 섹션 */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+          <h3 className="text-lg font-semibold mb-4 text-blue-800 flex items-center gap-2">
+            <Brain className="h-5 w-5" />
+            AI 기반 인사이트
+          </h3>
+          
+          {aiInsights.length > 0 ? (
+            <div className="space-y-4">
+              {aiInsights.map((insight, index) => (
+                <div
+                  key={index}
+                  className={`p-4 rounded-lg border ${
+                    insight.type === 'warning'
+                      ? 'bg-red-50 border-red-200'
+                      : insight.type === 'recommendation'
+                      ? 'bg-yellow-50 border-yellow-200'
+                      : 'bg-green-50 border-green-200'
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <h4 className={`font-medium ${
+                      insight.type === 'warning'
+                        ? 'text-red-800'
+                        : insight.type === 'recommendation'
+                        ? 'text-yellow-800'
+                        : 'text-green-800'
+                    }`}>
+                      {insight.title}
+                    </h4>
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      insight.priority === 'high'
+                        ? 'bg-red-100 text-red-700'
+                        : insight.priority === 'medium'
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : 'bg-green-100 text-green-700'
+                    }`}>
+                      {insight.priority === 'high' ? '높음' : insight.priority === 'medium' ? '보통' : '낮음'}
+                    </span>
+                  </div>
+                  <p className={`text-sm mb-3 ${
+                    insight.type === 'warning'
+                      ? 'text-red-700'
+                      : insight.type === 'recommendation'
+                      ? 'text-yellow-700'
+                      : 'text-green-700'
+                  }`}>
+                    {insight.description}
+                  </p>
+                  {insight.actionItems.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-xs font-medium text-gray-600 mb-1">권장 조치:</p>
+                      <ul className="text-xs text-gray-600 space-y-1">
+                        {insight.actionItems.map((action: string, idx: number) => (
+                          <li key={idx} className="flex items-start">
+                            <span className="mr-1">•</span>
+                            <span>{action}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            // 기본 인사이트 (AI 분석 실패 시)
+            <ul className="space-y-2 text-sm text-blue-700">
               <li className="flex items-start">
                 <span className="mr-2">•</span>
                 <span>
-                  가장 빈번한 문제는 "{textPatterns.keywords[0][0]}"로 {textPatterns.keywords[0][1]}건 발생했습니다.
+                  현재 {equipmentRisks.filter((e: any) => e.riskScore >= 70).length}개의 설비가 고위험 상태입니다. 
+                  즉시 점검이 필요합니다.
                 </span>
               </li>
-            )}
-            <li className="flex items-start">
-              <span className="mr-2">•</span>
-              <span>
-                30일 이상 점검하지 않은 설비가 {equipmentRisks.filter(e => e.daysSinceTM > 30).length}개 있습니다.
-              </span>
-            </li>
-          </ul>
+              {textPatterns?.keywords.length > 0 && (
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>
+                    가장 빈번한 문제는 "{textPatterns?.keywords[0]?.keyword}"로 {textPatterns?.keywords[0]?.count}건 발생했습니다.
+                  </span>
+                </li>
+              )}
+              <li className="flex items-start">
+                <span className="mr-2">•</span>
+                <span>
+                  30일 이상 점검하지 않은 설비가 {equipmentRisks.filter((e: any) => e.daysSinceTM > 30).length}개 있습니다.
+                </span>
+              </li>
+            </ul>
+          )}
+          
+          {/* AI 분석 정보 */}
+          {textPatterns?.aiAnalysis && (
+            <div className="mt-4 pt-4 border-t border-blue-200">
+              <p className="text-xs text-gray-600">
+                AI 분석 결과: 긴급도 
+                <span className={`font-medium ml-1 ${
+                  textPatterns.aiAnalysis.urgency === 'high' ? 'text-red-600' :
+                  textPatterns.aiAnalysis.urgency === 'medium' ? 'text-yellow-600' :
+                  'text-green-600'
+                }`}>
+                  {textPatterns.aiAnalysis.urgency === 'high' ? '높음' :
+                   textPatterns.aiAnalysis.urgency === 'medium' ? '보통' : '낮음'}
+                </span>
+              </p>
+              {textPatterns.aiAnalysis.summary && (
+                <p className="text-xs text-gray-600 mt-1">{textPatterns.aiAnalysis.summary}</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 트렌드 차트 섹션 */}
