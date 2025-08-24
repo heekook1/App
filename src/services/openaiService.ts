@@ -220,28 +220,38 @@ class OpenAIService {
           messages: [
             {
               role: 'system',
-              content: `You MUST respond ONLY with valid JSON array. No text before or after the JSON.
+              content: `당신은 발전소 정비 전문가입니다. 반드시 유효한 JSON 배열로만 응답하세요.
               
-              Generate 2-4 insights based on the analysis data. Return this JSON array format:
+              분석 데이터를 기반으로 2-4개의 인사이트를 생성하세요. 
+              중요: '장비' 대신 반드시 '설비'라는 용어를 사용하세요.
+              
+              다음 JSON 배열 형식으로 응답하세요:
               [
                 {
                   "type": "warning",
-                  "title": "고위험 장비 발견",
-                  "description": "즉시 점검이 필요한 장비가 있습니다",
+                  "title": "고위험 설비 발견",
+                  "description": "[설비명] 설비의 위험 점수가 높습니다. 즉시 점검이 필요합니다.",
                   "priority": "high",
                   "actionItems": ["긴급 점검 수행", "예비 부품 확보"]
                 },
                 {
                   "type": "recommendation", 
-                  "title": "예방 정비 권장",
-                  "description": "정기적인 예방 정비로 비용을 절약할 수 있습니다",
+                  "title": "정기 점검 강화",
+                  "description": "설비의 반복적인 문제를 예방하기 위해 정기 점검 주기를 강화해야 합니다.",
                   "priority": "medium",
-                  "actionItems": ["정기 점검 스케줄 수립", "부품 교체 계획 작성"]
+                  "actionItems": ["정기 점검 스케줄 수립", "점검 주기 단축"]
+                },
+                {
+                  "type": "trend",
+                  "title": "누수 문제 빈번 발생",
+                  "description": "여러 설비에서 누수 문제가 반복적으로 발생하고 있습니다.",
+                  "priority": "medium",
+                  "actionItems": ["누수 방지 대책 수립", "설비 누수 모니터링 강화"]
                 }
               ]
               
-              Types: warning, recommendation, trend
-              RESPOND ONLY WITH JSON ARRAY - NO OTHER TEXT.`
+              타입: warning(경고), recommendation(권장사항), trend(경향)
+              반드시 한국어 JSON 배열만 응답 - 다른 텍스트 없음`
             },
             {
               role: 'user',
