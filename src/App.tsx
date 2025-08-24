@@ -5907,28 +5907,92 @@ const MaintenanceManagementSystem = () => {
                   <strong>요약:</strong> {textPatterns.aiAnalysis.summary}
                 </p>
               )}
-              <div className="mt-2 flex items-center gap-4 text-sm">
-                {/* 반복 발생 빈도 분석 */}
-                <span className="text-gray-600">
-                  반복 문제: 
-                  <span className={`ml-1 font-medium ${
-                    textPatterns.keywords && textPatterns.keywords[0]?.count >= 5 ? 'text-red-600' :
-                    textPatterns.keywords && textPatterns.keywords[0]?.count >= 3 ? 'text-yellow-600' :
-                    'text-green-600'
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                {/* TM 처리율 */}
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">처리율:</span>
+                  <span className={`font-medium ${
+                    (() => {
+                      const completedCount = tmStatusList.filter(tm => tm.status.includes('완료')).length;
+                      const totalCount = tmStatusList.length;
+                      const completionRate = totalCount > 0 ? (completedCount / totalCount * 100) : 0;
+                      return completionRate >= 80 ? 'text-green-600' :
+                             completionRate >= 60 ? 'text-yellow-600' :
+                             'text-red-600';
+                    })()
                   }`}>
-                    {textPatterns.keywords && textPatterns.keywords[0] 
-                      ? `"${textPatterns.keywords[0].keyword}" ${textPatterns.keywords[0].count}회 발생`
-                      : '반복 패턴 없음'}
+                    {(() => {
+                      const completedCount = tmStatusList.filter(tm => tm.status.includes('완료')).length;
+                      const totalCount = tmStatusList.length;
+                      const completionRate = totalCount > 0 ? Math.round(completedCount / totalCount * 100) : 0;
+                      return `${completionRate}% (${completedCount}/${totalCount}건)`;
+                    })()}
                   </span>
-                </span>
-                {textPatterns.aiAnalysis.categories && textPatterns.aiAnalysis.categories.length > 0 && (
-                  <span className="text-gray-600">
-                    주요 카테고리: 
-                    <span className="ml-1 font-medium text-blue-600">
-                      {textPatterns.aiAnalysis.categories[0].category}
-                    </span>
+                </div>
+
+                {/* 평균 처리 소요일 */}
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">평균 처리:</span>
+                  <span className={`font-medium ${
+                    (() => {
+                      const completedTMs = tmStatusList.filter(tm => tm.status.includes('완료') && tm.workSchedule);
+                      if (completedTMs.length === 0) return 'text-gray-600';
+                      
+                      const totalDays = completedTMs.reduce((sum, tm) => {
+                        const created = new Date(tm.createdDate);
+                        const completed = new Date(tm.workSchedule!);
+                        const days = Math.ceil((completed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+                        return sum + (days > 0 ? days : 0);
+                      }, 0);
+                      
+                      const avgDays = totalDays / completedTMs.length;
+                      return avgDays <= 3 ? 'text-green-600' :
+                             avgDays <= 7 ? 'text-yellow-600' :
+                             'text-red-600';
+                    })()
+                  }`}>
+                    {(() => {
+                      const completedTMs = tmStatusList.filter(tm => tm.status.includes('완료') && tm.workSchedule);
+                      if (completedTMs.length === 0) return '데이터 없음';
+                      
+                      const totalDays = completedTMs.reduce((sum, tm) => {
+                        const created = new Date(tm.createdDate);
+                        const completed = new Date(tm.workSchedule!);
+                        const days = Math.ceil((completed.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+                        return sum + (days > 0 ? days : 0);
+                      }, 0);
+                      
+                      const avgDays = Math.round(totalDays / completedTMs.length);
+                      return `${avgDays}일`;
+                    })()}
                   </span>
-                )}
+                </div>
+
+                {/* 최근 7일 신규 TM */}
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-600">최근 7일:</span>
+                  <span className={`font-medium ${
+                    (() => {
+                      const sevenDaysAgo = new Date();
+                      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                      const recentCount = tmStatusList.filter(tm => 
+                        new Date(tm.createdDate) >= sevenDaysAgo
+                      ).length;
+                      return recentCount >= 10 ? 'text-red-600' :
+                             recentCount >= 5 ? 'text-yellow-600' :
+                             'text-green-600';
+                    })()
+                  }`}>
+                    {(() => {
+                      const sevenDaysAgo = new Date();
+                      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                      const recentCount = tmStatusList.filter(tm => 
+                        new Date(tm.createdDate) >= sevenDaysAgo
+                      ).length;
+                      return `신규 ${recentCount}건`;
+                    })()}
+                  </span>
+                </div>
               </div>
             </div>
           )}
