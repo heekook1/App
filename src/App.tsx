@@ -5907,29 +5907,29 @@ const MaintenanceManagementSystem = () => {
                   <strong>요약:</strong> {textPatterns.aiAnalysis.summary}
                 </p>
               )}
-              {textPatterns.aiAnalysis.sentiment && (
-                <div className="mt-2 flex items-center gap-4 text-sm">
+              <div className="mt-2 flex items-center gap-4 text-sm">
+                {/* 반복 발생 빈도 분석 */}
+                <span className="text-gray-600">
+                  반복 문제: 
+                  <span className={`ml-1 font-medium ${
+                    textPatterns.keywords && textPatterns.keywords[0]?.count >= 5 ? 'text-red-600' :
+                    textPatterns.keywords && textPatterns.keywords[0]?.count >= 3 ? 'text-yellow-600' :
+                    'text-green-600'
+                  }`}>
+                    {textPatterns.keywords && textPatterns.keywords[0] 
+                      ? `"${textPatterns.keywords[0].keyword}" ${textPatterns.keywords[0].count}회 발생`
+                      : '반복 패턴 없음'}
+                  </span>
+                </span>
+                {textPatterns.aiAnalysis.categories && textPatterns.aiAnalysis.categories.length > 0 && (
                   <span className="text-gray-600">
-                    감정 분석: 
-                    <span className={`ml-1 font-medium ${
-                      textPatterns.aiAnalysis.sentiment === 'negative' ? 'text-red-600' :
-                      textPatterns.aiAnalysis.sentiment === 'positive' ? 'text-green-600' :
-                      'text-gray-600'
-                    }`}>
-                      {textPatterns.aiAnalysis.sentiment === 'negative' ? '부정적' :
-                       textPatterns.aiAnalysis.sentiment === 'positive' ? '긍정적' : '중립적'}
+                    주요 카테고리: 
+                    <span className="ml-1 font-medium text-blue-600">
+                      {textPatterns.aiAnalysis.categories[0].category}
                     </span>
                   </span>
-                  {textPatterns.aiAnalysis.categories && textPatterns.aiAnalysis.categories.length > 0 && (
-                    <span className="text-gray-600">
-                      주요 카테고리: 
-                      <span className="ml-1 font-medium text-blue-600">
-                        {textPatterns.aiAnalysis.categories[0].category}
-                      </span>
-                    </span>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </div>

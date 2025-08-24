@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Cloud, CloudRain, CloudSnow, Sun, Wind, Droplets, Thermometer, CloudDrizzle } from 'lucide-react';
 import { useWeather } from '../contexts/WeatherContext';
-
 const WeatherWidget: React.FC = () => {
   const { weather, loading, error } = useWeather();
   const [currentTime, setCurrentTime] = useState(new Date());
