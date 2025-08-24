@@ -5908,26 +5908,58 @@ const MaintenanceManagementSystem = () => {
                 </p>
               )}
               <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                {/* TM 처리율 */}
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-600">처리율:</span>
-                  <span className={`font-medium ${
-                    (() => {
-                      const completedCount = tmStatusList.filter(tm => tm.status.includes('완료')).length;
-                      const totalCount = tmStatusList.length;
-                      const completionRate = totalCount > 0 ? (completedCount / totalCount * 100) : 0;
-                      return completionRate >= 80 ? 'text-green-600' :
-                             completionRate >= 60 ? 'text-yellow-600' :
-                             'text-red-600';
-                    })()
-                  }`}>
-                    {(() => {
-                      const completedCount = tmStatusList.filter(tm => tm.status.includes('완료')).length;
-                      const totalCount = tmStatusList.length;
-                      const completionRate = totalCount > 0 ? Math.round(completedCount / totalCount * 100) : 0;
-                      return `${completionRate}% (${completedCount}/${totalCount}건)`;
-                    })()}
-                  </span>
+                {/* TM 처리율 - 전체 & 올해 */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 text-xs">전체:</span>
+                    <span className={`font-medium text-xs ${
+                      (() => {
+                        const completedCount = tmStatusList.filter(tm => tm.status.includes('완료')).length;
+                        const totalCount = tmStatusList.length;
+                        const completionRate = totalCount > 0 ? (completedCount / totalCount * 100) : 0;
+                        return completionRate >= 80 ? 'text-green-600' :
+                               completionRate >= 60 ? 'text-yellow-600' :
+                               'text-red-600';
+                      })()
+                    }`}>
+                      {(() => {
+                        const completedCount = tmStatusList.filter(tm => tm.status.includes('완료')).length;
+                        const totalCount = tmStatusList.length;
+                        const completionRate = totalCount > 0 ? Math.round(completedCount / totalCount * 100) : 0;
+                        return `${completionRate}% (${completedCount}/${totalCount}건)`;
+                      })()}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 text-xs">올해:</span>
+                    <span className={`font-medium text-xs ${
+                      (() => {
+                        // 한국 시간 기준 현재 연도 (마지막 2자리)
+                        const koreanTime = new Date(new Date().getTime() + (9 * 60 * 60 * 1000));
+                        const currentYear = koreanTime.getFullYear().toString().slice(-2);
+                        
+                        const currentYearTMs = tmStatusList.filter(tm => tm.id.startsWith(`${currentYear}-`));
+                        const completedCount = currentYearTMs.filter(tm => tm.status.includes('완료')).length;
+                        const totalCount = currentYearTMs.length;
+                        const completionRate = totalCount > 0 ? (completedCount / totalCount * 100) : 0;
+                        return completionRate >= 80 ? 'text-green-600' :
+                               completionRate >= 60 ? 'text-yellow-600' :
+                               'text-red-600';
+                      })()
+                    }`}>
+                      {(() => {
+                        // 한국 시간 기준 현재 연도 (마지막 2자리)
+                        const koreanTime = new Date(new Date().getTime() + (9 * 60 * 60 * 1000));
+                        const currentYear = koreanTime.getFullYear().toString().slice(-2);
+                        
+                        const currentYearTMs = tmStatusList.filter(tm => tm.id.startsWith(`${currentYear}-`));
+                        const completedCount = currentYearTMs.filter(tm => tm.status.includes('완료')).length;
+                        const totalCount = currentYearTMs.length;
+                        const completionRate = totalCount > 0 ? Math.round(completedCount / totalCount * 100) : 0;
+                        return `${completionRate}% (${completedCount}/${totalCount}건)`;
+                      })()}
+                    </span>
+                  </div>
                 </div>
 
                 {/* 평균 처리 소요일 */}
