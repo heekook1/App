@@ -325,8 +325,8 @@ class OpenAIService {
     if (analysisData.highRiskEquipment?.length > 0) {
       insights.push({
         type: 'warning',
-        title: '고위험 장비 발견',
-        description: `${analysisData.highRiskEquipment.length}개의 장비가 즉시 점검이 필요합니다.`,
+        title: '고위험 설비 발견',
+        description: `${analysisData.highRiskEquipment.length}개의 설비가 즉시 점검이 필요합니다.`,
         priority: 'high',
         actionItems: ['긴급 점검 일정 수립', '예비 부품 확보']
       });
