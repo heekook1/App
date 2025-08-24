@@ -5865,22 +5865,70 @@ const MaintenanceManagementSystem = () => {
             </ul>
           )}
           
-          {/* AI 분석 정보 */}
+          {/* AI 분석 정보 - 개선된 UI */}
           {textPatterns?.aiAnalysis && (
-            <div className="mt-4 pt-4 border-t border-blue-200">
-              <p className="text-xs text-gray-600">
-                AI 분석 결과: 긴급도 
-                <span className={`font-medium ml-1 ${
+            <div className={`mt-6 p-4 rounded-lg border-2 ${
+              textPatterns.aiAnalysis.urgency === 'high' 
+                ? 'bg-red-50 border-red-300' 
+                : textPatterns.aiAnalysis.urgency === 'medium'
+                ? 'bg-yellow-50 border-yellow-300'
+                : 'bg-green-50 border-green-300'
+            }`}>
+              <div className="flex items-center gap-2 mb-2">
+                <Brain className={`h-5 w-5 ${
                   textPatterns.aiAnalysis.urgency === 'high' ? 'text-red-600' :
                   textPatterns.aiAnalysis.urgency === 'medium' ? 'text-yellow-600' :
                   'text-green-600'
+                }`} />
+                <h4 className={`font-semibold text-base ${
+                  textPatterns.aiAnalysis.urgency === 'high' ? 'text-red-800' :
+                  textPatterns.aiAnalysis.urgency === 'medium' ? 'text-yellow-800' :
+                  'text-green-800'
                 }`}>
-                  {textPatterns.aiAnalysis.urgency === 'high' ? '높음' :
-                   textPatterns.aiAnalysis.urgency === 'medium' ? '보통' : '낮음'}
+                  AI 종합 분석 결과
+                </h4>
+                <span className={`ml-auto px-3 py-1 rounded-full text-sm font-medium ${
+                  textPatterns.aiAnalysis.urgency === 'high' 
+                    ? 'bg-red-100 text-red-700 border border-red-300' 
+                    : textPatterns.aiAnalysis.urgency === 'medium'
+                    ? 'bg-yellow-100 text-yellow-700 border border-yellow-300'
+                    : 'bg-green-100 text-green-700 border border-green-300'
+                }`}>
+                  긴급도: {textPatterns.aiAnalysis.urgency === 'high' ? '높음 🚨' :
+                          textPatterns.aiAnalysis.urgency === 'medium' ? '보통 ⚠️' : '낮음 ✅'}
                 </span>
-              </p>
+              </div>
               {textPatterns.aiAnalysis.summary && (
-                <p className="text-xs text-gray-600 mt-1">{textPatterns.aiAnalysis.summary}</p>
+                <p className={`text-sm leading-relaxed ${
+                  textPatterns.aiAnalysis.urgency === 'high' ? 'text-red-700' :
+                  textPatterns.aiAnalysis.urgency === 'medium' ? 'text-yellow-700' :
+                  'text-green-700'
+                }`}>
+                  <strong>요약:</strong> {textPatterns.aiAnalysis.summary}
+                </p>
+              )}
+              {textPatterns.aiAnalysis.sentiment && (
+                <div className="mt-2 flex items-center gap-4 text-sm">
+                  <span className="text-gray-600">
+                    감정 분석: 
+                    <span className={`ml-1 font-medium ${
+                      textPatterns.aiAnalysis.sentiment === 'negative' ? 'text-red-600' :
+                      textPatterns.aiAnalysis.sentiment === 'positive' ? 'text-green-600' :
+                      'text-gray-600'
+                    }`}>
+                      {textPatterns.aiAnalysis.sentiment === 'negative' ? '부정적' :
+                       textPatterns.aiAnalysis.sentiment === 'positive' ? '긍정적' : '중립적'}
+                    </span>
+                  </span>
+                  {textPatterns.aiAnalysis.categories && textPatterns.aiAnalysis.categories.length > 0 && (
+                    <span className="text-gray-600">
+                      주요 카테고리: 
+                      <span className="ml-1 font-medium text-blue-600">
+                        {textPatterns.aiAnalysis.categories[0].category}
+                      </span>
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           )}
