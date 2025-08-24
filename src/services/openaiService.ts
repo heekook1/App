@@ -151,7 +151,7 @@ class OpenAIService {
                 "analysisDetails": {
                   "failurePattern": "식별된 패턴에 대한 한국어 설명",
                   "criticalComponents": ["부품1", "부품2"],
-                  "maintenanceInterval": "권장 정비 주기",
+                  "maintenanceInterval": "권장 점검 주기 (예: 매월, 3개월마다, 6개월마다)",
                   "riskFactors": ["위험요소1", "위험요소2"]
                 }
               }

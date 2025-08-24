@@ -5681,7 +5681,7 @@ const MaintenanceManagementSystem = () => {
                                 </p>
                               )}
                               <p className="text-gray-600 text-xs">
-                                <span className="font-medium">권장 주기:</span> {risk.aiPrediction.analysisDetails.maintenanceInterval}
+                                <span className="font-medium">권장 점검 주기:</span> {risk.aiPrediction.analysisDetails.maintenanceInterval}
                               </p>
                             </div>
                           )}
