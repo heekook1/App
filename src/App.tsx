@@ -5935,10 +5935,11 @@ const MaintenanceManagementSystem = () => {
                     <span className={`font-medium text-xs ${
                       (() => {
                         // 한국 시간 기준 현재 연도 (마지막 2자리)
-                        const koreanTime = new Date(new Date().getTime() + (9 * 60 * 60 * 1000));
-                        const currentYear = koreanTime.getFullYear().toString().slice(-2);
+                        const now = new Date();
+                        const currentYear = now.getFullYear().toString().slice(-2);
                         
-                        const currentYearTMs = tmStatusList.filter(tm => tm.id.startsWith(`${currentYear}-`));
+                        // tmNo가 "25-001" 형식이므로 tmNo로 필터링
+                        const currentYearTMs = tmStatusList.filter(tm => tm.tmNo && tm.tmNo.startsWith(`${currentYear}-`));
                         const completedCount = currentYearTMs.filter(tm => tm.status.includes('완료')).length;
                         const totalCount = currentYearTMs.length;
                         const completionRate = totalCount > 0 ? (completedCount / totalCount * 100) : 0;
@@ -5949,10 +5950,11 @@ const MaintenanceManagementSystem = () => {
                     }`}>
                       {(() => {
                         // 한국 시간 기준 현재 연도 (마지막 2자리)
-                        const koreanTime = new Date(new Date().getTime() + (9 * 60 * 60 * 1000));
-                        const currentYear = koreanTime.getFullYear().toString().slice(-2);
+                        const now = new Date();
+                        const currentYear = now.getFullYear().toString().slice(-2);
                         
-                        const currentYearTMs = tmStatusList.filter(tm => tm.id.startsWith(`${currentYear}-`));
+                        // tmNo가 "25-001" 형식이므로 tmNo로 필터링
+                        const currentYearTMs = tmStatusList.filter(tm => tm.tmNo && tm.tmNo.startsWith(`${currentYear}-`));
                         const completedCount = currentYearTMs.filter(tm => tm.status.includes('완료')).length;
                         const totalCount = currentYearTMs.length;
                         const completionRate = totalCount > 0 ? Math.round(completedCount / totalCount * 100) : 0;
