@@ -120,6 +120,7 @@
 - Claude Code (개발)
 - MCP Server (DB 관리)
 - Dify Chatbot (운영)
+- GPT-4o (예측 분석)
 
 ---
 
@@ -172,10 +173,64 @@
 - **일정 관리**: 캘린더 뷰로 일정 확인
 - **문서 관리**: 카테고리별 문서 분류
 - **AI 챗봇**: 24/7 업무 지원
+- **AI 분석 (v2.0)**: GPT-4o 기반 예측적 유지보수
 
 ---
 
-## 9. Claude Code 활용 사례
+## 9. AI 분석 v2.0 - GPT-4o 통합
+
+### 주요 기능
+1. **예측적 유지보수 분석**
+   - 완전한 TM 이력 기반 AI 예측
+   - 설비별 위험도 점수 (0-100)
+   - 예상 고장일 및 권장 점검 주기
+   - 핵심 부품 식별 및 위험 요소 분석
+
+2. **텍스트 마이닝 고도화**
+   - GPT-4o를 통한 고장 패턴 분석
+   - 주요 문제 키워드 자동 추출
+   - 긴급도 자동 분류 (높음/보통/낮음)
+
+3. **AI 종합 인사이트**
+   - 실시간 통계 정보
+     - 전체/올해 TM 처리율
+     - 평균 처리 소요일
+     - 최근 7일 신규 TM 발생
+   - 고위험 설비 자동 알림
+   - 구체적인 권장 조치 제시
+
+### 기술 구현
+```typescript
+// AI 예측 분석 예시
+const aiPrediction = await openAIService.predictMaintenance({
+  name: equipment.equipmentName,
+  tmHistory: equipmentTMHistory, // 완전한 정비 이력
+  count: equipment.tmCount,
+  daysSince: equipment.daysSinceTM
+});
+
+// 결과 예시
+{
+  riskScore: 85,
+  predictedFailureDate: "2025-10-15",
+  recommendedActions: ["베어링 즉시 교체", "윤활유 점검"],
+  analysisDetails: {
+    failurePattern: "3개월 주기로 베어링 마모 반복",
+    criticalComponents: ["베어링", "축 씰"],
+    maintenanceInterval: "매월 점검 권장",
+    riskFactors: ["반복적인 진동 발생", "윤활 부족"]
+  }
+}
+```
+
+### Supabase 캐시 시스템
+- **스마트 캐싱**: 동일 데이터는 1회만 분석
+- **실시간 공유**: 모든 사용자가 AI 분석 결과 공유
+- **API 비용 절감**: 중복 호출 방지로 90% 비용 절약
+
+---
+
+## 10. Claude Code 활용 사례
 
 ### VS Code에서 실제 개발 과정
 ```typescript
@@ -231,7 +286,7 @@ const WorkOrderManagement: React.FC = () => {
 
 ---
 
-## 10. MCP를 통한 DB 관리
+## 11. MCP를 통한 DB 관리
 
 ### MCP로 Supabase 직접 제어
 ```sql
@@ -262,7 +317,7 @@ USING (auth.uid() = ANY(assignees));
 
 ---
 
-## 11. 성과 측정
+## 12. 성과 측정
 
 ### 정량적 성과
 | 지표 | Before | After | 개선율 |
@@ -278,6 +333,8 @@ USING (auth.uid() = ANY(assignees));
 - ✅ 데이터 기반 의사결정
 - ✅ 24/7 AI 업무 지원
 - ✅ 직원 만족도 향상
+- ✅ **AI 예측 정비**: 고장 예방 가능
+- ✅ **스마트 캐싱**: 다중 사용자 AI 결과 공유
 
 ### ROI 분석
 - **개발 비용**: 0원 (AI 도구 활용)
@@ -288,7 +345,7 @@ USING (auth.uid() = ANY(assignees));
 
 ---
 
-## 12. Dify AI 챗봇 통합
+## 13. Dify AI 챗봇 통합
 
 ### 구현 방법
 ```javascript
@@ -313,7 +370,7 @@ window.difyChatbotConfig = {
 
 ---
 
-## 13. 프로젝트 구조
+## 14. 프로젝트 구조
 
 ### 시스템 아키텍처
 ```
@@ -328,7 +385,8 @@ Supabase Backend
 AI Integration
 ├─ Claude Code (개발)
 ├─ MCP (DB 관리)
-└─ Dify (운영)
+├─ Dify (운영)
+└─ GPT-4o (예측 분석)
 ```
 
 ### 파일 구조
@@ -347,7 +405,7 @@ App/
 
 ---
 
-## 14. 문제 해결 사례
+## 15. 문제 해결 사례
 
 ### 1. 실시간 동기화 구현
 **문제**: 여러 사용자가 동시에 작업 시 데이터 불일치
@@ -377,7 +435,7 @@ const assignees = [...new Set(selectedAssignees)];
 
 ---
 
-## 15. 향후 계획
+## 16. 향후 계획
 
 ### 단기 (3개월)
 - React Native 모바일 앱
@@ -386,8 +444,9 @@ const assignees = [...new Set(selectedAssignees)];
 
 ### 중기 (6개월)
 - IoT 센서 연동
-- AI 예측 정비
+- AI 예측 정비 고도화
 - AR 정비 가이드
+- AI 자동 부품 발주 시스템
 
 ### 장기 (1년)
 - 부품 재고 관리 통합
@@ -396,7 +455,7 @@ const assignees = [...new Set(selectedAssignees)];
 
 ---
 
-## 16. 결론
+## 17. 결론
 
 ### 프로젝트 성과
 1. **개발 기간**: 6개월 → 2주 (92% 단축)
