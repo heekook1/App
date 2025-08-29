@@ -1400,7 +1400,7 @@ const MaintenanceManagementSystem = () => {
         <div className="p-4 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg h-[690px] overflow-y-auto">
           <h3 className="text-lg font-semibold mb-4">최근 작업</h3>
           <div className="space-y-3">
-            {workOrders.slice(0, 7).map(order => (
+            {workOrders.slice(0, 8).map(order => (
               <div key={order.id} className="flex items-center justify-between p-3 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => handleWorkOrderClick(order)}>
                 <div className="flex-1">
                   <p className="font-medium text-sm">{order.title}</p>
@@ -1467,7 +1467,7 @@ const MaintenanceManagementSystem = () => {
                 // 고정 상태가 같으면 날짜순으로 정렬
                 return new Date(b.date).getTime() - new Date(a.date).getTime();
               })
-              .slice(0, 7).map(announcement => (
+              .slice(0, 8).map(announcement => (
               <div key={announcement.id} className="p-3 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => handleAnnouncementClick(announcement)}>
                 <div className="flex items-start justify-between mb-2">
                   <p className="font-medium text-sm flex items-center gap-1">
