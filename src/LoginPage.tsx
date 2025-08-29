@@ -110,7 +110,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onShowSignup, onS
             <span className="text-gray-400 text-lg">×</span>
             <img src="/youngjin-logo.png" alt="영진" className="h-8 w-auto" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-800">정비업체 관리 시스템</h1>
+          <h1 className="text-3xl font-bold text-gray-800">정비 통합관리 시스템</h1>
           <p className="text-gray-600 mt-2">로그인하여 시스템에 접속하세요</p>
         </div>
         
