@@ -4344,6 +4344,7 @@ const MaintenanceManagementSystem = () => {
     isPinned: false
   });
   const [isComposing, setIsComposing] = useState(false);
+  const contentEditableRef = useRef<HTMLDivElement>(null);
 
   const handleAnnouncementSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -4438,6 +4439,17 @@ const MaintenanceManagementSystem = () => {
     });
     setShowAnnouncementForm(true);
   };
+
+  // contentEditable div의 내용을 업데이트하는 useEffect
+  useEffect(() => {
+    if (contentEditableRef.current) {
+      if (announcementForm.content) {
+        contentEditableRef.current.innerHTML = announcementForm.content;
+      } else {
+        contentEditableRef.current.innerHTML = '';
+      }
+    }
+  }, [showAnnouncementForm, editingAnnouncement]);
 
   const handleDeleteAnnouncement = async (id: number) => {
     if (!window.confirm('정말 삭제하시겠습니까?')) {
@@ -4564,22 +4576,25 @@ const MaintenanceManagementSystem = () => {
                       A
                     </button>
                   </div>
-                  <textarea
-                    placeholder="내용을 입력하세요. **굵게**, *기울임* 형식을 사용할 수 있습니다."
-                    value={announcementForm.content}
-                    onChange={(e) => {
+                  <div
+                    ref={contentEditableRef}
+                    contentEditable
+                    suppressContentEditableWarning={true}
+                    onInput={(e) => {
                       if (!isComposing) {
-                        setAnnouncementForm(prev => ({ ...prev, content: e.target.value }));
+                        const content = e.currentTarget.innerHTML;
+                        setAnnouncementForm(prev => ({ ...prev, content }));
                       }
                     }}
                     onCompositionStart={() => setIsComposing(true)}
-                    onCompositionEnd={(e: React.CompositionEvent<HTMLTextAreaElement>) => {
+                    onCompositionEnd={(e: React.CompositionEvent<HTMLDivElement>) => {
                       setIsComposing(false);
-                      setAnnouncementForm(prev => ({ ...prev, content: e.currentTarget.value }));
+                      const content = e.currentTarget.innerHTML;
+                      setAnnouncementForm(prev => ({ ...prev, content }));
                     }}
-                    className="w-full px-3 py-2 border rounded min-h-[152px] focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white resize-none"
-                    rows={8}
-                    required
+                    className="w-full px-3 py-2 border rounded min-h-[152px] focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    style={{ whiteSpace: 'pre-wrap' }}
+                    data-placeholder="내용을 입력하세요."
                   />
                 </div>
               </div>
