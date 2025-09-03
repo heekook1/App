@@ -4505,9 +4505,7 @@ const MaintenanceManagementSystem = () => {
                   placeholder="제목"
                   value={announcementForm.title}
                   onChange={(e) => {
-                    if (!isComposingTitle) {
-                      setAnnouncementForm(prev => ({ ...prev, title: e.target.value }));
-                    }
+                    setAnnouncementForm(prev => ({ ...prev, title: e.target.value }));
                   }}
                   onCompositionStart={() => setIsComposingTitle(true)}
                   onCompositionEnd={(e: React.CompositionEvent<HTMLInputElement>) => {
