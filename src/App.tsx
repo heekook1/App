@@ -4554,24 +4554,13 @@ const MaintenanceManagementSystem = () => {
                       A
                     </button>
                   </div>
-                  <div
-                    id="content"
-                    contentEditable
-                    suppressContentEditableWarning={true}
-                    onInput={(e) => {
-                      const content = e.currentTarget.innerHTML;
-                      setAnnouncementForm(prev => ({ ...prev, content }));
-                    }}
-                    onBlur={(e) => {
-                      const content = e.currentTarget.innerHTML;
-                      setAnnouncementForm(prev => ({ ...prev, content }));
-                    }}
-                    dangerouslySetInnerHTML={{
-                      __html: announcementForm.content || ''
-                    }}
-                    className="w-full px-3 py-2 border rounded min-h-[152px] focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                    style={{ whiteSpace: 'pre-wrap' }}
-                    data-placeholder="내용을 입력하세요. **굵게**, *기울임* 형식을 사용할 수 있습니다."
+                  <textarea
+                    placeholder="내용을 입력하세요. **굵게**, *기울임* 형식을 사용할 수 있습니다."
+                    value={announcementForm.content}
+                    onChange={(e) => setAnnouncementForm(prev => ({ ...prev, content: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded min-h-[152px] focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white resize-none"
+                    rows={8}
+                    required
                   />
                 </div>
               </div>
