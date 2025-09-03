@@ -4343,6 +4343,7 @@ const MaintenanceManagementSystem = () => {
     author: '관리자',
     isPinned: false
   });
+  const [isComposing, setIsComposing] = useState(false);
 
   const handleAnnouncementSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -4490,7 +4491,16 @@ const MaintenanceManagementSystem = () => {
                   type="text"
                   placeholder="제목"
                   value={announcementForm.title}
-                  onChange={(e) => setAnnouncementForm(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={(e) => {
+                    if (!isComposing) {
+                      setAnnouncementForm(prev => ({ ...prev, title: e.target.value }));
+                    }
+                  }}
+                  onCompositionStart={() => setIsComposing(true)}
+                  onCompositionEnd={(e: React.CompositionEvent<HTMLInputElement>) => {
+                    setIsComposing(false);
+                    setAnnouncementForm(prev => ({ ...prev, title: e.currentTarget.value }));
+                  }}
                   className="w-full table-gs px-3 py-2 border rounded"
                   required
                 />
@@ -4557,7 +4567,16 @@ const MaintenanceManagementSystem = () => {
                   <textarea
                     placeholder="내용을 입력하세요. **굵게**, *기울임* 형식을 사용할 수 있습니다."
                     value={announcementForm.content}
-                    onChange={(e) => setAnnouncementForm(prev => ({ ...prev, content: e.target.value }))}
+                    onChange={(e) => {
+                      if (!isComposing) {
+                        setAnnouncementForm(prev => ({ ...prev, content: e.target.value }));
+                      }
+                    }}
+                    onCompositionStart={() => setIsComposing(true)}
+                    onCompositionEnd={(e: React.CompositionEvent<HTMLTextAreaElement>) => {
+                      setIsComposing(false);
+                      setAnnouncementForm(prev => ({ ...prev, content: e.currentTarget.value }));
+                    }}
                     className="w-full px-3 py-2 border rounded min-h-[152px] focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white resize-none"
                     rows={8}
                     required
