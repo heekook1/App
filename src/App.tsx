@@ -4343,7 +4343,8 @@ const MaintenanceManagementSystem = () => {
     author: '관리자',
     isPinned: false
   });
-  const [isComposing, setIsComposing] = useState(false);
+  const [isComposingTitle, setIsComposingTitle] = useState(false);
+  const [isComposingContent, setIsComposingContent] = useState(false);
   const contentEditableRef = useRef<HTMLDivElement>(null);
 
   const handleAnnouncementSubmit = async (e: React.FormEvent) => {
@@ -4504,13 +4505,13 @@ const MaintenanceManagementSystem = () => {
                   placeholder="제목"
                   value={announcementForm.title}
                   onChange={(e) => {
-                    if (!isComposing) {
+                    if (!isComposingTitle) {
                       setAnnouncementForm(prev => ({ ...prev, title: e.target.value }));
                     }
                   }}
-                  onCompositionStart={() => setIsComposing(true)}
+                  onCompositionStart={() => setIsComposingTitle(true)}
                   onCompositionEnd={(e: React.CompositionEvent<HTMLInputElement>) => {
-                    setIsComposing(false);
+                    setIsComposingTitle(false);
                     setAnnouncementForm(prev => ({ ...prev, title: e.currentTarget.value }));
                   }}
                   className="w-full table-gs px-3 py-2 border rounded"
@@ -4581,14 +4582,14 @@ const MaintenanceManagementSystem = () => {
                     contentEditable
                     suppressContentEditableWarning={true}
                     onInput={(e) => {
-                      if (!isComposing) {
+                      if (!isComposingContent) {
                         const content = e.currentTarget.innerHTML;
                         setAnnouncementForm(prev => ({ ...prev, content }));
                       }
                     }}
-                    onCompositionStart={() => setIsComposing(true)}
+                    onCompositionStart={() => setIsComposingContent(true)}
                     onCompositionEnd={(e: React.CompositionEvent<HTMLDivElement>) => {
-                      setIsComposing(false);
+                      setIsComposingContent(false);
                       const content = e.currentTarget.innerHTML;
                       setAnnouncementForm(prev => ({ ...prev, content }));
                     }}
