@@ -1405,9 +1405,6 @@ const MaintenanceManagementSystem = () => {
                 <div className="flex-1">
                   <p className="font-medium text-sm">{order.title}</p>
                   <p className="text-xs text-gray-500">담당자 : {Array.isArray(order.assignee) ? order.assignee.join(', ') : order.assignee}</p>
-                  {order.status === '완료' && order.workResult && (
-                    <p className="text-xs text-green-600 mt-1">작업 결과: {order.workResult}</p>
-                  )}
                 </div>
                 <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(order.status)}`}>
                   {order.status}
@@ -6522,6 +6519,13 @@ const MaintenanceManagementSystem = () => {
                   </p>
                 </div>
                 
+                {selectedWorkOrder?.workResult && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">작업 결과</label>
+                    <p className="mt-1 text-sm text-gray-900 whitespace-pre-line">{selectedWorkOrder?.workResult}</p>
+                  </div>
+                )}
+                
                 {selectedWorkOrder?.completionNote && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700">완료 메모</label>
@@ -6657,6 +6661,13 @@ const MaintenanceManagementSystem = () => {
                       : selectedWorkOrder?.assignee}
                   </p>
                 </div>
+                
+                {selectedWorkOrder?.workResult && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">작업 결과</label>
+                    <p className="mt-1 text-sm text-gray-900 whitespace-pre-line">{selectedWorkOrder?.workResult}</p>
+                  </div>
+                )}
                 
                 {selectedWorkOrder?.completionNote && (
                   <div>
