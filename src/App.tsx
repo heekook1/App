@@ -4504,14 +4504,7 @@ const MaintenanceManagementSystem = () => {
                   type="text"
                   placeholder="제목"
                   value={announcementForm.title}
-                  onChange={(e) => {
-                    setAnnouncementForm(prev => ({ ...prev, title: e.target.value }));
-                  }}
-                  onCompositionStart={() => setIsComposingTitle(true)}
-                  onCompositionEnd={(e: React.CompositionEvent<HTMLInputElement>) => {
-                    setIsComposingTitle(false);
-                    setAnnouncementForm(prev => ({ ...prev, title: e.currentTarget.value }));
-                  }}
+                  onChange={(e) => setAnnouncementForm(prev => ({ ...prev, title: e.target.value }))}
                   className="w-full table-gs px-3 py-2 border rounded"
                   required
                 />
