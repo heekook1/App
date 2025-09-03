@@ -1405,8 +1405,8 @@ const MaintenanceManagementSystem = () => {
                 <div className="flex-1">
                   <p className="font-medium text-sm">{order.title}</p>
                   <p className="text-xs text-gray-500">담당자 : {Array.isArray(order.assignee) ? order.assignee.join(', ') : order.assignee}</p>
-                  {order.status === '완료' && order.completionNotes && (
-                    <p className="text-xs text-green-600 mt-1">완료 내용: {order.completionNotes}</p>
+                  {order.status === '완료' && order.completionNote && (
+                    <p className="text-xs text-green-600 mt-1">완료 내용: {order.completionNote}</p>
                   )}
                 </div>
                 <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusColor(order.status)}`}>
