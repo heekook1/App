@@ -4348,10 +4348,18 @@ const MaintenanceManagementSystem = () => {
 
   const handleAnnouncementSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // contentEditable의 최신 내용 가져오기
+    const currentContent = contentEditableRef.current?.innerHTML || announcementForm.content;
+    
     try {
       if (editingAnnouncement) {
         // 수정
-        const updatedAnnouncement = { ...editingAnnouncement, ...announcementForm };
+        const updatedAnnouncement = { 
+          ...editingAnnouncement, 
+          ...announcementForm, 
+          content: currentContent 
+        };
         
         // Supabase 업데이트
         const { error } = await supabase
@@ -4380,7 +4388,7 @@ const MaintenanceManagementSystem = () => {
         // 추가
         const newAnnouncement = {
           title: announcementForm.title,
-          content: announcementForm.content,
+          content: currentContent,
           priority: announcementForm.priority,
           author: announcementForm.author,
           date: new Date().toISOString().split('T')[0],
@@ -4573,7 +4581,7 @@ const MaintenanceManagementSystem = () => {
                     ref={contentEditableRef}
                     contentEditable
                     suppressContentEditableWarning={true}
-                    onInput={(e) => {
+                    onBlur={(e) => {
                       const content = e.currentTarget.innerHTML;
                       setAnnouncementForm(prev => ({ ...prev, content }));
                     }}
