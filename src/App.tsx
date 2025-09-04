@@ -4576,6 +4576,17 @@ const MaintenanceManagementSystem = () => {
                     >
                       A
                     </button>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        document.execCommand('foreColor', false, 'black');
+                      }}
+                      className="px-2 py-1 bg-gray-800 text-white rounded text-sm hover:bg-gray-900"
+                      title="검정색 (기본)"
+                    >
+                      A
+                    </button>
                   </div>
                   <div
                     ref={contentEditableRef}
