@@ -4344,6 +4344,7 @@ const MaintenanceManagementSystem = () => {
     isPinned: false
   });
   const [isComposingTitle, setIsComposingTitle] = useState(false);
+  const contentEditableRef = useRef<HTMLDivElement>(null);
 
   const handleAnnouncementSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -4437,6 +4438,12 @@ const MaintenanceManagementSystem = () => {
       isPinned: announcement.isPinned || false
     });
     setShowAnnouncementForm(true);
+    // contentEditable에 내용 설정
+    setTimeout(() => {
+      if (contentEditableRef.current) {
+        contentEditableRef.current.innerHTML = announcement.content;
+      }
+    }, 0);
   };
 
 
@@ -4475,6 +4482,12 @@ const MaintenanceManagementSystem = () => {
             onClick={() => {
               setShowAnnouncementForm(true);
               setAnnouncementForm(prev => ({ ...prev, author: currentUser?.fullName || '관리자' }));
+              // contentEditable 초기화
+              setTimeout(() => {
+                if (contentEditableRef.current) {
+                  contentEditableRef.current.innerHTML = '';
+                }
+              }, 0);
             }}
             className="flex items-center gap-2 px-4 py-2 rounded bg-gradient-button text-white font-medium transition-all duration-300"
           >
@@ -4556,13 +4569,17 @@ const MaintenanceManagementSystem = () => {
                       A
                     </button>
                   </div>
-                  <textarea
-                    placeholder="내용을 입력하세요."
-                    value={announcementForm.content}
-                    onChange={(e) => setAnnouncementForm(prev => ({ ...prev, content: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded min-h-[152px] focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white resize-none"
-                    rows={8}
-                    required
+                  <div
+                    ref={contentEditableRef}
+                    contentEditable
+                    suppressContentEditableWarning={true}
+                    onInput={(e) => {
+                      const content = e.currentTarget.innerHTML;
+                      setAnnouncementForm(prev => ({ ...prev, content }));
+                    }}
+                    className="w-full px-3 py-2 border rounded min-h-[152px] focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    style={{ whiteSpace: 'pre-wrap' }}
+                    data-placeholder="내용을 입력하세요."
                   />
                 </div>
               </div>
