@@ -648,7 +648,7 @@ const MaintenanceManagementSystem = () => {
       }
     });
     
-    console.log('🔔 로컬 알림 시스템 활성화');
+    console.log('🔔 하이브리드 알림 시스템 활성화 (로컬 + Realtime)');
     
     // 🔄 TM 상태 변경 감지를 위한 주기적 데이터 새로고침 (5분마다)
     const tmRefreshInterval = setInterval(() => {
@@ -657,12 +657,90 @@ const MaintenanceManagementSystem = () => {
         loadAllDataFromSupabase(); // 데이터 새로고침
       }
     }, 5 * 60 * 1000); // 5분
+
+    // 🌐 Supabase Realtime 구독 설정 (모든 PC 실시간 알림용)
+    let realtimeChannel: any = null;
+    
+    if (isAuthenticated && localStorage.getItem('notificationsEnabled') !== 'false') {
+      realtimeChannel = supabase
+        .channel('multi-pc-notifications')
+        // 작업 관리 변경 감지
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'work_orders'
+        }, (payload) => {
+          console.log('🔥 새 작업 등록 이벤트 (Realtime):', payload);
+          // 본인이 등록한 것이 아닐 때만 알림 (다른 PC에서 등록한 것)
+          if (payload.new.created_by && payload.new.created_by !== currentUser?.fullName) {
+            sendNotification('새 작업 등록 (다른 PC)', `[${payload.new.title}] 새 작업이 등록되었습니다`);
+          }
+        })
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'work_orders'
+        }, (payload) => {
+          console.log('🔄 작업 상태 변경 이벤트 (Realtime):', payload);
+          if (payload.old.status !== payload.new.status) {
+            // 본인이 변경한 것이 아닐 때만 알림
+            sendNotification('작업 상태 변경 (다른 PC)', `[${payload.new.title}] '${payload.new.status}'로 상태가 변경되었습니다`);
+          }
+        })
+        // 공지사항 변경 감지
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'announcements'
+        }, (payload) => {
+          console.log('📢 새 공지사항 이벤트 (Realtime):', payload);
+          if (payload.new.author !== currentUser?.fullName) {
+            const priority = payload.new.priority === 'urgent' ? '🚨 긴급' : payload.new.priority === 'important' ? '⚠️ 중요' : '📢';
+            sendNotification(`${priority} 공지사항 (다른 PC)`, payload.new.title);
+          }
+        })
+        // TM현황 변경 감지 
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'tm_status'
+        }, (payload) => {
+          console.log('🆕 새 TM 등록 이벤트 (Realtime):', payload);
+          if (payload.new.created_by !== currentUser?.fullName) {
+            sendNotification('새 TM 등록 (실시간)', `[${payload.new.equipment_name}] ${payload.new.description || 'TM이 등록되었습니다'}`);
+          }
+        })
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tm_status'
+        }, (payload) => {
+          console.log('🔄 TM 상태 변경 이벤트 (Realtime):', payload);
+          if (payload.old.status !== payload.new.status) {
+            sendNotification('TM 상태 변경 (실시간)', `[${payload.new.equipment_name}] '${payload.new.status}'로 변경되었습니다`);
+          }
+        })
+        .subscribe((status) => {
+          console.log('📡 Supabase Realtime 연결 상태:', status);
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ 모든 PC 실시간 알림 시스템 활성화 완료!');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('❌ Realtime 채널 에러 발생');
+          }
+        });
+    }
     
     // 컴포넌트 언마운트 시 정리
     return () => {
       isMounted = false;
       clearInterval(tmRefreshInterval);
       authSubscription.unsubscribe();
+      
+      // Realtime 채널 정리
+      if (realtimeChannel) {
+        supabase.removeChannel(realtimeChannel);
+        console.log('🔌 Realtime 채널 연결 해제');
+      }
     };
     
   }, []);
@@ -809,26 +887,13 @@ const MaintenanceManagementSystem = () => {
     }
   };
 
-  // 로컬 알림 함수들
+  // 로컬 TM 알림 함수 (데이터 비교용)
   const notifyTMStatusChange = (equipmentName: string, newStatus: string) => {
-    sendNotification('TM 상태 변경', `[${equipmentName}] '${newStatus}'로 상태가 변경되었습니다`);
+    sendNotification('TM 상태 변경 (로컬)', `[${equipmentName}] '${newStatus}'로 상태가 변경되었습니다`);
   };
 
   const notifyNewTMCreated = (equipmentName: string, description?: string) => {
-    sendNotification('새 TM 등록', `[${equipmentName}] ${description || 'TM이 등록되었습니다'}`);
-  };
-
-  const notifyWorkOrderChange = (title: string, newStatus: string) => {
-    sendNotification('작업 상태 변경', `[${title}] '${newStatus}'로 상태가 변경되었습니다`);
-  };
-
-  const notifyNewWorkOrder = (title: string) => {
-    sendNotification('새 작업 등록', `[${title}] 새 작업이 등록되었습니다`);
-  };
-
-  const notifyNewAnnouncement = (title: string, priority: string) => {
-    const priorityIcon = priority === 'urgent' ? '🚨 긴급' : priority === 'important' ? '⚠️ 중요' : '📢';
-    sendNotification(`${priorityIcon} 공지사항`, title);
+    sendNotification('새 TM 등록 (로컬)', `[${equipmentName}] ${description || 'TM이 등록되었습니다'}`);
   };
 
   // TM 데이터 비교 및 알림 함수
@@ -2229,8 +2294,8 @@ const MaintenanceManagementSystem = () => {
         };
         setWorkOrders(prev => [...prev, newOrder]);
         
-        // 🔔 새 작업 등록 알림
-        notifyNewWorkOrder(newOrder.title);
+        // 🔔 새 작업 등록 알림 (내 PC)
+        sendNotification('새 작업 등록 (내 PC)', `[${newOrder.title}] 새 작업이 등록되었습니다`);
       }
       
       setShowWorkOrderForm(false);
@@ -2937,9 +3002,9 @@ const MaintenanceManagementSystem = () => {
         order.id === id ? { ...order, status } : order
       ));
       
-      // 🔔 알림 발송
+      // 🔔 알림 발송 (내 PC)
       if (order) {
-        notifyWorkOrderChange(order.title, status);
+        sendNotification('작업 상태 변경 (내 PC)', `[${order.title}] '${status}'로 상태가 변경되었습니다`);
       }
       
     } catch (error) {
@@ -4675,8 +4740,9 @@ const MaintenanceManagementSystem = () => {
         };
         setAnnouncements(prev => [...prev, newAnnouncementWithId]);
         
-        // 🔔 새 공지사항 등록 알림
-        notifyNewAnnouncement(newAnnouncementWithId.title, newAnnouncementWithId.priority);
+        // 🔔 새 공지사항 등록 알림 (내 PC)
+        const priorityIcon = newAnnouncementWithId.priority === 'urgent' ? '🚨 긴급' : newAnnouncementWithId.priority === 'important' ? '⚠️ 중요' : '📢';
+        sendNotification(`${priorityIcon} 공지사항 (내 PC)`, newAnnouncementWithId.title);
       }
       
       setShowAnnouncementForm(false);
