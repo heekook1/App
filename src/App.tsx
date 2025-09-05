@@ -799,7 +799,7 @@ const MaintenanceManagementSystem = () => {
       
     } catch (error) {
       console.error('❌ 알림 테스트 실패:', error);
-      alert('알림 테스트 실패: ' + error.message);
+      alert('알림 테스트 실패: ' + (error instanceof Error ? error.message : String(error)));
     }
   };
 
