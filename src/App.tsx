@@ -613,6 +613,17 @@ const MaintenanceManagementSystem = () => {
         // 로그인 이벤트 또는 토큰 갱신 시 데이터 로드
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           console.log('📥 데이터 로드 중... (이벤트:', event, ')');
+          
+          // 알림 권한 요청
+          if (Notification.permission === 'default') {
+            Notification.requestPermission().then(permission => {
+              if (permission === 'granted') {
+                console.log('🔔 알림 권한이 허용되었습니다.');
+                localStorage.setItem('notificationsEnabled', 'true');
+              }
+            });
+          }
+          
           setTimeout(async () => {
             if (isMounted) {
               await loadAllDataFromSupabase();
@@ -637,15 +648,105 @@ const MaintenanceManagementSystem = () => {
       }
     });
     
+    // Realtime 구독 설정 (로그인 상태일 때만)
+    let realtimeChannel: any = null;
+    
+    if (isAuthenticated && localStorage.getItem('notificationsEnabled') !== 'false') {
+      realtimeChannel = supabase
+        .channel('table-changes')
+        // TM현황 변경 감지
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'tm_status'
+        }, (payload) => {
+          if (payload.new.created_by !== currentUser?.fullName) {
+            sendNotification('새 TM 등록', `[${payload.new.equipment_name}] ${payload.new.description || 'TM이 등록되었습니다'}`);
+          }
+        })
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'tm_status'
+        }, (payload) => {
+          if (payload.old.status !== payload.new.status) {
+            sendNotification('TM 상태 변경', `[${payload.new.equipment_name}] '${payload.new.status}'로 변경되었습니다`);
+          }
+        })
+        // 작업 관리 변경 감지
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'work_orders'
+        }, (payload) => {
+          sendNotification('새 작업 등록', `[${payload.new.title}] 작업이 등록되었습니다`);
+        })
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'work_orders'
+        }, (payload) => {
+          if (payload.old.status !== payload.new.status) {
+            sendNotification('작업 상태 변경', `[${payload.new.title}] '${payload.new.status}'로 변경되었습니다`);
+          }
+        })
+        // 공지사항 변경 감지
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'announcements'
+        }, (payload) => {
+          if (payload.new.author !== currentUser?.fullName) {
+            const priority = payload.new.priority === 'urgent' ? '🚨 긴급' : payload.new.priority === 'important' ? '⚠️ 중요' : '📢';
+            sendNotification(`${priority} 공지사항`, payload.new.title);
+          }
+        })
+        .subscribe();
+    }
+    
     // 컴포넌트 언마운트 시 정리
     return () => {
       isMounted = false;
       authSubscription.unsubscribe();
+      if (realtimeChannel) {
+        supabase.removeChannel(realtimeChannel);
+      }
     };
     
   }, []);
 
 
+
+  // 알림 설정 토글 함수
+  const handleNotificationToggle = (enabled: boolean) => {
+    setNotificationsEnabled(enabled);
+    localStorage.setItem('notificationsEnabled', enabled.toString());
+    
+    if (enabled && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        if (permission !== 'granted') {
+          setNotificationsEnabled(false);
+          localStorage.setItem('notificationsEnabled', 'false');
+          alert('알림 권한이 필요합니다. 브라우저 설정에서 알림을 허용해주세요.');
+        }
+      });
+    }
+  };
+
+  // 알림 발송 함수
+  const sendNotification = (title: string, body: string) => {
+    if (localStorage.getItem('notificationsEnabled') === 'false') return;
+    
+    if (Notification.permission === 'granted') {
+      new Notification(title, {
+        body: body,
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+        tag: 'maintenance-system',
+        renotify: true
+      });
+    }
+  };
 
   // Handle click events
   const handleWorkOrderClick = (workOrder: WorkOrder) => {
@@ -1099,6 +1200,13 @@ const MaintenanceManagementSystem = () => {
             <span className="text-sm text-gray-600">
               {currentUser?.fullName} ({currentUser?.role})
             </span>
+            <button
+              onClick={() => setShowSettingsModal(true)}
+              className="p-2 text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded-md"
+              title="설정"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
             <button
               onClick={handleLogout}
               className="px-3 py-1 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
@@ -4346,6 +4454,12 @@ const MaintenanceManagementSystem = () => {
   const [isComposingTitle, setIsComposingTitle] = useState(false);
   const contentEditableRef = useRef<HTMLDivElement>(null);
 
+  // 설정 모달 상태
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    return localStorage.getItem('notificationsEnabled') !== 'false';
+  });
+
   const handleAnnouncementSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -6735,6 +6849,60 @@ const MaintenanceManagementSystem = () => {
                   <p>작성일: {selectedAnnouncement?.date}</p>
                   <p>작성자: {selectedAnnouncement?.author}</p>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-gray-900">설정</h2>
+                <button
+                  onClick={() => setShowSettingsModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900">브라우저 알림</h3>
+                    <p className="text-sm text-gray-500">작업 등록, 상태 변경, 공지사항 등의 알림을 받습니다</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={notificationsEnabled}
+                      onChange={(e) => handleNotificationToggle(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+
+                {Notification.permission === 'denied' && (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                    <p className="text-sm text-yellow-800">
+                      브라우저에서 알림이 차단되었습니다. 브라우저 설정에서 알림을 허용해주세요.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setShowSettingsModal(false)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  확인
+                </button>
               </div>
             </div>
           </div>

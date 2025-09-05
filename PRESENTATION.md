@@ -199,123 +199,6 @@
    - 고위험 설비 자동 알림
    - 구체적인 권장 조치 제시
 
-### 기술 구현
-```typescript
-// AI 예측 분석 예시
-const aiPrediction = await openAIService.predictMaintenance({
-  name: equipment.equipmentName,
-  tmHistory: equipmentTMHistory, // 완전한 정비 이력
-  count: equipment.tmCount,
-  daysSince: equipment.daysSinceTM
-});
-
-// 결과 예시
-{
-  riskScore: 85,
-  predictedFailureDate: "2025-10-15",
-  recommendedActions: ["베어링 즉시 교체", "윤활유 점검"],
-  analysisDetails: {
-    failurePattern: "3개월 주기로 베어링 마모 반복",
-    criticalComponents: ["베어링", "축 씰"],
-    maintenanceInterval: "매월 점검 권장",
-    riskFactors: ["반복적인 진동 발생", "윤활 부족"]
-  }
-}
-```
-
-### Supabase 캐시 시스템
-- **스마트 캐싱**: 동일 데이터는 1회만 분석
-- **실시간 공유**: 모든 사용자가 AI 분석 결과 공유
-- **API 비용 절감**: 중복 호출 방지로 90% 비용 절약
-
----
-
-## 10. Claude Code 활용 사례
-
-### VS Code에서 실제 개발 과정
-```typescript
-// Claude Code가 생성한 작업 관리 컴포넌트
-interface WorkOrder {
-  id: string;
-  orderNumber: string;
-  title: string;
-  status: 'pending' | 'in_progress' | 'completed';
-  assignees: string[];
-  priority: 'urgent' | 'high' | 'normal' | 'low';
-  equipment: string;
-  createdAt: string;
-  completedAt?: string;
-}
-
-const WorkOrderManagement: React.FC = () => {
-  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
-  
-  // 자동 번호 생성 로직
-  const generateOrderNumber = () => {
-    const year = new Date().getFullYear();
-    const count = workOrders.length + 1;
-    return `${year}-${String(count).padStart(3, '0')}`;
-  };
-  
-  // 상태 변경 시 설비 이력 자동 연동
-  const updateStatus = async (orderId: string, newStatus: string) => {
-    // Claude Code가 자동으로 에러 처리 포함
-    try {
-      await supabase
-        .from('work_orders')
-        .update({ status: newStatus })
-        .eq('id', orderId);
-      
-      if (newStatus === 'completed') {
-        // 설비 이력에 자동 기록
-        await recordEquipmentHistory(orderId);
-      }
-    } catch (error) {
-      console.error('상태 업데이트 실패:', error);
-    }
-  };
-  
-  return (
-    // Tailwind CSS 자동 적용
-    <div className="p-6 bg-white rounded-lg shadow">
-      {/* 컴포넌트 UI */}
-    </div>
-  );
-};
-```
-
----
-
-## 11. MCP를 통한 DB 관리
-
-### MCP로 Supabase 직접 제어
-```sql
--- MCP를 통해 실행된 테이블 생성
-CREATE TABLE work_orders (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  order_number TEXT UNIQUE NOT NULL,
-  title TEXT NOT NULL,
-  description TEXT,
-  equipment_id UUID REFERENCES equipment(id),
-  status TEXT CHECK (status IN ('pending', 'in_progress', 'completed', 'hold')),
-  priority TEXT CHECK (priority IN ('urgent', 'high', 'normal', 'low')),
-  assignees JSONB DEFAULT '[]',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  completed_at TIMESTAMPTZ,
-  created_by UUID REFERENCES auth.users(id)
-);
-
--- RLS 정책 자동 생성
-CREATE POLICY "Users can view all work orders" 
-ON work_orders FOR SELECT 
-USING (auth.role() = 'authenticated');
-
-CREATE POLICY "Users can update assigned orders" 
-ON work_orders FOR UPDATE 
-USING (auth.uid() = ANY(assignees));
-```
-
----
 
 ## 12. 성과 측정
 
@@ -356,20 +239,6 @@ window.difyChatbotConfig = {
 };
 ```
 
-### 챗봇 활용 사례
-| 질문 | AI 응답 |
-|------|---------|
-| "오늘 PM 일정?" | "14:00 A-101 펌프, 16:00 B-202 컴프레서" |
-| "설비 이력 조회 방법?" | "설비관리 → 설비 선택 → 이력 탭 클릭" |
-| "긴급 작업 등록" | "작업관리 → 새 작업 → 우선순위 '긴급'" |
-
-### 효과
-- 신입 교육 시간 50% 단축
-- 업무 문의 응답 시간 95% 감소
-- 사용자 만족도 92%
-
----
-
 ## 14. 프로젝트 구조
 
 ### 시스템 아키텍처
@@ -403,38 +272,6 @@ App/
 └── tsconfig.json
 ```
 
----
-
-## 15. 문제 해결 사례
-
-### 1. 실시간 동기화 구현
-**문제**: 여러 사용자가 동시에 작업 시 데이터 불일치
-
-**해결**: Supabase Realtime 구독
-```typescript
-useEffect(() => {
-  const subscription = supabase
-    .channel('work_orders')
-    .on('postgres_changes', 
-      { event: '*', schema: 'public', table: 'work_orders' },
-      handleRealtimeUpdate
-    )
-    .subscribe();
-  
-  return () => subscription.unsubscribe();
-}, []);
-```
-
-### 2. 중복 담당자 방지
-**문제**: 동일 담당자가 중복 배정
-
-**해결**: Claude Code로 중복 체크 로직 구현
-```typescript
-const assignees = [...new Set(selectedAssignees)];
-```
-
----
-
 ## 16. 향후 계획
 
 ### 단기 (3개월)
@@ -453,41 +290,6 @@ const assignees = [...new Set(selectedAssignees)];
 - 자동 발주 시스템
 - 글로벌 확장
 
----
-
-## 17. 결론
-
-### 프로젝트 성과
-1. **개발 기간**: 6개월 → 2주 (92% 단축)
-2. **개발 비용**: 5,000만원 → 0원
-3. **업무 효율**: 40% 향상
-4. **데이터 정확도**: 100%
-
-### 핵심 가치
-- **AI 도구 활용**: 개발 전 과정 AI 활용
-- **실무 중심**: 실제 현장 문제 해결
-- **즉시 적용**: 복잡한 설정 없이 바로 사용
-
-### 시사점
-> "AI 도구를 활용하면 비개발자도 전문 시스템 구축 가능"
-
----
-
-## 부록: 환경 변수 설정
-
-```env
-# Supabase
-REACT_APP_SUPABASE_URL=https://xxx.supabase.co
-REACT_APP_SUPABASE_ANON_KEY=xxx
-
-# MCP
-SUPABASE_ACCESS_TOKEN=sbp_xxx
-
-# 배포
-REACT_APP_SITE_URL=https://app-three-ashy.vercel.app
-```
-
----
 
 **발표자**: 강희국  
 **소속**: 위드-영진  
