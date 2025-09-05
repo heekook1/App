@@ -672,19 +672,13 @@ const MaintenanceManagementSystem = () => {
         }, (payload) => {
           console.log('🔥 새 작업 등록 이벤트 (Realtime):', payload);
           console.log('🔍 이벤트 상세:', {
-            새로운_작성자: payload.new.created_by,
-            현재_사용자: currentUser?.fullName,
             작업_제목: payload.new.title,
-            알림_조건: payload.new.created_by !== currentUser?.fullName
+            작업_ID: payload.new.id
           });
           
-          // 본인이 등록한 것이 아닐 때만 알림 (다른 PC에서 등록한 것)
-          if (payload.new.created_by && payload.new.created_by !== currentUser?.fullName) {
-            console.log('✅ 다른 PC 작업 등록 알림 발송!');
-            sendNotification('새 작업 등록 (다른 PC)', `[${payload.new.title}] 새 작업이 등록되었습니다`);
-          } else {
-            console.log('⚠️ 본인 작업이므로 알림 스킵 또는 작성자 정보 없음');
-          }
+          // 간단하게: 새 작업이 등록되면 무조건 알림
+          console.log('✅ 새 작업 등록 알림 발송!');
+          sendNotification('새 작업 등록 🆕', `[${payload.new.title}] 새 작업이 등록되었습니다`);
         })
         .on('postgres_changes', {
           event: 'UPDATE',
@@ -692,9 +686,15 @@ const MaintenanceManagementSystem = () => {
           table: 'work_orders'
         }, (payload) => {
           console.log('🔄 작업 상태 변경 이벤트 (Realtime):', payload);
+          console.log('🔍 상태 변경 상세:', {
+            작업_제목: payload.new.title,
+            이전_상태: payload.old?.status,
+            새_상태: payload.new.status
+          });
+          
           if (payload.old.status !== payload.new.status) {
-            // 본인이 변경한 것이 아닐 때만 알림
-            sendNotification('작업 상태 변경 (다른 PC)', `[${payload.new.title}] '${payload.new.status}'로 상태가 변경되었습니다`);
+            console.log('✅ 작업 상태 변경 알림 발송!');
+            sendNotification('작업 상태 변경 🔄', `[${payload.new.title}] '${payload.new.status}'로 상태가 변경되었습니다`);
           }
         })
         // 공지사항 변경 감지
@@ -705,19 +705,14 @@ const MaintenanceManagementSystem = () => {
         }, (payload) => {
           console.log('📢 새 공지사항 이벤트 (Realtime):', payload);
           console.log('🔍 공지사항 이벤트 상세:', {
-            새로운_작성자: payload.new.author,
-            현재_사용자: currentUser?.fullName,
             공지_제목: payload.new.title,
-            알림_조건: payload.new.author !== currentUser?.fullName
+            우선순위: payload.new.priority
           });
           
-          if (payload.new.author !== currentUser?.fullName) {
-            console.log('✅ 다른 PC 공지사항 알림 발송!');
-            const priority = payload.new.priority === 'urgent' ? '🚨 긴급' : payload.new.priority === 'important' ? '⚠️ 중요' : '📢';
-            sendNotification(`${priority} 공지사항 (다른 PC)`, payload.new.title);
-          } else {
-            console.log('⚠️ 본인 공지사항이므로 알림 스킵');
-          }
+          // 간단하게: 새 공지사항이 등록되면 무조건 알림
+          console.log('✅ 새 공지사항 알림 발송!');
+          const priority = payload.new.priority === 'urgent' ? '🚨 긴급' : payload.new.priority === 'important' ? '⚠️ 중요' : '📢';
+          sendNotification(`${priority} 공지사항 등록`, payload.new.title);
         })
         // TM현황 변경 감지 
         .on('postgres_changes', {
@@ -726,9 +721,15 @@ const MaintenanceManagementSystem = () => {
           table: 'tm_status'
         }, (payload) => {
           console.log('🆕 새 TM 등록 이벤트 (Realtime):', payload);
-          if (payload.new.created_by !== currentUser?.fullName) {
-            sendNotification('새 TM 등록 (실시간)', `[${payload.new.equipment_name}] ${payload.new.description || 'TM이 등록되었습니다'}`);
-          }
+          console.log('🔍 TM 등록 상세:', {
+            TM_번호: payload.new.tm_no,
+            장비명: payload.new.equipment_name,
+            설명: payload.new.description
+          });
+          
+          // 간단하게: 새 TM이 등록되면 무조건 알림
+          console.log('✅ 새 TM 등록 알림 발송!');
+          sendNotification('새 TM 등록 🆕', `[${payload.new.equipment_name}] ${payload.new.description || 'TM이 등록되었습니다'}`);
         })
         .on('postgres_changes', {
           event: 'UPDATE',
@@ -736,8 +737,16 @@ const MaintenanceManagementSystem = () => {
           table: 'tm_status'
         }, (payload) => {
           console.log('🔄 TM 상태 변경 이벤트 (Realtime):', payload);
+          console.log('🔍 TM 상태 변경 상세:', {
+            TM_번호: payload.new.tm_no,
+            장비명: payload.new.equipment_name,
+            이전_상태: payload.old?.status,
+            새_상태: payload.new.status
+          });
+          
           if (payload.old.status !== payload.new.status) {
-            sendNotification('TM 상태 변경 (실시간)', `[${payload.new.equipment_name}] '${payload.new.status}'로 변경되었습니다`);
+            console.log('✅ TM 상태 변경 알림 발송!');
+            sendNotification('TM 상태 변경 🔄', `[${payload.new.equipment_name}] '${payload.new.status}'로 변경되었습니다`);
           }
         })
         .subscribe((status) => {
@@ -2329,8 +2338,8 @@ const MaintenanceManagementSystem = () => {
         };
         setWorkOrders(prev => [...prev, newOrder]);
         
-        // 🔔 새 작업 등록 알림 (내 PC)
-        sendNotification('새 작업 등록 (내 PC)', `[${newOrder.title}] 새 작업이 등록되었습니다`);
+        // 🔔 새 작업 등록 알림 (로컬)
+        sendNotification('새 작업 등록 ✅', `[${newOrder.title}] 새 작업이 등록되었습니다`);
       }
       
       setShowWorkOrderForm(false);
@@ -3037,9 +3046,9 @@ const MaintenanceManagementSystem = () => {
         order.id === id ? { ...order, status } : order
       ));
       
-      // 🔔 알림 발송 (내 PC)
+      // 🔔 알림 발송 (로컬)
       if (order) {
-        sendNotification('작업 상태 변경 (내 PC)', `[${order.title}] '${status}'로 상태가 변경되었습니다`);
+        sendNotification('작업 상태 변경 ✅', `[${order.title}] '${status}'로 상태가 변경되었습니다`);
       }
       
     } catch (error) {
@@ -4775,9 +4784,9 @@ const MaintenanceManagementSystem = () => {
         };
         setAnnouncements(prev => [...prev, newAnnouncementWithId]);
         
-        // 🔔 새 공지사항 등록 알림 (내 PC)
+        // 🔔 새 공지사항 등록 알림 (로컬)
         const priorityIcon = newAnnouncementWithId.priority === 'urgent' ? '🚨 긴급' : newAnnouncementWithId.priority === 'important' ? '⚠️ 중요' : '📢';
-        sendNotification(`${priorityIcon} 공지사항 (내 PC)`, newAnnouncementWithId.title);
+        sendNotification(`${priorityIcon} 공지사항 등록 ✅`, newAnnouncementWithId.title);
       }
       
       setShowAnnouncementForm(false);
