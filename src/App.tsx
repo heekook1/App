@@ -733,6 +733,30 @@ const MaintenanceManagementSystem = () => {
     }
   };
 
+  // 알림 테스트 함수
+  const testNotification = () => {
+    console.log('🧪 알림 테스트 시작');
+    console.log('- 권한:', Notification.permission);
+    console.log('- 설정:', localStorage.getItem('notificationsEnabled'));
+    console.log('- HTTPS:', window.location.protocol === 'https:');
+    
+    if (Notification.permission !== 'granted') {
+      alert('알림 권한이 거부되었습니다. 브라우저 설정에서 알림을 허용해주세요.');
+      return;
+    }
+    
+    try {
+      new Notification('테스트 알림', {
+        body: '알림 기능이 정상 작동합니다! 🎉',
+        icon: '/favicon.ico'
+      });
+      console.log('✅ 테스트 알림 발송 완료');
+    } catch (error) {
+      console.error('❌ 알림 테스트 실패:', error);
+      alert('알림 테스트 실패: ' + error);
+    }
+  };
+
   // 알림 발송 함수
   const sendNotification = (title: string, body: string) => {
     if (localStorage.getItem('notificationsEnabled') === 'false') return;
@@ -6887,6 +6911,18 @@ const MaintenanceManagementSystem = () => {
                   </label>
                 </div>
 
+                <div className="border-t pt-4">
+                  <button
+                    onClick={testNotification}
+                    className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center"
+                  >
+                    🧪 알림 테스트
+                  </button>
+                  <p className="text-xs text-gray-500 mt-2 text-center">
+                    클릭하여 알림이 정상 작동하는지 확인하세요
+                  </p>
+                </div>
+
                 {Notification.permission === 'denied' && (
                   <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                     <p className="text-sm text-yellow-800">
@@ -6894,6 +6930,15 @@ const MaintenanceManagementSystem = () => {
                     </p>
                   </div>
                 )}
+
+                <div className="mt-2 p-3 bg-gray-50 rounded-md">
+                  <p className="text-xs text-gray-600">
+                    <strong>디버그 정보:</strong><br/>
+                    • 권한: {Notification.permission}<br/>
+                    • 설정: {localStorage.getItem('notificationsEnabled')}<br/>
+                    • HTTPS: {window.location.protocol === 'https:' ? '✅' : '❌'}
+                  </p>
+                </div>
               </div>
 
               <div className="mt-6 flex justify-end">
