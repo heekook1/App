@@ -1579,6 +1579,30 @@ const MaintenanceManagementSystem = () => {
       })
       .subscribe();
 
+    // TM 현황 실시간 구독
+    const tmStatusSubscription = supabase
+      .channel('tm_status_changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'tm_status'
+      }, async (payload) => {
+        console.log('🏭 TM 현황 변경 감지:', payload);
+        
+        // 새 TM 등록 시 알림 발송
+        if (payload.eventType === 'INSERT') {
+          console.log('🆕 새 TM 등록 - 알림 발송!');
+          sendNotification('새 TM 등록 🆕', `[${payload.new.equipment_name}] ${payload.new.description || 'TM이 등록되었습니다'}`);
+        } else if (payload.eventType === 'UPDATE' && payload.old.status !== payload.new.status) {
+          console.log('🔄 TM 상태 변경 - 알림 발송!');
+          sendNotification('TM 상태 변경 🔄', `[${payload.new.equipment_name}] '${payload.new.status}'로 변경되었습니다`);
+        }
+        
+        const newData = await loadTMStatusFromSupabase();
+        setTmStatus(newData);
+      })
+      .subscribe();
+
     // 근태관리 실시간 구독
     const attendancesSubscription = supabase
       .channel('attendances_changes')
