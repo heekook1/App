@@ -671,9 +671,19 @@ const MaintenanceManagementSystem = () => {
           table: 'work_orders'
         }, (payload) => {
           console.log('🔥 새 작업 등록 이벤트 (Realtime):', payload);
+          console.log('🔍 이벤트 상세:', {
+            새로운_작성자: payload.new.created_by,
+            현재_사용자: currentUser?.fullName,
+            작업_제목: payload.new.title,
+            알림_조건: payload.new.created_by !== currentUser?.fullName
+          });
+          
           // 본인이 등록한 것이 아닐 때만 알림 (다른 PC에서 등록한 것)
           if (payload.new.created_by && payload.new.created_by !== currentUser?.fullName) {
+            console.log('✅ 다른 PC 작업 등록 알림 발송!');
             sendNotification('새 작업 등록 (다른 PC)', `[${payload.new.title}] 새 작업이 등록되었습니다`);
+          } else {
+            console.log('⚠️ 본인 작업이므로 알림 스킵 또는 작성자 정보 없음');
           }
         })
         .on('postgres_changes', {
@@ -694,9 +704,19 @@ const MaintenanceManagementSystem = () => {
           table: 'announcements'
         }, (payload) => {
           console.log('📢 새 공지사항 이벤트 (Realtime):', payload);
+          console.log('🔍 공지사항 이벤트 상세:', {
+            새로운_작성자: payload.new.author,
+            현재_사용자: currentUser?.fullName,
+            공지_제목: payload.new.title,
+            알림_조건: payload.new.author !== currentUser?.fullName
+          });
+          
           if (payload.new.author !== currentUser?.fullName) {
+            console.log('✅ 다른 PC 공지사항 알림 발송!');
             const priority = payload.new.priority === 'urgent' ? '🚨 긴급' : payload.new.priority === 'important' ? '⚠️ 중요' : '📢';
             sendNotification(`${priority} 공지사항 (다른 PC)`, payload.new.title);
+          } else {
+            console.log('⚠️ 본인 공지사항이므로 알림 스킵');
           }
         })
         // TM현황 변경 감지 
@@ -722,10 +742,24 @@ const MaintenanceManagementSystem = () => {
         })
         .subscribe((status) => {
           console.log('📡 Supabase Realtime 연결 상태:', status);
+          console.log('🔐 현재 로그인 사용자:', currentUser?.fullName);
+          console.log('🔔 알림 설정 상태:', localStorage.getItem('notificationsEnabled'));
+          console.log('👤 인증 상태:', isAuthenticated);
+          
           if (status === 'SUBSCRIBED') {
             console.log('✅ 모든 PC 실시간 알림 시스템 활성화 완료!');
+            
+            // 연결 성공 시 테스트 이벤트 발송
+            setTimeout(() => {
+              console.log('🧪 Realtime 연결 테스트 중...');
+            }, 2000);
+            
           } else if (status === 'CHANNEL_ERROR') {
             console.error('❌ Realtime 채널 에러 발생');
+          } else if (status === 'TIMED_OUT') {
+            console.error('⏰ Realtime 연결 타임아웃');
+          } else if (status === 'CLOSED') {
+            console.error('🔌 Realtime 연결 종료됨');
           }
         });
     }
@@ -2259,7 +2293,8 @@ const MaintenanceManagementSystem = () => {
           completion_note: '',
           attachments: [],
           type: workOrderForm.type,
-          tm_no: workOrderForm.tmNo
+          tm_no: workOrderForm.tmNo,
+          created_by: currentUser?.fullName || '사용자' // 🔑 작성자 정보 추가!
         };
         
         // Supabase 추가
