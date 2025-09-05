@@ -654,7 +654,7 @@ const MaintenanceManagementSystem = () => {
     const tmRefreshInterval = setInterval(() => {
       if (isAuthenticated && currentPage === 'tm-status') {
         console.log('🔄 TM 데이터 주기적 새로고침 시작...');
-        loadData('refresh'); // refresh 모드로 데이터 로드
+        loadAllDataFromSupabase(); // 데이터 새로고침
       }
     }, 5 * 60 * 1000); // 5분
     
@@ -7046,7 +7046,7 @@ const MaintenanceManagementSystem = () => {
                   <button
                     onClick={() => {
                       console.log('🔄 TM 데이터 수동 새로고침 및 알림 체크...');
-                      loadData('refresh');
+                      loadAllDataFromSupabase();
                     }}
                     className="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center justify-center"
                   >
