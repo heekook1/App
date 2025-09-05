@@ -762,6 +762,10 @@ const MaintenanceManagementSystem = () => {
     console.log('- 알림 설정:', localStorage.getItem('notificationsEnabled'));
     console.log('- 권한 상태:', Notification.permission);
     console.log('- 페이지 포커스:', document.hasFocus());
+    console.log('- 현재 도메인:', window.location.hostname);
+    console.log('- 프로토콜:', window.location.protocol);
+    console.log('- 로그인 상태:', isAuthenticated);
+    console.log('- 브라우저 지원:', 'Notification' in window);
     
     if (localStorage.getItem('notificationsEnabled') === 'false') {
       console.log('❌ 알림이 비활성화되어 있습니다.');
@@ -1494,6 +1498,12 @@ const MaintenanceManagementSystem = () => {
         // 새 공지사항 등록 시 알림 발송
         if (payload.eventType === 'INSERT') {
           console.log('🆕 새 공지사항 등록 - 알림 발송!');
+          console.log('🌐 배포환경 체크:', {
+            domain: window.location.hostname,
+            protocol: window.location.protocol,
+            isVercel: window.location.hostname.includes('vercel.app'),
+            isLocalhost: window.location.hostname === 'localhost'
+          });
           const priority = payload.new.priority === 'urgent' ? '🚨 긴급' : payload.new.priority === 'important' ? '⚠️ 중요' : '📢';
           sendNotification(`${priority} 공지사항 등록`, payload.new.title);
         }
