@@ -783,7 +783,7 @@ const MaintenanceManagementSystem = () => {
         icon: '/favicon.ico',
         badge: '/favicon.ico',
         tag: 'maintenance-system',
-        requireInteraction: false,
+        requireInteraction: true, // 사용자가 클릭할 때까지 유지
         silent: false,
         renotify: true,
         timestamp: Date.now()
