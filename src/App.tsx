@@ -755,7 +755,6 @@ const MaintenanceManagementSystem = () => {
           console.log('🔔 알림 설정 상태:', localStorage.getItem('notificationsEnabled'));
           console.log('👤 인증 상태:', isAuthenticated);
           console.log('📍 채널명:', 'notifications');
-          console.log('🔗 Supabase URL:', supabase.supabaseUrl);
           
           if (status === 'SUBSCRIBED') {
             console.log('✅ 모든 PC 실시간 알림 시스템 활성화 완료!');
