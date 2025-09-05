@@ -1592,10 +1592,12 @@ const MaintenanceManagementSystem = () => {
         // 새 TM 등록 시 알림 발송
         if (payload.eventType === 'INSERT') {
           console.log('🆕 새 TM 등록 - 알림 발송!');
-          sendNotification('새 TM 등록 🆕', `[${payload.new.equipment_name}] ${payload.new.description || 'TM이 등록되었습니다'}`);
+          const tmInfo = payload.new.tm_no ? `${payload.new.tm_no} - ${payload.new.equipment_name}` : payload.new.equipment_name;
+          sendNotification('새 TM 등록 🆕', `[${tmInfo}] ${payload.new.description || 'TM이 등록되었습니다'}`);
         } else if (payload.eventType === 'UPDATE' && payload.old.status !== payload.new.status) {
           console.log('🔄 TM 상태 변경 - 알림 발송!');
-          sendNotification('TM 상태 변경 🔄', `[${payload.new.equipment_name}] '${payload.new.status}'로 변경되었습니다`);
+          const tmInfo = payload.new.tm_no ? `${payload.new.tm_no} - ${payload.new.equipment_name}` : payload.new.equipment_name;
+          sendNotification('TM 상태 변경 🔄', `[${tmInfo}] '${payload.new.status}'로 변경되었습니다`);
         }
         
         const newData = await loadTMStatusFromSupabase();
