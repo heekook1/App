@@ -663,7 +663,7 @@ const MaintenanceManagementSystem = () => {
     
     if (isAuthenticated && localStorage.getItem('notificationsEnabled') !== 'false') {
       realtimeChannel = supabase
-        .channel('multi-pc-notifications')
+        .channel('notifications')
         // 작업 관리 변경 감지
         .on('postgres_changes', {
           event: 'INSERT',
@@ -754,13 +754,20 @@ const MaintenanceManagementSystem = () => {
           console.log('🔐 현재 로그인 사용자:', currentUser?.fullName);
           console.log('🔔 알림 설정 상태:', localStorage.getItem('notificationsEnabled'));
           console.log('👤 인증 상태:', isAuthenticated);
+          console.log('📍 채널명:', 'notifications');
+          console.log('🔗 Supabase URL:', supabase.supabaseUrl);
           
           if (status === 'SUBSCRIBED') {
             console.log('✅ 모든 PC 실시간 알림 시스템 활성화 완료!');
+            console.log('🎯 구독 중인 이벤트:');
+            console.log('  - work_orders INSERT/UPDATE');
+            console.log('  - announcements INSERT'); 
+            console.log('  - tm_status INSERT/UPDATE');
             
             // 연결 성공 시 테스트 이벤트 발송
             setTimeout(() => {
               console.log('🧪 Realtime 연결 테스트 중...');
+              console.log('💡 이제 다른 탭/PC에서 공지사항을 등록해보세요!');
             }, 2000);
             
           } else if (status === 'CHANNEL_ERROR') {
@@ -769,6 +776,8 @@ const MaintenanceManagementSystem = () => {
             console.error('⏰ Realtime 연결 타임아웃');
           } else if (status === 'CLOSED') {
             console.error('🔌 Realtime 연결 종료됨');
+          } else {
+            console.warn('⚠️ 알 수 없는 Realtime 상태:', status);
           }
         });
     }
