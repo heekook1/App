@@ -803,10 +803,7 @@ const MaintenanceManagementSystem = () => {
         setNotificationsEnabled(true);
         localStorage.setItem('notificationsEnabled', 'true');
         
-        // 권한 허용 시 즉시 테스트 알림 발송
-        setTimeout(() => {
-          sendNotification('알림 활성화', '알림 기능이 활성화되었습니다! 🎉');
-        }, 500);
+        // 권한 허용 시 알림 - 제거 (Realtime만 사용)
         
       } else {
         setNotificationsEnabled(false);
@@ -2338,8 +2335,7 @@ const MaintenanceManagementSystem = () => {
         };
         setWorkOrders(prev => [...prev, newOrder]);
         
-        // 🔔 새 작업 등록 알림 (로컬)
-        sendNotification('새 작업 등록 ✅', `[${newOrder.title}] 새 작업이 등록되었습니다`);
+        // 🔔 로컬 알림 제거 - Realtime으로 모든 PC에 알림
       }
       
       setShowWorkOrderForm(false);
@@ -3046,10 +3042,7 @@ const MaintenanceManagementSystem = () => {
         order.id === id ? { ...order, status } : order
       ));
       
-      // 🔔 알림 발송 (로컬)
-      if (order) {
-        sendNotification('작업 상태 변경 ✅', `[${order.title}] '${status}'로 상태가 변경되었습니다`);
-      }
+      // 🔔 로컬 알림 제거 - Realtime으로 모든 PC에 알림
       
     } catch (error) {
       console.error('상태 업데이트 오류:', error);
@@ -4784,9 +4777,7 @@ const MaintenanceManagementSystem = () => {
         };
         setAnnouncements(prev => [...prev, newAnnouncementWithId]);
         
-        // 🔔 새 공지사항 등록 알림 (로컬)
-        const priorityIcon = newAnnouncementWithId.priority === 'urgent' ? '🚨 긴급' : newAnnouncementWithId.priority === 'important' ? '⚠️ 중요' : '📢';
-        sendNotification(`${priorityIcon} 공지사항 등록 ✅`, newAnnouncementWithId.title);
+        // 🔔 로컬 알림 제거 - Realtime으로 모든 PC에 알림
       }
       
       setShowAnnouncementForm(false);
