@@ -658,128 +658,7 @@ const MaintenanceManagementSystem = () => {
       }
     }, 5 * 60 * 1000); // 5분
 
-    // 🌐 Supabase Realtime 구독 설정 (모든 PC 실시간 알림용)
-    let realtimeChannel: any = null;
-    
-    if (isAuthenticated && localStorage.getItem('notificationsEnabled') !== 'false') {
-      realtimeChannel = supabase
-        .channel('notifications')
-        // 작업 관리 변경 감지
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'work_orders'
-        }, (payload) => {
-          console.log('🔥 새 작업 등록 이벤트 (Realtime):', payload);
-          console.log('🔍 이벤트 상세:', {
-            작업_제목: payload.new.title,
-            작업_ID: payload.new.id
-          });
-          
-          // 간단하게: 새 작업이 등록되면 무조건 알림
-          console.log('✅ 새 작업 등록 알림 발송!');
-          sendNotification('새 작업 등록 🆕', `[${payload.new.title}] 새 작업이 등록되었습니다`);
-        })
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'work_orders'
-        }, (payload) => {
-          console.log('🔄 작업 상태 변경 이벤트 (Realtime):', payload);
-          console.log('🔍 상태 변경 상세:', {
-            작업_제목: payload.new.title,
-            이전_상태: payload.old?.status,
-            새_상태: payload.new.status
-          });
-          
-          if (payload.old.status !== payload.new.status) {
-            console.log('✅ 작업 상태 변경 알림 발송!');
-            sendNotification('작업 상태 변경 🔄', `[${payload.new.title}] '${payload.new.status}'로 상태가 변경되었습니다`);
-          }
-        })
-        // 공지사항 변경 감지
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'announcements'
-        }, (payload) => {
-          console.log('📢 새 공지사항 이벤트 (Realtime):', payload);
-          console.log('🔍 공지사항 이벤트 상세:', {
-            공지_제목: payload.new.title,
-            우선순위: payload.new.priority
-          });
-          
-          // 간단하게: 새 공지사항이 등록되면 무조건 알림
-          console.log('✅ 새 공지사항 알림 발송!');
-          const priority = payload.new.priority === 'urgent' ? '🚨 긴급' : payload.new.priority === 'important' ? '⚠️ 중요' : '📢';
-          sendNotification(`${priority} 공지사항 등록`, payload.new.title);
-        })
-        // TM현황 변경 감지 
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'tm_status'
-        }, (payload) => {
-          console.log('🆕 새 TM 등록 이벤트 (Realtime):', payload);
-          console.log('🔍 TM 등록 상세:', {
-            TM_번호: payload.new.tm_no,
-            장비명: payload.new.equipment_name,
-            설명: payload.new.description
-          });
-          
-          // 간단하게: 새 TM이 등록되면 무조건 알림
-          console.log('✅ 새 TM 등록 알림 발송!');
-          sendNotification('새 TM 등록 🆕', `[${payload.new.equipment_name}] ${payload.new.description || 'TM이 등록되었습니다'}`);
-        })
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'tm_status'
-        }, (payload) => {
-          console.log('🔄 TM 상태 변경 이벤트 (Realtime):', payload);
-          console.log('🔍 TM 상태 변경 상세:', {
-            TM_번호: payload.new.tm_no,
-            장비명: payload.new.equipment_name,
-            이전_상태: payload.old?.status,
-            새_상태: payload.new.status
-          });
-          
-          if (payload.old.status !== payload.new.status) {
-            console.log('✅ TM 상태 변경 알림 발송!');
-            sendNotification('TM 상태 변경 🔄', `[${payload.new.equipment_name}] '${payload.new.status}'로 변경되었습니다`);
-          }
-        })
-        .subscribe((status) => {
-          console.log('📡 Supabase Realtime 연결 상태:', status);
-          console.log('🔐 현재 로그인 사용자:', currentUser?.fullName);
-          console.log('🔔 알림 설정 상태:', localStorage.getItem('notificationsEnabled'));
-          console.log('👤 인증 상태:', isAuthenticated);
-          console.log('📍 채널명:', 'notifications');
-          
-          if (status === 'SUBSCRIBED') {
-            console.log('✅ 모든 PC 실시간 알림 시스템 활성화 완료!');
-            console.log('🎯 구독 중인 이벤트:');
-            console.log('  - work_orders INSERT/UPDATE');
-            console.log('  - announcements INSERT'); 
-            console.log('  - tm_status INSERT/UPDATE');
-            
-            // 연결 성공 시 테스트 이벤트 발송
-            setTimeout(() => {
-              console.log('🧪 Realtime 연결 테스트 중...');
-              console.log('💡 이제 다른 탭/PC에서 공지사항을 등록해보세요!');
-            }, 2000);
-            
-          } else if (status === 'CHANNEL_ERROR') {
-            console.error('❌ Realtime 채널 에러 발생');
-          } else if (status === 'TIMED_OUT') {
-            console.error('⏰ Realtime 연결 타임아웃');
-          } else if (status === 'CLOSED') {
-            console.error('🔌 Realtime 연결 종료됨');
-          } else {
-            console.warn('⚠️ 알 수 없는 Realtime 상태:', status);
-          }
-        });
-    }
+    // Realtime 구독은 이제 setupRealtimeSubscriptions 함수에서 처리
     
     // 컴포넌트 언마운트 시 정리
     return () => {
@@ -787,11 +666,7 @@ const MaintenanceManagementSystem = () => {
       clearInterval(tmRefreshInterval);
       authSubscription.unsubscribe();
       
-      // Realtime 채널 정리
-      if (realtimeChannel) {
-        supabase.removeChannel(realtimeChannel);
-        console.log('🔌 Realtime 채널 연결 해제');
-      }
+      // Realtime 채널 정리는 이제 setupRealtimeSubscriptions에서 처리
     };
     
   }, []);
@@ -1615,6 +1490,14 @@ const MaintenanceManagementSystem = () => {
         table: 'announcements'
       }, async (payload) => {
         console.log('📢 공지사항 변경 감지:', payload);
+        
+        // 새 공지사항 등록 시 알림 발송
+        if (payload.eventType === 'INSERT') {
+          console.log('🆕 새 공지사항 등록 - 알림 발송!');
+          const priority = payload.new.priority === 'urgent' ? '🚨 긴급' : payload.new.priority === 'important' ? '⚠️ 중요' : '📢';
+          sendNotification(`${priority} 공지사항 등록`, payload.new.title);
+        }
+        
         const newData = await loadAnnouncementsFromSupabase();
         setAnnouncements(newData);
       })
@@ -1629,6 +1512,16 @@ const MaintenanceManagementSystem = () => {
         table: 'work_orders'
       }, async (payload) => {
         console.log('🔧 작업지시서 변경 감지:', payload);
+        
+        // 새 작업지시서 등록 시 알림 발송
+        if (payload.eventType === 'INSERT') {
+          console.log('🆕 새 작업지시서 등록 - 알림 발송!');
+          sendNotification('새 작업 등록 🆕', `[${payload.new.title}] 새 작업이 등록되었습니다`);
+        } else if (payload.eventType === 'UPDATE' && payload.old.status !== payload.new.status) {
+          console.log('🔄 작업지시서 상태 변경 - 알림 발송!');
+          sendNotification('작업 상태 변경 🔄', `[${payload.new.title}] '${payload.new.status}'로 상태가 변경되었습니다`);
+        }
+        
         const newData = await loadWorkOrdersFromSupabase();
         setWorkOrders(newData);
       })
