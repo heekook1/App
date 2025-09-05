@@ -718,18 +718,31 @@ const MaintenanceManagementSystem = () => {
 
 
   // 알림 설정 토글 함수
-  const handleNotificationToggle = (enabled: boolean) => {
-    setNotificationsEnabled(enabled);
-    localStorage.setItem('notificationsEnabled', enabled.toString());
+  const handleNotificationToggle = async (enabled: boolean) => {
+    console.log('🔧 알림 설정 토글:', enabled);
     
-    if (enabled && Notification.permission === 'default') {
-      Notification.requestPermission().then(permission => {
-        if (permission !== 'granted') {
-          setNotificationsEnabled(false);
-          localStorage.setItem('notificationsEnabled', 'false');
-          alert('알림 권한이 필요합니다. 브라우저 설정에서 알림을 허용해주세요.');
-        }
-      });
+    if (enabled) {
+      // 권한 요청
+      const permission = await Notification.requestPermission();
+      console.log('🔐 권한 요청 결과:', permission);
+      
+      if (permission === 'granted') {
+        setNotificationsEnabled(true);
+        localStorage.setItem('notificationsEnabled', 'true');
+        
+        // 권한 허용 시 즉시 테스트 알림 발송
+        setTimeout(() => {
+          sendNotification('알림 활성화', '알림 기능이 활성화되었습니다! 🎉');
+        }, 500);
+        
+      } else {
+        setNotificationsEnabled(false);
+        localStorage.setItem('notificationsEnabled', 'false');
+        alert('알림 권한이 필요합니다. 브라우저 설정에서 알림을 허용해주세요.');
+      }
+    } else {
+      setNotificationsEnabled(false);
+      localStorage.setItem('notificationsEnabled', 'false');
     }
   };
 
@@ -739,6 +752,9 @@ const MaintenanceManagementSystem = () => {
     console.log('- 권한:', Notification.permission);
     console.log('- 설정:', localStorage.getItem('notificationsEnabled'));
     console.log('- HTTPS:', window.location.protocol === 'https:');
+    console.log('- 브라우저:', navigator.userAgent);
+    console.log('- 페이지 포커스:', document.hasFocus());
+    console.log('- 페이지 visibility:', document.visibilityState);
     
     if (Notification.permission !== 'granted') {
       alert('알림 권한이 거부되었습니다. 브라우저 설정에서 알림을 허용해주세요.');
@@ -746,29 +762,98 @@ const MaintenanceManagementSystem = () => {
     }
     
     try {
-      new Notification('테스트 알림', {
+      const notification = new Notification('테스트 알림', {
         body: '알림 기능이 정상 작동합니다! 🎉',
-        icon: '/favicon.ico'
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+        tag: 'test-notification',
+        requireInteraction: true,
+        timestamp: Date.now()
       });
+
+      notification.onclick = () => {
+        console.log('📱 알림이 클릭되었습니다');
+        window.focus();
+        notification.close();
+      };
+
+      notification.onshow = () => {
+        console.log('👀 알림이 표시되었습니다');
+      };
+
+      notification.onerror = (error) => {
+        console.error('❌ 알림 표시 중 오류:', error);
+      };
+
+      notification.onclose = () => {
+        console.log('🔒 알림이 닫혔습니다');
+      };
+      
       console.log('✅ 테스트 알림 발송 완료');
+      
+      // 3초 후 알림 상태 체크
+      setTimeout(() => {
+        console.log('⏰ 3초 후 알림 상태 체크');
+        console.log('- 알림 객체:', notification);
+      }, 3000);
+      
     } catch (error) {
       console.error('❌ 알림 테스트 실패:', error);
-      alert('알림 테스트 실패: ' + error);
+      alert('알림 테스트 실패: ' + error.message);
     }
   };
 
   // 알림 발송 함수
   const sendNotification = (title: string, body: string) => {
-    if (localStorage.getItem('notificationsEnabled') === 'false') return;
+    console.log('📢 알림 발송 요청:', title, body);
+    console.log('- 알림 설정:', localStorage.getItem('notificationsEnabled'));
+    console.log('- 권한 상태:', Notification.permission);
+    console.log('- 페이지 포커스:', document.hasFocus());
     
-    if (Notification.permission === 'granted') {
-      new Notification(title, {
+    if (localStorage.getItem('notificationsEnabled') === 'false') {
+      console.log('❌ 알림이 비활성화되어 있습니다.');
+      return;
+    }
+    
+    if (Notification.permission !== 'granted') {
+      console.log('❌ 알림 권한이 없습니다.');
+      return;
+    }
+
+    try {
+      const notification = new Notification(title, {
         body: body,
         icon: '/favicon.ico',
         badge: '/favicon.ico',
         tag: 'maintenance-system',
-        renotify: true
+        requireInteraction: false,
+        silent: false,
+        renotify: true,
+        timestamp: Date.now()
       });
+
+      notification.onclick = () => {
+        console.log('📱 알림 클릭됨:', title);
+        window.focus();
+        notification.close();
+      };
+
+      notification.onshow = () => {
+        console.log('👀 알림 표시됨:', title);
+      };
+
+      notification.onerror = (error) => {
+        console.error('❌ 알림 오류:', error);
+      };
+
+      notification.onclose = () => {
+        console.log('🔒 알림 닫힘:', title);
+      };
+
+      console.log('✅ 알림 객체 생성 완료:', title);
+      
+    } catch (error) {
+      console.error('❌ sendNotification 에러:', error);
     }
   };
 
@@ -6911,15 +6996,21 @@ const MaintenanceManagementSystem = () => {
                   </label>
                 </div>
 
-                <div className="border-t pt-4">
+                <div className="border-t pt-4 space-y-2">
                   <button
                     onClick={testNotification}
                     className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center"
                   >
                     🧪 알림 테스트
                   </button>
+                  <button
+                    onClick={() => sendNotification('실시간 알림 테스트', '이것은 실제 알림 발송 함수를 사용한 테스트입니다.')}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center"
+                  >
+                    📱 실시간 알림 테스트
+                  </button>
                   <p className="text-xs text-gray-500 mt-2 text-center">
-                    클릭하여 알림이 정상 작동하는지 확인하세요
+                    두 가지 테스트로 알림 기능을 확인하세요
                   </p>
                 </div>
 
@@ -6936,7 +7027,11 @@ const MaintenanceManagementSystem = () => {
                     <strong>디버그 정보:</strong><br/>
                     • 권한: {Notification.permission}<br/>
                     • 설정: {localStorage.getItem('notificationsEnabled')}<br/>
-                    • HTTPS: {window.location.protocol === 'https:' ? '✅' : '❌'}
+                    • HTTPS: {window.location.protocol === 'https:' ? '✅' : '❌'}<br/>
+                    • 브라우저: {navigator.userAgent.includes('Chrome') ? 'Chrome' : navigator.userAgent.includes('Firefox') ? 'Firefox' : navigator.userAgent.includes('Safari') ? 'Safari' : navigator.userAgent.includes('Edge') ? 'Edge' : 'Other'}<br/>
+                    • 페이지 포커스: {document.hasFocus() ? '✅' : '❌'}<br/>
+                    • Visibility: {document.visibilityState}<br/>
+                    • URL: {window.location.href}
                   </p>
                 </div>
               </div>
