@@ -650,13 +650,19 @@ const MaintenanceManagementSystem = () => {
     
     console.log('🔔 로컬 알림 시스템 활성화');
     
+    // 🔄 TM 상태 변경 감지를 위한 주기적 데이터 새로고침 (5분마다)
+    const tmRefreshInterval = setInterval(() => {
+      if (isAuthenticated && currentPage === 'tm-status') {
+        console.log('🔄 TM 데이터 주기적 새로고침 시작...');
+        loadData('refresh'); // refresh 모드로 데이터 로드
+      }
+    }, 5 * 60 * 1000); // 5분
+    
     // 컴포넌트 언마운트 시 정리
     return () => {
       isMounted = false;
+      clearInterval(tmRefreshInterval);
       authSubscription.unsubscribe();
-      if (realtimeChannel) {
-        supabase.removeChannel(realtimeChannel);
-      }
     };
     
   }, []);
@@ -823,6 +829,48 @@ const MaintenanceManagementSystem = () => {
   const notifyNewAnnouncement = (title: string, priority: string) => {
     const priorityIcon = priority === 'urgent' ? '🚨 긴급' : priority === 'important' ? '⚠️ 중요' : '📢';
     sendNotification(`${priorityIcon} 공지사항`, title);
+  };
+
+  // TM 데이터 비교 및 알림 함수
+  const checkTMChangesAndNotify = (newTMData: TMStatus[]) => {
+    const previousTMData = JSON.parse(localStorage.getItem('previousTMData') || '[]');
+    
+    if (previousTMData.length === 0) {
+      // 첫 로드시에는 알림 없이 데이터만 저장
+      localStorage.setItem('previousTMData', JSON.stringify(newTMData));
+      console.log('📝 TM 데이터 첫 로드 - 이전 데이터로 저장');
+      return;
+    }
+
+    // 새로운 TM 감지
+    const newTMs = newTMData.filter(newTM => 
+      !previousTMData.some((prevTM: TMStatus) => prevTM.id === newTM.id)
+    );
+
+    // TM 상태 변경 감지
+    const changedTMs = newTMData.filter(newTM => {
+      const prevTM = previousTMData.find((p: TMStatus) => p.id === newTM.id);
+      return prevTM && prevTM.status !== newTM.status;
+    });
+
+    // 새로운 TM 알림
+    newTMs.forEach(tm => {
+      notifyNewTMCreated(tm.equipmentName, tm.description);
+      console.log('🆕 새 TM 감지:', tm.tmNo, tm.equipmentName);
+    });
+
+    // 상태 변경 알림  
+    changedTMs.forEach(tm => {
+      const prevTM = previousTMData.find((p: TMStatus) => p.id === tm.id);
+      notifyTMStatusChange(tm.equipmentName, tm.status);
+      console.log('🔄 TM 상태 변경 감지:', tm.tmNo, prevTM.status, '→', tm.status);
+    });
+
+    // 변경사항이 있으면 새 데이터 저장
+    if (newTMs.length > 0 || changedTMs.length > 0) {
+      localStorage.setItem('previousTMData', JSON.stringify(newTMData));
+      console.log(`📊 TM 변경사항: 신규 ${newTMs.length}건, 상태변경 ${changedTMs.length}건`);
+    }
   };
 
   // Handle click events
@@ -1402,6 +1450,11 @@ const MaintenanceManagementSystem = () => {
       setDailyReports(dailyReportsData);
       setTmStatusList(tmStatusData);
       setFixedAssignees(assigneesData);
+
+      // 🔔 TM 데이터 변경사항 체크 및 알림
+      if (tmStatusData.length > 0) {
+        checkTMChangesAndNotify(tmStatusData);
+      }
       
       // 실패한 데이터 소스가 있는 경우 에러 메시지 설정
       if (failedSources.length > 0) {
@@ -6990,8 +7043,18 @@ const MaintenanceManagementSystem = () => {
                   >
                     📱 실시간 알림 테스트
                   </button>
+                  <button
+                    onClick={() => {
+                      console.log('🔄 TM 데이터 수동 새로고침 및 알림 체크...');
+                      loadData('refresh');
+                    }}
+                    className="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center justify-center"
+                  >
+                    🔄 TM 변경사항 확인
+                  </button>
                   <p className="text-xs text-gray-500 mt-2 text-center">
-                    두 가지 테스트로 알림 기능을 확인하세요
+                    세 가지 테스트로 알림 기능을 확인하세요<br/>
+                    • 기본 테스트 • 실시간 알림 • TM 변경감지
                   </p>
                 </div>
 
