@@ -1599,7 +1599,7 @@ const MaintenanceManagementSystem = () => {
         }
         
         const newData = await loadTMStatusFromSupabase();
-        setTmStatus(newData);
+        setTmStatusList(newData);
       })
       .subscribe();
 
