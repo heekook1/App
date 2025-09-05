@@ -699,62 +699,6 @@ const MaintenanceManagementSystem = () => {
     }
   };
 
-  // 알림 테스트 함수
-  const testNotification = () => {
-    console.log('🧪 알림 테스트 시작');
-    console.log('- 권한:', Notification.permission);
-    console.log('- 설정:', localStorage.getItem('notificationsEnabled'));
-    console.log('- HTTPS:', window.location.protocol === 'https:');
-    console.log('- 브라우저:', navigator.userAgent);
-    console.log('- 페이지 포커스:', document.hasFocus());
-    console.log('- 페이지 visibility:', document.visibilityState);
-    
-    if (Notification.permission !== 'granted') {
-      alert('알림 권한이 거부되었습니다. 브라우저 설정에서 알림을 허용해주세요.');
-      return;
-    }
-    
-    try {
-      const notification = new Notification('테스트 알림', {
-        body: '알림 기능이 정상 작동합니다! 🎉',
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
-        tag: 'test-notification',
-        requireInteraction: true,
-        timestamp: Date.now()
-      });
-
-      notification.onclick = () => {
-        console.log('📱 알림이 클릭되었습니다');
-        window.focus();
-        notification.close();
-      };
-
-      notification.onshow = () => {
-        console.log('👀 알림이 표시되었습니다');
-      };
-
-      notification.onerror = (error) => {
-        console.error('❌ 알림 표시 중 오류:', error);
-      };
-
-      notification.onclose = () => {
-        console.log('🔒 알림이 닫혔습니다');
-      };
-      
-      console.log('✅ 테스트 알림 발송 완료');
-      
-      // 3초 후 알림 상태 체크
-      setTimeout(() => {
-        console.log('⏰ 3초 후 알림 상태 체크');
-        console.log('- 알림 객체:', notification);
-      }, 3000);
-      
-    } catch (error) {
-      console.error('❌ 알림 테스트 실패:', error);
-      alert('알림 테스트 실패: ' + (error instanceof Error ? error.message : String(error)));
-    }
-  };
 
   // 알림 발송 함수
   const sendNotification = (title: string, body: string) => {
@@ -7068,33 +7012,6 @@ const MaintenanceManagementSystem = () => {
                   </label>
                 </div>
 
-                <div className="border-t pt-4 space-y-2">
-                  <button
-                    onClick={testNotification}
-                    className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center"
-                  >
-                    🧪 알림 테스트
-                  </button>
-                  <button
-                    onClick={() => sendNotification('실시간 알림 테스트', '이것은 실제 알림 발송 함수를 사용한 테스트입니다.')}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center"
-                  >
-                    📱 실시간 알림 테스트
-                  </button>
-                  <button
-                    onClick={() => {
-                      console.log('🔄 TM 데이터 수동 새로고침 및 알림 체크...');
-                      loadAllDataFromSupabase();
-                    }}
-                    className="w-full px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center justify-center"
-                  >
-                    🔄 TM 변경사항 확인
-                  </button>
-                  <p className="text-xs text-gray-500 mt-2 text-center">
-                    세 가지 테스트로 알림 기능을 확인하세요<br/>
-                    • 기본 테스트 • 실시간 알림 • TM 변경감지
-                  </p>
-                </div>
 
                 {Notification.permission === 'denied' && (
                   <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
