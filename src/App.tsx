@@ -648,61 +648,7 @@ const MaintenanceManagementSystem = () => {
       }
     });
     
-    // Realtime 구독 설정 (로그인 상태일 때만)
-    let realtimeChannel: any = null;
-    
-    if (isAuthenticated && localStorage.getItem('notificationsEnabled') !== 'false') {
-      realtimeChannel = supabase
-        .channel('table-changes')
-        // TM현황 변경 감지
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'tm_status'
-        }, (payload) => {
-          if (payload.new.created_by !== currentUser?.fullName) {
-            sendNotification('새 TM 등록', `[${payload.new.equipment_name}] ${payload.new.description || 'TM이 등록되었습니다'}`);
-          }
-        })
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'tm_status'
-        }, (payload) => {
-          if (payload.old.status !== payload.new.status) {
-            sendNotification('TM 상태 변경', `[${payload.new.equipment_name}] '${payload.new.status}'로 변경되었습니다`);
-          }
-        })
-        // 작업 관리 변경 감지
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'work_orders'
-        }, (payload) => {
-          sendNotification('새 작업 등록', `[${payload.new.title}] 작업이 등록되었습니다`);
-        })
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'work_orders'
-        }, (payload) => {
-          if (payload.old.status !== payload.new.status) {
-            sendNotification('작업 상태 변경', `[${payload.new.title}] '${payload.new.status}'로 변경되었습니다`);
-          }
-        })
-        // 공지사항 변경 감지
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'announcements'
-        }, (payload) => {
-          if (payload.new.author !== currentUser?.fullName) {
-            const priority = payload.new.priority === 'urgent' ? '🚨 긴급' : payload.new.priority === 'important' ? '⚠️ 중요' : '📢';
-            sendNotification(`${priority} 공지사항`, payload.new.title);
-          }
-        })
-        .subscribe();
-    }
+    console.log('🔔 로컬 알림 시스템 활성화');
     
     // 컴포넌트 언마운트 시 정리
     return () => {
@@ -855,6 +801,28 @@ const MaintenanceManagementSystem = () => {
     } catch (error) {
       console.error('❌ sendNotification 에러:', error);
     }
+  };
+
+  // 로컬 알림 함수들
+  const notifyTMStatusChange = (equipmentName: string, newStatus: string) => {
+    sendNotification('TM 상태 변경', `[${equipmentName}] '${newStatus}'로 상태가 변경되었습니다`);
+  };
+
+  const notifyNewTMCreated = (equipmentName: string, description?: string) => {
+    sendNotification('새 TM 등록', `[${equipmentName}] ${description || 'TM이 등록되었습니다'}`);
+  };
+
+  const notifyWorkOrderChange = (title: string, newStatus: string) => {
+    sendNotification('작업 상태 변경', `[${title}] '${newStatus}'로 상태가 변경되었습니다`);
+  };
+
+  const notifyNewWorkOrder = (title: string) => {
+    sendNotification('새 작업 등록', `[${title}] 새 작업이 등록되었습니다`);
+  };
+
+  const notifyNewAnnouncement = (title: string, priority: string) => {
+    const priorityIcon = priority === 'urgent' ? '🚨 긴급' : priority === 'important' ? '⚠️ 중요' : '📢';
+    sendNotification(`${priorityIcon} 공지사항`, title);
   };
 
   // Handle click events
@@ -2207,6 +2175,9 @@ const MaintenanceManagementSystem = () => {
           tmNo: data.tm_no
         };
         setWorkOrders(prev => [...prev, newOrder]);
+        
+        // 🔔 새 작업 등록 알림
+        notifyNewWorkOrder(newOrder.title);
       }
       
       setShowWorkOrderForm(false);
@@ -2908,9 +2879,16 @@ const MaintenanceManagementSystem = () => {
       }
       
       // 로컬 상태 업데이트
+      const order = workOrders.find(o => o.id === id);
       setWorkOrders(prev => prev.map(order => 
         order.id === id ? { ...order, status } : order
       ));
+      
+      // 🔔 알림 발송
+      if (order) {
+        notifyWorkOrderChange(order.title, status);
+      }
+      
     } catch (error) {
       console.error('상태 업데이트 오류:', error);
       alert('상태 업데이트 중 오류가 발생했습니다.');
@@ -4643,6 +4621,9 @@ const MaintenanceManagementSystem = () => {
           viewCount: data.view_count || 0
         };
         setAnnouncements(prev => [...prev, newAnnouncementWithId]);
+        
+        // 🔔 새 공지사항 등록 알림
+        notifyNewAnnouncement(newAnnouncementWithId.title, newAnnouncementWithId.priority);
       }
       
       setShowAnnouncementForm(false);
