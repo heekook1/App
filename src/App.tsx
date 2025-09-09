@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import * as React from 'react';
-import { Calendar, Users, Settings, FileText, MessageSquare, Wrench, Home, Plus, Edit, Trash2, X, Download, Upload, Eye, ChevronLeft, ChevronRight, ClipboardList, Brain, Search } from 'lucide-react';
+import { Calendar, Users, Settings, FileText, MessageSquare, Wrench, Home, Plus, Edit, Trash2, X, Download, Upload, Eye, ChevronLeft, ChevronRight, ClipboardList, Brain, Search, Bell, Clock } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { supabase } from './supabaseClient';
@@ -1646,7 +1646,10 @@ const MaintenanceManagementSystem = () => {
       {/* 하단 4개 위젯 - 상단 카운터 위젯과 컬럼 정렬 */}
       <div className="grid grid-cols-4 gap-4">
         <div className="p-4 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg h-[690px] overflow-y-auto">
-          <h3 className="text-lg font-semibold mb-4">최근 작업</h3>
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-blue-600" />
+            최근 작업
+          </h3>
           <div className="space-y-3">
             {workOrders.slice(0, 8).map(order => (
               <div key={order.id} className="flex items-center justify-between p-3 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => handleWorkOrderClick(order)}>
@@ -1663,7 +1666,10 @@ const MaintenanceManagementSystem = () => {
         </div>
         
         <div className="p-4 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg h-[690px] overflow-y-auto">
-          <h3 className="text-lg font-semibold mb-4">근태 현황</h3>
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-green-600" />
+            근태 현황
+          </h3>
           <div className="space-y-3">
             {personnel.map(person => {
               const today = new Date(new Date().getTime() + (9 * 60 * 60 * 1000)).toISOString().split('T')[0]; // 한국 시간(UTC+9)
@@ -1705,7 +1711,10 @@ const MaintenanceManagementSystem = () => {
         </div>
         
         <div className="p-4 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg h-[690px] overflow-y-auto">
-          <h3 className="text-lg font-semibold mb-4">최근 공지사항</h3>
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Bell className="w-5 h-5 text-orange-600" />
+            최근 공지사항
+          </h3>
           <div className="space-y-3">
             {announcements
               .sort((a, b) => {
