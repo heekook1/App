@@ -1600,19 +1600,43 @@ const MaintenanceManagementSystem = () => {
       {/* 상단 카운터 위젯 4개 - 한 줄로 배치 */}
       <div className="grid grid-cols-4 gap-4 mb-4">
         {[
-          { title: '전체 작업', value: workOrders.length, color: 'bg-blue-500' },
-          { title: '진행중 작업', value: workOrders.filter(w => w.status === '진행중').length, color: 'bg-yellow-500' },
-          { title: '완료된 작업', value: workOrders.filter(w => w.status === '완료').length, color: 'bg-green-500' },
-          { title: '전체 인력', value: personnel.length, color: 'bg-purple-500' }
+          { 
+            title: '전체 작업', 
+            value: workOrders.length, 
+            icon: FileText, 
+            iconColor: 'text-blue-600', 
+            iconBg: 'bg-blue-100' 
+          },
+          { 
+            title: '진행중 작업', 
+            value: workOrders.filter(w => w.status === '진행중').length, 
+            icon: ClipboardList, 
+            iconColor: 'text-orange-600', 
+            iconBg: 'bg-orange-100' 
+          },
+          { 
+            title: '완료된 작업', 
+            value: workOrders.filter(w => w.status === '완료').length, 
+            icon: FileText, 
+            iconColor: 'text-green-600', 
+            iconBg: 'bg-green-100' 
+          },
+          { 
+            title: '전체 인력', 
+            value: personnel.length, 
+            icon: Users, 
+            iconColor: 'text-purple-600', 
+            iconBg: 'bg-purple-100' 
+          }
         ].map((stat, index) => (
-          <div key={index} className="p-6 rounded-lg bg-gradient-card border border-gray-200 card-hover shadow-lg h-24">
-            <div className="flex items-center">
-              <div className={`p-2 rounded-md ${stat.color}`}>
-                <div className="h-6 w-6 text-white" />
+          <div key={index} className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow p-6 h-24">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 mb-2">{stat.title}</p>
+                <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">{stat.title}</p>
-                <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
+              <div className={`w-14 h-14 rounded-xl ${stat.iconBg} flex items-center justify-center`}>
+                <stat.icon className={`w-7 h-7 ${stat.iconColor}`} />
               </div>
             </div>
           </div>
