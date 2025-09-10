@@ -5647,7 +5647,7 @@ const MaintenanceManagementSystem = () => {
       };
     }
     
-    // 우선순위별 패턴 분석
+    // 우선순위별 고장 패턴 분석
     const priorityAnalysis = {
       높음: tmStatusList.filter(tm => tm.priority === '높음').length,
       보통: tmStatusList.filter(tm => tm.priority === '보통').length,
@@ -5881,7 +5881,7 @@ const MaintenanceManagementSystem = () => {
         <div className="mb-6 flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">AI 분석</h2>
-            <p className="text-sm text-gray-600 mt-1">TM 데이터 기반 예측적 유지보수 및 패턴 분석</p>
+            <p className="text-sm text-gray-600 mt-1">TM 데이터 기반 예측적 유지보수 및 고장 패턴 분석</p>
           </div>
           <button
             onClick={generatePDF}
@@ -5972,11 +5972,11 @@ const MaintenanceManagementSystem = () => {
                             <div className="mt-2 p-2 bg-gray-50 rounded">
                               <p className="font-medium text-gray-700 mb-1">상세 분석:</p>
                               <p className="text-gray-600 text-xs mb-1">
-                                <span className="font-medium">패턴:</span> {risk.aiPrediction.analysisDetails.failurePattern}
+                                <span className="font-medium">고장 패턴:</span> {risk.aiPrediction.analysisDetails.failurePattern}
                               </p>
                               {risk.aiPrediction.analysisDetails.criticalComponents?.length > 0 && (
                                 <p className="text-gray-600 text-xs mb-1">
-                                  <span className="font-medium">핵심 부품:</span> {risk.aiPrediction.analysisDetails.criticalComponents.join(', ')}
+                                  <span className="font-medium">주요 기기:</span> {risk.aiPrediction.analysisDetails.criticalComponents.join(', ')}
                                 </p>
                               )}
                               <p className="text-gray-600 text-xs">
