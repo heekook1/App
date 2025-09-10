@@ -59,6 +59,25 @@
         height: 32px !important;
         border-radius: 50% !important;
       }
+      
+      /* 헤더 텍스트 변경 시도 - CSS로는 한계가 있음 */
+      #dify-chatbot-bubble-window .header-title:after,
+      #dify-chatbot-bubble-window [class*="title"]:after,
+      #dify-chatbot-bubble-window [class*="header"] span:after {
+        content: '정비봇' !important;
+        position: absolute;
+        background: white;
+        left: 0;
+        right: 0;
+        text-align: center;
+      }
+      
+      /* 기존 텍스트 숨기기 시도 */
+      #dify-chatbot-bubble-window [class*="title"]:not(:after),
+      #dify-chatbot-bubble-window [class*="header"] span:not(:after) {
+        visibility: hidden;
+        position: relative;
+      }
     </style>
   </body>
 </html>
