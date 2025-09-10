@@ -5976,7 +5976,7 @@ const MaintenanceManagementSystem = () => {
                               </p>
                               {risk.aiPrediction.analysisDetails.criticalComponents?.length > 0 && (
                                 <p className="text-gray-600 text-xs mb-1">
-                                  <span className="font-medium">주요 기기:</span> {risk.aiPrediction.analysisDetails.criticalComponents.join(', ')}
+                                  <span className="font-medium">유의 기기:</span> {risk.aiPrediction.analysisDetails.criticalComponents.join(', ')}
                                 </p>
                               )}
                               <p className="text-gray-600 text-xs">
