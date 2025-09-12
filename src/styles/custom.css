@@ -1,0 +1,135 @@
+/* GS 그룹 컬러 */
+:root {
+  --gs-blue: #005BAC;
+  --gs-blue-dark: #004590;
+  --gs-blue-light: #0084CA;
+}
+
+/* 버튼 애니메이션 */
+.btn-gs {
+  background-color: var(--gs-blue);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 91, 172, 0.2);
+}
+
+.btn-gs:hover {
+  background-color: var(--gs-blue-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 91, 172, 0.3);
+}
+
+.btn-gs:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 91, 172, 0.2);
+}
+
+/* 카드 호버 효과 */
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* 네비게이션 링크 효과 */
+.nav-link {
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--gs-blue);
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+/* 입력 필드 포커스 효과 */
+.input-gs:focus {
+  border-color: var(--gs-blue);
+  box-shadow: 0 0 0 3px rgba(0, 91, 172, 0.1);
+}
+
+/* 테이블 행 호버 */
+.table-row-hover {
+  transition: background-color 0.2s ease;
+}
+
+.table-row-hover:hover {
+  background-color: rgba(0, 91, 172, 0.05);
+}
+
+/* 그라데이션 배경 */
+.bg-gradient-gs {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.bg-gradient-card {
+  background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+.bg-gradient-header {
+  background: linear-gradient(90deg, var(--gs-blue) 0%, var(--gs-blue-light) 100%);
+}
+
+.bg-gradient-button {
+  background: linear-gradient(45deg, var(--gs-blue) 0%, var(--gs-blue-light) 100%);
+}
+
+.bg-gradient-button:hover {
+  background: linear-gradient(45deg, var(--gs-blue-dark) 0%, var(--gs-blue) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 91, 172, 0.4);
+}
+
+/* 스크롤바 커스텀 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gs-blue);
+}
+
+/* 로딩 애니메이션 */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* contentEditable placeholder */
+[contenteditable]:empty:before {
+  content: attr(data-placeholder);
+  color: #9CA3AF;
+  pointer-events: none;
+}

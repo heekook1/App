@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="description" content="정비 통합관리 시스템" />
+    <title>정비 통합관리 시스템</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chatbot styles -->
+    <link rel="stylesheet" href="%PUBLIC_URL%/chatbot-styles.css">
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    
+    <!-- Dify Chatbot Integration -->
+    <script>
+      window.difyChatbotConfig = {
+        token: 'LgVEnTaf3ncIaEct',
+        width: '450px',
+        height: '790px'
+      };
+    </script>
+    <script
+      src="https://udify.app/embed.min.js"
+      id="LgVEnTaf3ncIaEct"
+      defer>
+    </script>
+    <style>
+      body.unauthenticated #dify-chatbot-bubble-button,
+      body.unauthenticated #dify-chatbot-bubble-window {
+        display: none !important;
+      }
+      
+      /* 챗봇 창 크기 강제 조절 */
+      #dify-chatbot-bubble-window {
+        width: 450px !important;
+        height: 790px !important;
+      }
+      
+      
+      /* 채팅창 내부 AI 아바타 이미지 변경 */
+      #dify-chatbot-bubble-window .avatar img,
+      #dify-chatbot-bubble-window [role="img"],
+      #dify-chatbot-bubble-window .bot-avatar img {
+        content: url('/avatar.png') !important;
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 50% !important;
+      }
+      
+      /* AI 메시지의 아바타 이미지 */
+      #dify-chatbot-bubble-window .message-avatar img,
+      #dify-chatbot-bubble-window .assistant-avatar img {
+        content: url('/avatar.png') !important;
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 50% !important;
+      }
+      
+      /* 헤더 텍스트 변경 시도 - CSS로는 한계가 있음 */
+      #dify-chatbot-bubble-window .header-title:after,
+      #dify-chatbot-bubble-window [class*="title"]:after,
+      #dify-chatbot-bubble-window [class*="header"] span:after {
+        content: '정비봇' !important;
+        position: absolute;
+        background: white;
+        left: 0;
+        right: 0;
+        text-align: center;
+      }
+      
+      /* 기존 텍스트 숨기기 시도 */
+      #dify-chatbot-bubble-window [class*="title"]:not(:after),
+      #dify-chatbot-bubble-window [class*="header"] span:not(:after) {
+        visibility: hidden;
+        position: relative;
+      }
+    </style>
+  </body>
+</html>
