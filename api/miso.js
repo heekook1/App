@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 
   // 환경변수에서 MISO API 정보 가져오기
   const apiKey = process.env.MISO_API_KEY || 'app-SBhX94qR47stkIA9fhd11j6a';
-  const apiEndpoint = process.env.MISO_API_ENDPOINT || 'https://api.holdings.miso.gs/ext/v1';
+  const apiEndpoint = process.env.MISO_API_URL || process.env.MISO_API_ENDPOINT || 'https://api.holdings.miso.gs/ext/v1';
 
   if (!apiKey) {
     return res.status(500).json({ error: 'MISO API key not configured' });
