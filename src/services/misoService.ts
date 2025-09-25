@@ -36,9 +36,8 @@ class MisoService {
     console.log('🔑 MISO Service initialized with proxy endpoint');
   }
 
-  private async sendMessage(query: string, systemPrompt?: string): Promise<any> {
+  private async sendMessage(query: string): Promise<any> {
     try {
-      const fullQuery = systemPrompt ? `${systemPrompt}\n\n${query}` : query;
 
       const response = await fetch(this.apiUrl, {
         method: 'POST',
@@ -46,7 +45,7 @@ class MisoService {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          query: fullQuery,
+          query: query,
           mode: 'blocking', // 블로킹 모드로 한번에 결과 받기
           conversation_id: this.conversationId || '',
           user: 'maintenance-system',
@@ -63,7 +62,7 @@ class MisoService {
           details: data.details,
           fullResponse: data,
           requestBody: {
-            query: fullQuery,
+            query: query,
             mode: 'blocking',
             conversation_id: this.conversationId || '',
             user: 'maintenance-system',
@@ -92,22 +91,20 @@ class MisoService {
     try {
       console.log('🚀 Calling MISO API for text analysis');
 
-      const systemPrompt = `당신은 정비 텍스트 분석 전문가입니다. 반드시 유효한 JSON으로만 응답하세요.
+      const query = `다음 정비 텍스트를 JSON 형식으로 분석해주세요: ${combinedText}
 
-한국어 정비 텍스트를 분석하고 다음 JSON 형식으로 반환하세요:
+다음 형식으로 응답해주세요:
 {
-  "keywords": [{"keyword": "단어", "count": 3, "importance": 0.8}],
-  "categories": [{"category": "기계고장", "confidence": 0.9}],
-  "sentiment": "neutral",
-  "urgency": "medium",
-  "summary": "한국어 요약"
+  "keywords": [{"keyword": "단어", "count": 횟수, "importance": 중요도}],
+  "categories": [{"category": "카테고리", "confidence": 신뢰도}],
+  "sentiment": "positive/negative/neutral",
+  "urgency": "high/medium/low",
+  "summary": "요약"
 }
 
-Categories: 기계고장, 전기문제, 유압문제, 공압문제, 제어문제, 안전문제, 정기점검, 기타
-JSON만 응답하세요.`;
+카테고리: 기계고장, 전기문제, 유압문제, 공압문제, 제어문제, 안전문제, 정기점검, 기타`;
 
-      const query = `다음 정비 텍스트를 분석해주세요: ${combinedText}`;
-      const response = await this.sendMessage(query, systemPrompt);
+      const response = await this.sendMessage(query);
 
       try {
         // 응답이 문자열인 경우 파싱
@@ -147,26 +144,9 @@ JSON만 응답하세요.`;
         `).join('\n---\n')
         : '이력 없음';
 
-      const systemPrompt = `당신은 설비 신뢰성 분석 전문 엔지니어입니다. 반드시 유효한 JSON으로만 응답하세요.
+      const query = `설비 고장 예측 분석을 JSON 형식으로 해주세요:
 
-정비 이력을 분석하여 고장을 예측하고 다음 JSON 형식으로 한국어로 응답하세요:
-{
-  "riskScore": 0-100,
-  "predictedFailureDate": "YYYY-MM-DD" 또는 null,
-  "recommendedActions": ["조치1", "조치2"],
-  "estimatedCost": 금액,
-  "confidence": 0.0-1.0,
-  "analysisDetails": {
-    "failurePattern": "패턴 설명",
-    "criticalComponents": ["부품1", "부품2"],
-    "maintenanceInterval": "권장 주기",
-    "riskFactors": ["요소1", "요소2"]
-  }
-}
-
-JSON만 응답하세요.`;
-
-      const query = `설비명: ${equipmentData.name}
+설비명: ${equipmentData.name}
 모델: ${equipmentData.model || '미상'}
 총 TM 건수: ${equipmentData.count}건
 마지막 정비 후 경과일: ${equipmentData.daysSince}일
@@ -177,9 +157,22 @@ ${tmHistoryText}
 최근 문제: ${equipmentData.recentIssues}
 우선순위: 높음 ${equipmentData.priorityDist.high}건, 보통 ${equipmentData.priorityDist.medium}건, 낮음 ${equipmentData.priorityDist.low}건
 
-정비 이력을 분석하고 향후 고장을 예측해주세요.`;
+다음 JSON 형식으로 응답해주세요:
+{
+  "riskScore": 위험점수(0-100),
+  "predictedFailureDate": "예측고장일(YYYY-MM-DD)" 또는 null,
+  "recommendedActions": ["권장조치1", "권장조치2"],
+  "estimatedCost": 예상비용,
+  "confidence": 신뢰도(0.0-1.0),
+  "analysisDetails": {
+    "failurePattern": "고장패턴설명",
+    "criticalComponents": ["주요부품1", "주요부품2"],
+    "maintenanceInterval": "권장점검주기",
+    "riskFactors": ["위험요소1", "위험요소2"]
+  }
+}`;
 
-      const response = await this.sendMessage(query, systemPrompt);
+      const response = await this.sendMessage(query);
 
       try {
         const content = typeof response === 'string' ? response : JSON.stringify(response);
@@ -205,27 +198,24 @@ ${tmHistoryText}
     try {
       console.log('🚀 Calling MISO API for insights generation');
 
-      const systemPrompt = `당신은 발전소 정비 전문가입니다. 반드시 유효한 JSON 배열로만 응답하세요.
+      const query = `발전소 정비 인사이트를 JSON 배열로 생성해주세요:
 
-분석 데이터를 기반으로 2-4개의 인사이트를 생성하고, '설비'라는 용어를 사용하세요.
+분석 데이터: ${JSON.stringify(analysisData)}
 
-다음 JSON 배열 형식으로 응답하세요:
+다음 JSON 배열 형식으로 2-4개의 인사이트를 생성하세요:
 [
   {
-    "type": "warning",
-    "title": "제목",
-    "description": "설명",
-    "priority": "high",
-    "actionItems": ["조치1", "조치2"]
+    "type": "warning/recommendation/trend",
+    "title": "인사이트 제목",
+    "description": "설비 관련 설명",
+    "priority": "high/medium/low",
+    "actionItems": ["조치항목1", "조치항목2"]
   }
 ]
 
-타입: warning(경고), recommendation(권장), trend(경향)
-우선순위: high, medium, low
-JSON 배열만 응답하세요.`;
+'설비'라는 용어를 사용하고 실용적인 조치항목을 포함해주세요.`;
 
-      const query = `다음 분석 데이터를 기반으로 인사이트를 생성해주세요: ${JSON.stringify(analysisData)}`;
-      const response = await this.sendMessage(query, systemPrompt);
+      const response = await this.sendMessage(query);
 
       try {
         const content = typeof response === 'string' ? response : JSON.stringify(response);
