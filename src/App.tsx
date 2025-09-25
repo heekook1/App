@@ -25,7 +25,7 @@ import {
   loadTMStatusFromSupabase,
   loadAssigneesFromSupabase
 } from './utils/dataSync';
-import openAIService from './services/openaiService';
+import misoService from './services/misoService';
 import aiCacheService from './services/aiCacheService';
 
 // Type definitions
@@ -5561,7 +5561,7 @@ const MaintenanceManagementSystem = () => {
           .map(tm => `${tm.description} ${tm.workResult}`)
           .join(', ');
         
-        const aiPrediction = await openAIService.predictMaintenance({
+        const aiPrediction = await misoService.predictMaintenance({
           name: equipment.equipmentName,
           model: equipment.equipmentModel || 'Unknown',
           count: equipment.tmCount,
@@ -5612,7 +5612,7 @@ const MaintenanceManagementSystem = () => {
       
       if (texts.length > 0) {
         // OpenAI API 호출
-        aiAnalysisResult = await openAIService.analyzeText(texts);
+        aiAnalysisResult = await misoService.analyzeText(texts);
       }
     } catch (error) {
       console.error('AI 텍스트 분석 오류:', error);
@@ -5722,7 +5722,7 @@ const MaintenanceManagementSystem = () => {
           totalTMs: tmStatusList.length
         };
         
-        const insights = await openAIService.generateInsights(analysisData);
+        const insights = await misoService.generateInsights(analysisData);
         setAiInsights(insights);
         
         // Supabase에 결과 캐시 저장 (비동기로 처리)
