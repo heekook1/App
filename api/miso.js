@@ -42,8 +42,23 @@ export default async function handler(req, res) {
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('MISO API Error:', data);
-      return res.status(response.status).json(data);
+      console.error('MISO API Error Details:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: data,
+        requestBody: req.body,
+        endpoint: `${apiEndpoint}/chat`,
+        hasApiKey: !!apiKey,
+        apiKeyUsed: apiKey ? apiKey.substring(0, 10) + '...' : 'none'
+      });
+
+      // 더 자세한 에러 메시지 반환
+      return res.status(response.status).json({
+        error: data.error || data.message || 'MISO API request failed',
+        details: data,
+        status: response.status,
+        message: data.message || 'Unknown error'
+      });
     }
 
     // MISO API 응답 처리

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(nvm:*)",
+      "Bash(export NVM_DIR=\"$HOME/.nvm\")",
+      "Bash([ -s \"$NVM_DIR/nvm.sh\" ])",
+      "Bash(. \"$NVM_DIR/nvm.sh\")",
+      "Bash(node:*)",
+      "Bash(npm --version)",
+      "Bash(SUPABASE_ACCESS_TOKEN=\"sbp_b295e5a98210f650c4c4166f19f349a8226108b3\" npx -y @supabase/mcp-server-supabase@latest --project-ref=olwicbbmmokcvlqcrkqn)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "mcp__supabase__list_tables",
+      "Read(//mnt/c/Users/khkuk/OneDrive/Desktop/**)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase",
+    "context7",
+    "flowise"
+  ]
+}

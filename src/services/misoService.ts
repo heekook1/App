@@ -54,11 +54,25 @@ class MisoService {
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`MISO API error: ${response.status}`);
-      }
-
       const data = await response.json();
+
+      if (!response.ok) {
+        console.error('MISO API Error Response:', {
+          status: response.status,
+          error: data.error,
+          details: data.details,
+          fullResponse: data,
+          requestBody: {
+            query: fullQuery,
+            mode: 'blocking',
+            conversation_id: this.conversationId || '',
+            user: 'maintenance-system',
+            inputs: {}
+          }
+        });
+
+        throw new Error(`MISO API error: ${response.status} - ${JSON.stringify(data)}`);
+      }
 
       // 대화 ID 저장 (이어서 대화할 경우 사용)
       if (data.conversation_id) {

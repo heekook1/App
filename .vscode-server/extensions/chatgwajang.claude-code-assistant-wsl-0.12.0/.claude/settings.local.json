@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npm run compile:*)",
+      "Bash(mkdir:*)",
+      "Bash(npm run compile:*)",
+      "Bash(code:*)",
+      "Bash(vsce package:*)",
+      "Bash(npx vsce:*)",
+      "Bash(grep:*)",
+      "Bash(rm:*)",
+      "Bash(cp:*)",
+      "Bash(npm run package:*)",
+      "Bash(npm run:*)",
+      "Bash(git add:*)",
+      "Bash(git config:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": []
+  }
+}

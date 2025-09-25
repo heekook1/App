@@ -1,0 +1,206 @@
+[
+  {
+    "debug": "Calling MCP tool: getDiagnostics",
+    "timestamp": "2025-09-25T05:24:18.698Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Tool 'getDiagnostics' completed successfully in 24ms",
+    "timestamp": "2025-09-25T05:24:18.722Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Calling MCP tool: getDiagnostics",
+    "timestamp": "2025-09-25T05:24:24.053Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Tool 'getDiagnostics' completed successfully in 23ms",
+    "timestamp": "2025-09-25T05:24:24.076Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Calling MCP tool: getDiagnostics",
+    "timestamp": "2025-09-25T05:24:27.522Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Tool 'getDiagnostics' completed successfully in 18ms",
+    "timestamp": "2025-09-25T05:24:27.540Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Calling MCP tool: getDiagnostics",
+    "timestamp": "2025-09-25T05:24:38.752Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Tool 'getDiagnostics' completed successfully in 13ms",
+    "timestamp": "2025-09-25T05:24:38.765Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Calling MCP tool: getDiagnostics",
+    "timestamp": "2025-09-25T05:24:42.736Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Tool 'getDiagnostics' completed successfully in 9ms",
+    "timestamp": "2025-09-25T05:24:42.745Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Calling MCP tool: getDiagnostics",
+    "timestamp": "2025-09-25T05:26:10.797Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Tool 'getDiagnostics' completed successfully in 6ms",
+    "timestamp": "2025-09-25T05:26:10.803Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Calling MCP tool: closeAllDiffTabs",
+    "timestamp": "2025-09-25T05:26:10.831Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Tool 'closeAllDiffTabs' completed successfully in 20ms",
+    "timestamp": "2025-09-25T05:26:10.851Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Calling MCP tool: getDiagnostics",
+    "timestamp": "2025-09-25T05:28:00.482Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Tool 'getDiagnostics' completed successfully in 15ms",
+    "timestamp": "2025-09-25T05:28:00.497Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Calling MCP tool: closeAllDiffTabs",
+    "timestamp": "2025-09-25T05:28:00.530Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Tool 'closeAllDiffTabs' completed successfully in 21ms",
+    "timestamp": "2025-09-25T05:28:00.551Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Calling MCP tool: getDiagnostics",
+    "timestamp": "2025-09-25T05:28:09.003Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Tool 'getDiagnostics' completed successfully in 13ms",
+    "timestamp": "2025-09-25T05:28:09.016Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Calling MCP tool: getDiagnostics",
+    "timestamp": "2025-09-25T05:28:13.585Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Tool 'getDiagnostics' completed successfully in 9ms",
+    "timestamp": "2025-09-25T05:28:13.594Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Calling MCP tool: getDiagnostics",
+    "timestamp": "2025-09-25T05:28:19.349Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Tool 'getDiagnostics' completed successfully in 5ms",
+    "timestamp": "2025-09-25T05:28:19.354Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Calling MCP tool: getDiagnostics",
+    "timestamp": "2025-09-25T05:28:19.406Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Tool 'getDiagnostics' completed successfully in 11ms",
+    "timestamp": "2025-09-25T05:28:19.417Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Calling MCP tool: getDiagnostics",
+    "timestamp": "2025-09-25T05:28:27.017Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Tool 'getDiagnostics' completed successfully in 13ms",
+    "timestamp": "2025-09-25T05:28:27.030Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Calling MCP tool: getDiagnostics",
+    "timestamp": "2025-09-25T05:28:31.471Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Tool 'getDiagnostics' completed successfully in 7ms",
+    "timestamp": "2025-09-25T05:28:31.478Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Calling MCP tool: getDiagnostics",
+    "timestamp": "2025-09-25T05:28:37.117Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Tool 'getDiagnostics' completed successfully in 8ms",
+    "timestamp": "2025-09-25T05:28:37.125Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Calling MCP tool: getDiagnostics",
+    "timestamp": "2025-09-25T05:28:37.171Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  },
+  {
+    "debug": "Tool 'getDiagnostics' completed successfully in 10ms",
+    "timestamp": "2025-09-25T05:28:37.181Z",
+    "sessionId": "6bc67bd8-da39-4d58-88d9-542c46535751",
+    "cwd": "/home/khkuk0510"
+  }
+]

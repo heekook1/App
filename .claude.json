@@ -1,0 +1,36 @@
+{
+  "installMethod": "global",
+  "autoUpdates": true,
+  "userID": "e524bfaf1e7db61c405c93af282a546251cc910711832db57855d8dac8764a8a",
+  "fallbackAvailableWarningThreshold": 0.2,
+  "projects": {
+    "/home/khkuk0510": {
+      "allowedTools": [],
+      "history": [
+        {
+          "display": "[Pasted text #1 +26 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "misoService.ts:43 \n \n POST https://app-three-ashy.vercel.app/api/miso 400 (Bad Request)\nsendMessage    @    misoService.ts:43\npredictMaintenance    @    misoService.ts:168\nZr    @    App.tsx:5564\nmisoService.ts:70 \n MISO API call failed: Error: MISO API error: 400\n    at Object.sendMessage (misoService.ts:58:15)\n    at async Object.predictMaintenance (misoService.ts:168:13)\n    at async Zr (App.tsx:5564:15)\n    at async Promise.all (/index 0)\n    at async App.tsx:5709:23\nsendMessage    @    misoService.ts:70\nawait in sendMessage        \npredictMaintenance    @    misoService.ts:168\nZr    @    App.tsx:5564\nmisoService.ts:185 \n Predictive maintenance error: Error: MISO API error: 400\n    at Object.sendMessage (misoService.ts:58:15)\n    at async Object.predictMaintenance (misoService.ts:168:13)\n    at async Zr (App.tsx:5564:15)\n    at async Promise.all (/index 0)\n    at async App.tsx:5709:23\npredictMaintenance    @    misoService.ts:185\nawait in predictMaintenance        \nZr    @    App.tsx:5564"
+            }
+          }
+        },
+        {
+          "display": "응 vercel 환경변수 등록햇어 깃헙에 푸쉬한거지?",
+          "pastedContents": {}
+        }
+      ],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "ignorePatterns": [],
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false
+    }
+  }
+}
