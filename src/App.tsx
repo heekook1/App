@@ -5662,29 +5662,49 @@ const MaintenanceManagementSystem = () => {
     };
   };
 
-  // AI 분석 수행 (Supabase 캐시 활용)
+  // AI 분석 진행 중 플래그 추가
+  const [isAnalysisInProgress, setIsAnalysisInProgress] = useState(false);
+  const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // AI 분석 수행 (Supabase 캐시 활용 + 중복 방지)
   useEffect(() => {
-    const performSmartAnalysis = async () => {
-      if (currentPage !== 'ai-analysis' || tmStatusList.length === 0) return;
-      
-      // 현재 데이터 해시 생성
-      const currentDataHash = generateDataHash(tmStatusList);
-      
-      // 로컬 캐시 먼저 체크 (빠른 응답)
-      if (currentDataHash === lastDataHash && equipmentRisks.length > 0) {
-        console.log('🚀 로컬 캐시 사용 - TM 데이터 변경 없음, API 호출 생략');
-        return;
-      }
-      
-      console.log('🔄 TM 데이터 변경 감지 - AI 분석 확인 중', {
-        이전: lastDataHash.substring(0, 8) + '...',
-        현재: currentDataHash.substring(0, 8) + '...',
-        TM수: tmStatusList.length
-      });
-      
-      setIsAIAnalysisLoading(true);
-      
-      try {
+    // 이전 타임아웃 취소
+    if (analysisTimeoutRef.current) {
+      clearTimeout(analysisTimeoutRef.current);
+    }
+
+    // 500ms 디바운싱 적용
+    analysisTimeoutRef.current = setTimeout(async () => {
+      const performSmartAnalysis = async () => {
+        if (currentPage !== 'ai-analysis' || tmStatusList.length === 0) return;
+
+        // 이미 분석 중이면 중복 실행 방지
+        if (isAnalysisInProgress) {
+          console.log('⏳ AI 분석이 이미 진행 중입니다. 중복 호출 차단');
+          return;
+        }
+
+        setIsAnalysisInProgress(true);
+
+        // 현재 데이터 해시 생성
+        const currentDataHash = generateDataHash(tmStatusList);
+
+        // 로컬 캐시 먼저 체크 (빠른 응답)
+        if (currentDataHash === lastDataHash && equipmentRisks.length > 0) {
+          console.log('🚀 로컬 캐시 사용 - TM 데이터 변경 없음, API 호출 생략');
+          setIsAnalysisInProgress(false);
+          return;
+        }
+
+        console.log('🔄 TM 데이터 변경 감지 - AI 분석 확인 중', {
+          이전: lastDataHash.substring(0, 8) + '...',
+          현재: currentDataHash.substring(0, 8) + '...',
+          TM수: tmStatusList.length
+        });
+
+        setIsAIAnalysisLoading(true);
+
+        try {
         // Supabase에서 캐시된 분석 결과 확인
         const cachedResults = await aiCacheService.getAllAnalysisCache(currentDataHash);
         
@@ -5697,8 +5717,9 @@ const MaintenanceManagementSystem = () => {
           setAiInsights(cachedResults.ai_insights);
           setLastDataHash(currentDataHash);
           setLastAnalysisTime(new Date());
-          
+
           setIsAIAnalysisLoading(false);
+          setIsAnalysisInProgress(false);
           return;
         }
         
@@ -5745,11 +5766,20 @@ const MaintenanceManagementSystem = () => {
         console.error('분석 오류:', error);
       } finally {
         setIsAIAnalysisLoading(false);
+        setIsAnalysisInProgress(false);
       }
     };
 
     performSmartAnalysis();
-  }, [tmStatusList, currentPage]);
+  }, 500);
+
+  // 컴포넌트 언마운트 시 타임아웃 정리
+  return () => {
+    if (analysisTimeoutRef.current) {
+      clearTimeout(analysisTimeoutRef.current);
+    }
+  };
+}, [tmStatusList, currentPage]);
 
   // AI 분석 기능
   const renderAIAnalysis = () => {
