@@ -1726,12 +1726,12 @@ const MaintenanceManagementSystem = () => {
               })
               .slice(0, 8).map(announcement => (
               <div key={announcement.id} className="p-3 border rounded hover:bg-gray-50 cursor-pointer" onClick={() => handleAnnouncementClick(announcement)}>
-                <div className="flex items-start justify-between mb-2">
-                  <p className="font-medium text-sm flex items-center gap-1">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <p className="font-medium text-sm flex items-center gap-1 flex-1">
                     {announcement.isPinned && <span className="text-blue-600">📌</span>}
                     {announcement.title}
                   </p>
-                  <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getPriorityColor(announcement.priority)}`}>
+                  <span className={`px-2 py-1 rounded-lg text-xs font-medium flex-shrink-0 ${getPriorityColor(announcement.priority)}`}>
                     {announcement.priority === 'urgent' ? '긴급' :
                      announcement.priority === 'important' ? '중요' : '일반'}
                   </span>
