@@ -26,13 +26,45 @@
       };
     </script>
     <script
-      src="https://ud.udify.app/embed.min.js"
+      src="https://udify.app/embed.min.js"
       id="LgVEnTaf3ncIaEct"
       defer>
     </script>
+
+    <!-- iframe을 함께 사용해서 API 오류 방지 -->
+    <iframe
+      src="https://udify.app/chatbot/LgVEnTaf3ncIaEct"
+      style="display: none; position: fixed; bottom: 20px; right: 20px; width: 450px; height: 790px; border: none; border-radius: 10px; z-index: 999;"
+      frameborder="0"
+      allow="microphone; camera"
+      id="dify-chatbot-iframe-backup">
+    </iframe>
+
+    <script>
+      // API 오류 발생시 iframe으로 대체하는 스크립트
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+          const originalButton = document.getElementById('dify-chatbot-bubble-button');
+          const originalWindow = document.getElementById('dify-chatbot-bubble-window');
+          const backupIframe = document.getElementById('dify-chatbot-iframe-backup');
+
+          if (originalButton && !originalWindow && backupIframe) {
+            // 원본 버튼에 클릭 이벤트 추가
+            originalButton.addEventListener('click', function() {
+              if (backupIframe.style.display === 'none') {
+                backupIframe.style.display = 'block';
+              } else {
+                backupIframe.style.display = 'none';
+              }
+            });
+          }
+        }, 3000); // 3초 후 체크
+      });
+    </script>
     <style>
+      /* 로그인하지 않은 사용자에게 챗봇 숨김 */
       body.unauthenticated #dify-chatbot-bubble-button,
-      body.unauthenticated #dify-chatbot-bubble-window {
+      body.unauthenticated #dify-chatbot-iframe {
         display: none !important;
       }
       
