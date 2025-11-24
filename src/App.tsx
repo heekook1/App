@@ -14,6 +14,7 @@ import AuthCallback from './AuthCallback';
 import ResetPasswordPage from './ResetPasswordPage';
 import WeatherWidget from './components/WeatherWidget';
 import { WeatherProvider } from './contexts/WeatherContext';
+import DifyChatbot from './components/DifyChatbot';
 import { 
   loadPersonnelFromSupabase, 
   loadWorkOrdersFromSupabase, 
@@ -7110,6 +7111,10 @@ const MaintenanceManagementSystem = () => {
           </div>
         </div>
       )}
+
+      {/* Dify Chatbot - 로그인한 사용자에게만 표시 */}
+      {isAuthenticated && <DifyChatbot />}
+      
       </div>
     </WeatherProvider>
   );
