@@ -28,6 +28,7 @@ import {
 } from './utils/dataSync';
 import misoService from './services/misoService';
 import aiCacheService from './services/aiCacheService';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 // Type definitions
 interface Personnel {
@@ -7115,6 +7116,7 @@ const MaintenanceManagementSystem = () => {
       {/* Dify Chatbot - 로그인한 사용자에게만 표시 */}
       {isAuthenticated && <DifyChatbot />}
       
+      <SpeedInsights />
       </div>
     </WeatherProvider>
   );
